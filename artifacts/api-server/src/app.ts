@@ -27,22 +27,22 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+const frontendDist = path.join(process.cwd(), "artifacts/rute-travel/dist/public");
 if (process.env.NODE_ENV === "production") {
-  const frontendDist = path.join(process.cwd(), "artifacts/rute-travel/dist/public");
   if (existsSync(frontendDist)) {
     app.use(express.static(frontendDist));
-    app.get("/{*path}", (_req, res) => {
+    app.get("*", (_req, res) => {
       res.sendFile(path.join(frontendDist, "index.html"));
     });
     logger.info({ frontendDist }, "Serving frontend static files");
   } else {
-    logger.warn({ frontendDist }, "Frontend dist not found, skipping static serving");
+    logger.warn({ frontendDist }, "Frontend dist not found — did nixpacks build the frontend?");
   }
 }
 
