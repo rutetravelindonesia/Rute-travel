@@ -5,7 +5,10 @@ nixPkgs = ["nodejs_20", "nodePackages.pnpm"]
 cmds = ["pnpm install --no-frozen-lockfile"]
 
 [phases.build]
-cmds = ["pnpm --filter @workspace/api-server run build"]
+cmds = [
+  "NODE_ENV=production BASE_PATH=/ pnpm --filter @workspace/rute-travel run build",
+  "pnpm --filter @workspace/api-server run build"
+]
 
 [start]
 cmd = "pnpm --filter @workspace/api-server run start"
