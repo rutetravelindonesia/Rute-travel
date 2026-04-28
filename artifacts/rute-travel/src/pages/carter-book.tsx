@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import MapPicker, { type PickedAddress } from "@/components/MapPicker";
 import { resolvePhotoUrl } from "@/lib/photoUrl";
+import { PhotoLightbox } from "@/components/photo-lightbox";
 
 interface CarterMitra {
   settings_id: number;
@@ -58,6 +59,7 @@ export default function CarterBook() {
   const [pickupOpen, setPickupOpen] = useState(false);
   const [dropoffOpen, setDropoffOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -210,7 +212,15 @@ export default function CarterBook() {
         <div className="bg-card rounded-2xl border border-border p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden">
+              <div
+                className={`w-11 h-11 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden ${mitra.driver?.foto_profil ? "cursor-pointer" : ""}`}
+                onClick={() => {
+                  if (mitra.driver?.foto_profil) {
+                    const url = resolvePhotoUrl(mitra.driver.foto_profil, apiBase);
+                    if (url) setPhotoModal({ url, name: mitra.driver.nama });
+                  }
+                }}
+              >
                 {mitra.driver?.foto_profil ? (
                   <img
                     src={resolvePhotoUrl(mitra.driver.foto_profil, apiBase) ?? ""}
@@ -338,7 +348,13 @@ export default function CarterBook() {
               <Car className="w-4 h-4 text-accent" />
               <p className="text-sm font-bold text-foreground">Foto Kendaraan</p>
             </div>
-            <div className="rounded-xl overflow-hidden bg-muted">
+            <div
+              className="rounded-xl overflow-hidden bg-muted cursor-pointer"
+              onClick={() => {
+                const url = resolvePhotoUrl(mitra.kendaraan!.foto_url, apiBase);
+                if (url) setPhotoModal({ url, name: `${mitra.kendaraan!.merek} ${mitra.kendaraan!.model}` });
+              }}
+            >
               <img
                 src={resolvePhotoUrl(mitra.kendaraan.foto_url, apiBase) ?? ""}
                 alt={`${mitra.kendaraan.merek} ${mitra.kendaraan.model}`}
@@ -404,6 +420,9 @@ export default function CarterBook() {
           setDropoffOpen(false);
         }}
       />
+      {photoModal && (
+        <PhotoLightbox url={photoModal.url} name={photoModal.name} onClose={() => setPhotoModal(null)} />
+      )}
     </div>
   );
 }
