@@ -121,7 +121,13 @@ export default function CarterEtiket() {
       if (res.ok) {
         const data: CarterBooking = await res.json();
         setBooking(data);
+        setError(null);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        setError(j.error ?? `Gagal memuat tiket (${res.status}).`);
       }
+    } catch {
+      setError("Koneksi ke server gagal. Coba lagi.");
     } finally {
       if (!silent) setLoading(false);
     }
