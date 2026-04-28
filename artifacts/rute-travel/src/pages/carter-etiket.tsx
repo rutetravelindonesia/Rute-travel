@@ -122,6 +122,8 @@ export default function CarterEtiket() {
         const data: CarterBooking = await res.json();
         setBooking(data);
         setError(null);
+      } else if (res.status === 401) {
+        setLocation("/login");
       } else {
         const j = await res.json().catch(() => ({}));
         setError(j.error ?? `Gagal memuat tiket (${res.status}).`);
