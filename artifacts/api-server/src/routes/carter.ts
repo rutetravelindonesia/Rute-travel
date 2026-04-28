@@ -771,14 +771,8 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
     res.status(400).json({ error: "ID tidak valid." });
     return;
   }
-  const { trip_progress } = req.body as { trip_progress?: string };
-  const allowed = ["menunggu", "menuju_jemput", "dalam_perjalanan", "selesai"];
-  if (!trip_progress || !allowed.includes(trip_progress)) {
-    res.status(400).json({ error: "trip_progress tidak valid." });
-    return;
-  }
   const [b] = await db
-    .select({ settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status })
+    .select({ settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status, trip_progress: carterBookingsTable.trip_progress })
     .from(carterBookingsTable)
     .where(eq(carterBookingsTable.id, id));
   if (!b) {
@@ -790,11 +784,28 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
     res.status(403).json({ error: "Bukan mitra untuk pesanan ini." });
     return;
   }
-  const updates: Record<string, unknown> = { trip_progress, updated_at: new Date() };
-  if (trip_progress === "selesai") updates.status = "selesai";
+  if (b.status === "selesai" || b.trip_progress === "selesai") {
+    res.status(400).json({ error: "Perjalanan sudah selesai." });
+    return;
+  }
+  const NEXT: Record<string, string> = {
+    menunggu: "menuju_jemput",
+    menuju_jemput: "dalam_perjalanan",
+    dalam_perjalanan: "selesai",
+  };
+  const requestedProgress = (req.body as Record<string, unknown> | undefined)?.trip_progress as string | undefined;
+  const currentProgress = b.trip_progress ?? "menunggu";
+  const next_progress = requestedProgress ?? NEXT[currentProgress];
+  const allowed = ["menunggu", "menuju_jemput", "dalam_perjalanan", "selesai"];
+  if (!next_progress || !allowed.includes(next_progress)) {
+    res.status(400).json({ error: "trip_progress tidak valid." });
+    return;
+  }
+  const updates: Record<string, unknown> = { trip_progress: next_progress, updated_at: new Date() };
+  if (next_progress === "selesai") updates.status = "selesai";
   await db.update(carterBookingsTable).set(updates).where(eq(carterBookingsTable.id, id));
-  req.log.info({ bookingId: id, trip_progress }, "Carter trip progress updated");
-  res.json({ ok: true, trip_progress });
+  req.log.info({ bookingId: id, trip_progress: next_progress }, "Carter trip progress updated");
+  res.json({ ok: true, trip_progress: next_progress });
 });
 
 export default router;
