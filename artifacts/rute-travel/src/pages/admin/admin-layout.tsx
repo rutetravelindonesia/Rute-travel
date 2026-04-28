@@ -6,6 +6,7 @@ import {
   LogOut, Menu, X, ShoppingBag, CheckCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useLogout } from "@workspace/api-client-react";
 
 const NAV = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -25,12 +26,17 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { logout } = useAuth();
+  const { clearAuth } = useAuth();
+  const logoutMutation = useLogout();
   const [open, setOpen] = useState(false);
 
   function handleLogout() {
-    logout();
-    setLocation("/admin/login");
+    logoutMutation.mutate(undefined, {
+      onSettled: () => {
+        clearAuth();
+        setLocation("/");
+      },
+    });
   }
 
   return (
@@ -74,9 +80,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-3 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-300 hover:bg-red-900/30 transition-colors"
+            disabled={logoutMutation.isPending}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-300 hover:bg-red-900/30 transition-colors disabled:opacity-50"
           >
-            <LogOut className="w-4 h-4" /> Keluar
+            <LogOut className="w-4 h-4" />
+            {logoutMutation.isPending ? "Keluar..." : "Keluar"}
           </button>
         </div>
       </aside>
