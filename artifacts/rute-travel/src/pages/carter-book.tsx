@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, ChevronRight, MapPin, Navigation, User, Sparkles, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Car, ChevronRight, MapPin, Navigation, User, Sparkles, Calendar, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import MapPicker, { type PickedAddress } from "@/components/MapPicker";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface CarterMitra {
   settings_id: number;
@@ -11,7 +12,7 @@ interface CarterMitra {
   is_24_hours: boolean;
   hours_start: string | null;
   hours_end: string | null;
-  driver: { id: number; nama: string } | null;
+  driver: { id: number; nama: string; foto_profil: string | null } | null;
   kendaraan: {
     id: number;
     jenis: string;
@@ -209,8 +210,22 @@ export default function CarterBook() {
         <div className="bg-card rounded-2xl border border-border p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-                {mitra.driver ? initials(mitra.driver.nama) : <User className="w-5 h-5" />}
+              <div className="w-11 h-11 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden">
+                {mitra.driver?.foto_profil ? (
+                  <img
+                    src={resolvePhotoUrl(mitra.driver.foto_profil, apiBase) ?? ""}
+                    alt={mitra.driver.nama}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                      e.currentTarget.parentElement!.innerHTML = `<span class="text-sm font-bold">${initials(mitra.driver!.nama)}</span>`;
+                    }}
+                  />
+                ) : mitra.driver ? (
+                  initials(mitra.driver.nama)
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate" data-testid="mitra-nama">
@@ -315,6 +330,26 @@ export default function CarterBook() {
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
+
+        {/* Foto Kendaraan */}
+        {mitra.kendaraan?.foto_url && (
+          <div className="bg-card rounded-2xl border border-border p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Car className="w-4 h-4 text-accent" />
+              <p className="text-sm font-bold text-foreground">Foto Kendaraan</p>
+            </div>
+            <div className="rounded-xl overflow-hidden bg-muted">
+              <img
+                src={resolvePhotoUrl(mitra.kendaraan.foto_url, apiBase) ?? ""}
+                alt={`${mitra.kendaraan.merek} ${mitra.kendaraan.model}`}
+                className="w-full h-48 object-cover"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2 text-center">
+              {mitra.kendaraan.warna} · {mitra.kendaraan.merek} {mitra.kendaraan.model} · {mitra.kendaraan.plat_nomor}
+            </p>
+          </div>
+        )}
 
         {validationMsg && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3" data-testid="validation-msg">

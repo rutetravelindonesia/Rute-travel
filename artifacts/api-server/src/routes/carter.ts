@@ -421,7 +421,7 @@ router.get("/carter/mitra/:settings_id", async (req, res): Promise<void> => {
     hours_start: s.hours_start,
     hours_end: s.hours_end,
     driver: driver
-      ? { id: driver.id, nama: driver.nama }
+      ? { id: driver.id, nama: driver.nama, foto_profil: driver.foto_profil ?? null }
       : null,
     kendaraan: kendaraan
       ? {
