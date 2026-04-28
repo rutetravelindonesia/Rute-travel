@@ -5,6 +5,7 @@ import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
 import { useAuth } from "@/contexts/auth";
 import { KOTA_GROUPED } from "@/lib/kota";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface JadwalResult {
   kind: "jadwal";
@@ -237,9 +238,7 @@ export default function Cari() {
               <p className="text-xs text-muted-foreground" data-testid="results-count">{results.length} hasil ditemukan</p>
               {results.map((r) => {
                 const driverInitial = r.driver?.nama?.[0]?.toUpperCase() ?? "?";
-                const driverFoto = r.driver?.foto_profil
-                  ? `${apiBase}/storage${r.driver.foto_profil}`
-                  : null;
+                const driverFoto = resolvePhotoUrl(r.driver?.foto_profil, apiBase);
                 const rating = r.driver ? driverRatings[r.driver.id] : undefined;
                 const vehicleLine = r.kendaraan ? (
                   <>

@@ -167,7 +167,11 @@ export default function ProfilKendaraanForm() {
     );
   }
 
-  const fotoPreview = form.foto_url ? `${apiBase}/storage${form.foto_url}` : null;
+  const fotoPreview = form.foto_url
+    ? form.foto_url.startsWith("http")
+      ? form.foto_url
+      : `${apiBase}/storage${form.foto_url}`
+    : null;
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto pb-8">

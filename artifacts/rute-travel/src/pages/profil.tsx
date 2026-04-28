@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 import { useLocation } from "wouter";
 import {
   ArrowLeft, Car, User as UserIcon, LogOut, ChevronRight, Phone,
@@ -569,7 +570,7 @@ export default function ProfilPage() {
               </div>
             ) : fotoProfil ? (
               <img
-                src={`${apiBase}/storage${fotoProfil}`}
+                src={resolvePhotoUrl(fotoProfil, apiBase) ?? ""}
                 alt="Foto profil"
                 className="w-full h-full object-cover"
               />

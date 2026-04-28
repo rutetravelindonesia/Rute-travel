@@ -3,6 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, ChevronRight, MapPin, Navigation, User, Car } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 import MapPicker, { type PickedAddress } from "@/components/MapPicker";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 
@@ -244,11 +245,11 @@ export default function JadwalBook() {
             <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
-                onClick={() => detail.driver?.foto_profil && setPhotoModal({ url: `${apiBase}/storage${detail.driver.foto_profil}`, name: detail.driver.nama })}
+                onClick={() => detail.driver?.foto_profil && setPhotoModal({ url: resolvePhotoUrl(detail.driver.foto_profil, apiBase) ?? "", name: detail.driver.nama })}
                 className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${detail.driver?.foto_profil ? "cursor-pointer" : "cursor-default"}`}
               >
                 {detail.driver?.foto_profil ? (
-                  <img src={`${apiBase}/storage${detail.driver.foto_profil}`} alt={detail.driver.nama} className="w-full h-full object-cover" />
+                  <img src={resolvePhotoUrl(detail.driver.foto_profil, apiBase) ?? ""} alt={detail.driver.nama} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-accent text-white flex items-center justify-center font-bold text-sm">
                     {detail.driver ? initials(detail.driver.nama) : <User className="w-5 h-5" />}
@@ -470,7 +471,7 @@ export default function JadwalBook() {
             </div>
             <div className="rounded-xl overflow-hidden bg-muted">
               <img
-                src={`${apiBase}/storage${detail.kendaraan.foto_url}`}
+                src={resolvePhotoUrl(detail.kendaraan.foto_url, apiBase) ?? ""}
                 alt={`${detail.kendaraan.merek} ${detail.kendaraan.model}`}
                 className="w-full h-48 object-cover"
               />

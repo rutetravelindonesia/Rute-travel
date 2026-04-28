@@ -4,6 +4,7 @@ import { ArrowLeft, MessageCircle, Loader2 } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { useAuth } from "@/contexts/auth";
 import { BottomNav } from "@/components/bottom-nav";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface ThreadItem {
   id: number;
@@ -152,7 +153,7 @@ export default function ChatListPage() {
           </div>
         )}
         {threads?.map((t) => {
-          const tFoto = t.counterpart?.foto_profil ? `${apiBase}/storage${t.counterpart.foto_profil}` : null;
+          const tFoto = resolvePhotoUrl(t.counterpart?.foto_profil, apiBase);
           return (
           <div
             key={t.id}

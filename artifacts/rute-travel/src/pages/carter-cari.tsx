@@ -5,6 +5,7 @@ import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
 import { useAuth } from "@/contexts/auth";
 import { KOTA_GROUPED } from "@/lib/kota";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface CarterMitra {
   settings_id: number;
@@ -228,7 +229,7 @@ export default function CarterCari() {
             </p>
             <div className="space-y-3">
               {results.map((m) => {
-                const mFoto = m.driver.foto_profil ? `${apiBase}/storage${m.driver.foto_profil}` : null;
+                const mFoto = resolvePhotoUrl(m.driver.foto_profil, apiBase);
                 const driverInitials = m.driver.nama.split(" ").map((s: string) => s[0]?.toUpperCase()).filter(Boolean).slice(0, 2).join("");
                 return (
                   <RideCard

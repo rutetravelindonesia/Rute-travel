@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Car, Plus, Star, Edit2, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
+import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface Kendaraan {
   id: number;
@@ -85,9 +86,8 @@ export default function ProfilKendaraan() {
     }
   }
 
-  function fotoSrc(path: string) {
-    if (!path) return null;
-    return `${apiBase}/storage${path}`;
+  function fotoSrc(path: string | null | undefined) {
+    return resolvePhotoUrl(path, apiBase);
   }
 
   return (
