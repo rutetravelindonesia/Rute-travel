@@ -10,13 +10,9 @@ import {
   scheduleBookingsTable,
   ratingsTable,
 } from "@workspace/db";
-import { ObjectStorageService } from "../lib/objectStorage";
-
-const objectStorage = new ObjectStorageService();
-const FOTO_PATH_REGEX = /^\/objects\/uploads\/[A-Za-z0-9_-]+$/;
 function isValidFotoUrl(s: string): boolean {
   if (!s) return true;
-  return FOTO_PATH_REGEX.test(s);
+  return s.startsWith("https://res.cloudinary.com/") || s.startsWith("/objects/uploads/");
 }
 
 const router: IRouter = Router();
@@ -122,9 +118,6 @@ router.post("/users/me/foto-profil", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Foto profil tidak valid. Harus diunggah lewat aplikasi." });
     return;
   }
-  try {
-    await objectStorage.trySetObjectEntityAclPolicy(foto_profil, { visibility: "public" });
-  } catch (_) {}
   const [updated] = await db
     .update(usersTable)
     .set({ foto_profil })

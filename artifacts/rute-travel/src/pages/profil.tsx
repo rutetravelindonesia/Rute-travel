@@ -389,20 +389,15 @@ export default function ProfilPage() {
     setFotoUploading(true);
     setFotoError(null);
     try {
-      const urlResp = await fetch(`${apiBase}/storage/uploads/request-url`, {
+      const formData = new FormData();
+      formData.append("file", blob, "foto-profil.jpg");
+      const uploadResp = await fetch(`${apiBase}/storage/uploads`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: "foto-profil.jpg", size: blob.size, contentType: "image/jpeg" }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
-      if (!urlResp.ok) throw new Error("Gagal mendapat URL upload");
-      const { uploadURL, objectPath } = await urlResp.json();
-
-      const putResp = await fetch(uploadURL, {
-        method: "PUT",
-        body: blob,
-        headers: { "Content-Type": "image/jpeg" },
-      });
-      if (!putResp.ok) throw new Error("Gagal upload foto");
+      if (!uploadResp.ok) throw new Error("Gagal upload foto");
+      const { objectPath } = await uploadResp.json();
 
       const saveResp = await fetch(`${apiBase}/users/me/foto-profil`, {
         method: "POST",

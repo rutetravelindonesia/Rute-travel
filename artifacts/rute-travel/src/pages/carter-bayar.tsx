@@ -109,20 +109,15 @@ export default function CarterBayar() {
     }
     setUploading(true);
     try {
-      const reqRes = await fetch(`${apiBase}/storage/uploads/request-url`, {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch(`${apiBase}/storage/uploads`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       });
-      if (!reqRes.ok) throw new Error("Gagal meminta URL upload.");
-      const { uploadURL, objectPath } = (await reqRes.json()) as { uploadURL: string; objectPath: string };
-
-      const putRes = await fetch(uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error("Gagal upload file.");
+      if (!uploadRes.ok) throw new Error("Gagal upload file.");
+      const { objectPath } = (await uploadRes.json()) as { objectPath: string };
 
       const proofRes = await fetch(`${apiBase}/carter-bookings/${booking.id}/payment-proof`, {
         method: "POST",
