@@ -34,7 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 const frontendDist = path.join(process.cwd(), "artifacts/rute-travel/dist/public");
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === "production" && process.env.SERVE_FRONTEND !== "false") {
   if (existsSync(frontendDist)) {
     app.use(express.static(frontendDist));
     app.get("*", (_req, res) => {

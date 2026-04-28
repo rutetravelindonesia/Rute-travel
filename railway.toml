@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+buildCommand = "NODE_ENV=production BASE_PATH=/ pnpm --filter @workspace/rute-travel run build && pnpm --filter @workspace/api-server run build"
 
 [deploy]
 startCommand = "pnpm --filter @workspace/api-server run start"
