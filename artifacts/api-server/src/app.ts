@@ -34,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendDist = path.resolve(__dirname, "../../../artifacts/rute-travel/dist/public");
 if (process.env.NODE_ENV === "production" && process.env.SERVE_FRONTEND !== "false") {
