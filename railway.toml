@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "pnpm --filter @workspace/api-server run start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
