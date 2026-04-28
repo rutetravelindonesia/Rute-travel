@@ -580,12 +580,19 @@ async function loadCarterBookingDetail(bookingId: number, currentUserId?: number
     ? await db.select().from(kendaraanTable).where(eq(kendaraanTable.id, s.kendaraan_id))
     : [null];
 
-  const [myRating] = currentUserId
-    ? await db
+  let myRating = null;
+  if (currentUserId) {
+    try {
+      const rows = await db
         .select()
         .from(ratingsTable)
-        .where(and(eq(ratingsTable.carter_booking_id, bookingId), eq(ratingsTable.rater_id, currentUserId)))
-    : [null];
+        .where(and(eq(ratingsTable.carter_booking_id, bookingId), eq(ratingsTable.rater_id, currentUserId)));
+      myRating = rows[0] ?? null;
+    } catch (err) {
+      console.error("Rating query failed for carter booking", bookingId, err);
+      myRating = null;
+    }
+  }
 
   return {
     ...b,
