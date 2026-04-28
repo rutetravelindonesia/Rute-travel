@@ -1,0 +1,79 @@
+modules = ["nodejs-24", "postgresql-16"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3002
+
+[[ports]]
+localPort = 8083
+externalPort = 3003
+
+[[ports]]
+localPort = 8084
+externalPort = 4200
+
+[[ports]]
+localPort = 8085
+externalPort = 5000
+
+[[ports]]
+localPort = 8086
+externalPort = 8000
+
+[[ports]]
+localPort = 8087
+externalPort = 6800
+
+[[ports]]
+localPort = 8088
+externalPort = 8081
+
+[[ports]]
+localPort = 8089
+externalPort = 9000
+
+[[ports]]
+localPort = 8090
+externalPort = 3001
+
+[[ports]]
+localPort = 25006
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BKX3Du768F8Lqa8kBUKFEP-2CXUeUVB4xMiXi_lvbz84Y5WO-kG0TupnUFET7PwgzwaI2WmjITqWU6b8PkqxMcE"
+VAPID_SUBJECT = "mailto:admin@rute.app"
+VAPID_PRIVATE_KEY = "HeqMd6MkHUkNkvjfixep9GPEWg3u4KPITui1akfBOM8"
+GITHUB_PERSONAL_ACCESS_TOKEN = "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"
+
+[nix]
+channel = "stable-25_05"
