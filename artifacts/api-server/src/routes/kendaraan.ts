@@ -23,12 +23,16 @@ async function getUserFromToken(authHeader: string | undefined) {
   return user ?? null;
 }
 
-// Photos must come from our own object storage (presigned upload).
-// Accept either: empty (legacy backfill), or a path under /objects/uploads/<uuid>.
-const FOTO_PATH_REGEX = /^\/objects\/uploads\/[A-Za-z0-9_-]+$/;
+// Accept either: empty, legacy /objects/uploads/<uuid>, or Cloudinary CDN URL.
 function isValidFotoUrl(s: string): boolean {
   if (!s) return true;
-  return FOTO_PATH_REGEX.test(s);
+  if (/^\/objects\/uploads\/[A-Za-z0-9_-]+$/.test(s)) return true;
+  try {
+    const url = new URL(s);
+    return url.protocol === "https:" && url.hostname.endsWith("cloudinary.com");
+  } catch {
+    return false;
+  }
 }
 
 router.get("/kendaraan/mine", async (req, res): Promise<void> => {

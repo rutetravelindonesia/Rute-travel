@@ -50,8 +50,9 @@ router.post("/storage/uploads", upload.single("file"), async (req: Request, res:
     );
     res.json({ objectPath: url, uploadURL: url });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
     req.log.error({ err: error }, "Error uploading to Cloudinary");
-    res.status(500).json({ error: "Gagal mengunggah file." });
+    res.status(500).json({ error: `Gagal mengunggah file: ${msg}` });
   }
 });
 
