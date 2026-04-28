@@ -108,6 +108,15 @@ function penumpangStatusBadge(o: UnifiedOrder): { label: string; cls: string } {
   }
 }
 
+function carterPenumpangBadge(status: Status, tp: string | null | undefined): { label: string; cls: string } {
+  if (tp === "menuju_jemput") return { label: "Mitra Menuju Jemput", cls: "bg-blue-100 text-blue-800" };
+  if (tp === "dalam_perjalanan") return { label: "Dalam Perjalanan", cls: "bg-indigo-100 text-indigo-800" };
+  if (tp === "selesai" || status === "selesai") return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
+  if (status === "pending") return { label: "Menunggu Pembayaran", cls: "bg-amber-100 text-amber-800" };
+  if (status === "batal") return { label: "Dibatalkan", cls: "bg-red-100 text-red-700" };
+  return { label: "Menunggu Mitra Jemput", cls: "bg-blue-100 text-blue-800" };
+}
+
 function formatDate(iso: string) {
   try {
     return new Date(iso + (iso.length === 10 ? "T00:00:00" : "")).toLocaleDateString("id-ID", {
@@ -872,7 +881,7 @@ export default function PesananPage() {
 
         {!isDriverView &&
           filtered?.map((o) => {
-            const sb = o.type === "schedule" ? penumpangStatusBadge(o) : statusBadge(o.status);
+            const sb = o.type === "schedule" ? penumpangStatusBadge(o) : carterPenumpangBadge(o.status, o.carter_trip_progress);
             return (
               <button
                 key={o.key}

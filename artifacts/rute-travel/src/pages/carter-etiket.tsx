@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { ArrowLeft, MapPin, Navigation, Ticket, Loader2, ExternalLink, CheckCircle2, Clock4, Car, Navigation2, LocateFixed, MessageCircle, Phone } from "lucide-react";
+import { ArrowLeft, MapPin, Navigation, Ticket, Loader2, ExternalLink, CheckCircle2, Clock4, Car, Navigation2, LocateFixed, MessageCircle, Phone, Star } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { driverIcon, pickupIcon } from "@/components/mapIcons";
 import { getDriverPhotoUrl } from "@/lib/utils";
@@ -49,6 +49,7 @@ interface CarterBooking {
   is_mitra: boolean;
   driver: { id: number; nama: string; foto_profil: string | null; no_whatsapp: string | null } | null;
   kendaraan: { id: number; merek: string; model: string; plat_nomor: string; warna: string } | null;
+  my_rating: { stars: number; comment: string | null } | null;
 }
 
 function formatRupiah(n: number) {
@@ -101,6 +102,11 @@ export default function CarterEtiket() {
   const [gpsActive, setGpsActive] = useState(false);
   const [driverPhotoError, setDriverPhotoError] = useState(false);
   const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
+  const [ratingStars, setRatingStars] = useState(0);
+  const [ratingHover, setRatingHover] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingBusy, setRatingBusy] = useState(false);
+  const [ratingDone, setRatingDone] = useState(false);
 
   const watchIdRef = useRef<number | null>(null);
 
@@ -193,6 +199,24 @@ export default function CarterEtiket() {
       if (res.ok) await fetchBooking(true);
     } finally {
       setBusyProgress(false);
+    }
+  }
+
+  async function submitRating() {
+    if (!booking || ratingStars === 0) return;
+    setRatingBusy(true);
+    try {
+      const res = await fetch(`${apiBase}/carter-bookings/${id}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ stars: ratingStars, comment: ratingComment.trim() || undefined }),
+      });
+      if (res.ok) {
+        setRatingDone(true);
+        await fetchBooking(true);
+      }
+    } finally {
+      setRatingBusy(false);
     }
   }
 
@@ -481,6 +505,57 @@ export default function CarterEtiket() {
         {booking.is_mitra && booking.status === "aktif" && tp === "selesai" && (
           <div className="w-full py-3 rounded-xl bg-green-50 text-green-700 text-sm font-bold flex items-center justify-center gap-2">
             <CheckCircle2 className="w-4 h-4" /> Perjalanan selesai
+          </div>
+        )}
+
+        {/* PENUMPANG: Rating section after trip ends */}
+        {!booking.is_mitra && (booking.status === "selesai" || tp === "selesai") && (
+          <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3">
+            {booking.my_rating || ratingDone ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} className={`w-6 h-6 ${s <= (booking.my_rating?.stars ?? ratingStars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">Terima kasih atas penilaian Anda!</span>
+                {booking.my_rating?.comment && (
+                  <span className="text-xs text-foreground italic">"{booking.my_rating.comment}"</span>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-amber-800 text-center">Bagaimana perjalanan Anda?</p>
+                <div className="flex justify-center gap-2">
+                  {[1,2,3,4,5].map(s => (
+                    <button
+                      key={s}
+                      onMouseEnter={() => setRatingHover(s)}
+                      onMouseLeave={() => setRatingHover(0)}
+                      onClick={() => setRatingStars(s)}
+                      className="p-1"
+                    >
+                      <Star className={`w-8 h-8 transition-colors ${s <= (ratingHover || ratingStars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={ratingComment}
+                  onChange={e => setRatingComment(e.target.value)}
+                  placeholder="Komentar (opsional)..."
+                  rows={2}
+                  className="w-full text-sm rounded-lg border border-amber-200 bg-white px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
+                <button
+                  onClick={submitRating}
+                  disabled={ratingStars === 0 || ratingBusy}
+                  className="w-full py-2.5 rounded-lg bg-[#a85e28] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {ratingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
+                  Kirim Penilaian
+                </button>
+              </>
+            )}
           </div>
         )}
 

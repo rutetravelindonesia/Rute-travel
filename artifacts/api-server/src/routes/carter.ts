@@ -10,6 +10,7 @@ import {
   carterRoutesTable,
   carterBookingsTable,
   kendaraanTable,
+  ratingsTable,
 } from "@workspace/db";
 import { CarterSettingsBody } from "@workspace/api-zod";
 
@@ -557,7 +558,7 @@ router.post("/carter/:settings_id/book", async (req, res): Promise<void> => {
   res.status(201).json(result.booking);
 });
 
-async function loadCarterBookingDetail(bookingId: number) {
+async function loadCarterBookingDetail(bookingId: number, currentUserId?: number) {
   const [b] = await db.select().from(carterBookingsTable).where(eq(carterBookingsTable.id, bookingId));
   if (!b) return null;
 
@@ -576,6 +577,13 @@ async function loadCarterBookingDetail(bookingId: number) {
 
   const [kendaraan] = s?.kendaraan_id
     ? await db.select().from(kendaraanTable).where(eq(kendaraanTable.id, s.kendaraan_id))
+    : [null];
+
+  const [myRating] = currentUserId
+    ? await db
+        .select()
+        .from(ratingsTable)
+        .where(and(eq(ratingsTable.carter_booking_id, bookingId), eq(ratingsTable.rater_id, currentUserId)))
     : [null];
 
   return {
@@ -607,6 +615,7 @@ async function loadCarterBookingDetail(bookingId: number) {
           origin_city: s.origin_city,
         }
       : null,
+    my_rating: myRating ?? null,
   };
 }
 
@@ -670,7 +679,7 @@ router.get("/carter-bookings/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "ID booking tidak valid." });
     return;
   }
-  const detail = await loadCarterBookingDetail(id);
+  const detail = await loadCarterBookingDetail(id, user.id);
   if (!detail) {
     res.status(404).json({ error: "Pesanan tidak ditemukan." });
     return;
@@ -810,6 +819,49 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
   await db.update(carterBookingsTable).set(updates).where(eq(carterBookingsTable.id, id));
   req.log.info({ bookingId: id, trip_progress: next_progress }, "Carter trip progress updated");
   res.json({ ok: true, trip_progress: next_progress });
+});
+
+router.post("/carter-bookings/:id/rate", async (req, res): Promise<void> => {
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+
+  const { stars, comment } = (req.body ?? {}) as { stars?: number; comment?: string };
+  if (!stars || stars < 1 || stars > 5) {
+    res.status(400).json({ error: "Bintang harus antara 1–5." }); return;
+  }
+
+  const [b] = await db
+    .select({ penumpang_id: carterBookingsTable.penumpang_id, settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status })
+    .from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  if (!b) { res.status(404).json({ error: "Pesanan tidak ditemukan." }); return; }
+  if (b.status !== "selesai") { res.status(400).json({ error: "Perjalanan belum selesai." }); return; }
+
+  const [s] = await db.select({ driver_id: carterSettingsTable.driver_id }).from(carterSettingsTable).where(eq(carterSettingsTable.id, b.settings_id));
+  if (!s) { res.status(404).json({ error: "Mitra tidak ditemukan." }); return; }
+
+  const isPenumpang = user.id === b.penumpang_id;
+  const isMitra = user.id === s.driver_id;
+  if (!isPenumpang && !isMitra) { res.status(403).json({ error: "Bukan peserta perjalanan ini." }); return; }
+
+  const ratee_id = isPenumpang ? s.driver_id : b.penumpang_id;
+
+  await db.insert(ratingsTable).values({
+    carter_booking_id: id,
+    booking_id: id,
+    booking_type: "carter",
+    rater_id: user.id,
+    ratee_id,
+    stars,
+    comment: comment ?? null,
+  }).onConflictDoUpdate({
+    target: [ratingsTable.rater_id, ratingsTable.booking_id, ratingsTable.booking_type],
+    set: { stars, comment: comment ?? null },
+  });
+
+  req.log.info({ bookingId: id, rater: user.id, stars }, "Carter booking rated");
+  res.json({ ok: true });
 });
 
 export default router;
