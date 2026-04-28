@@ -802,7 +802,11 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
     return;
   }
   const updates: Record<string, unknown> = { trip_progress: next_progress, updated_at: new Date() };
-  if (next_progress === "selesai") updates.status = "selesai";
+  if (next_progress === "selesai") {
+    updates.status = "selesai";
+  } else if (b.status === "paid") {
+    updates.status = "aktif";
+  }
   await db.update(carterBookingsTable).set(updates).where(eq(carterBookingsTable.id, id));
   req.log.info({ bookingId: id, trip_progress: next_progress }, "Carter trip progress updated");
   res.json({ ok: true, trip_progress: next_progress });

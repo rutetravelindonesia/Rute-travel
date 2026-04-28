@@ -62,15 +62,12 @@ function bookingCode(id: number) {
   return "CARTER-" + String(id).padStart(6, "0");
 }
 function statusInfo(status: string, tp: TripProgress): { label: string; tone: string; Icon: typeof CheckCircle2 } {
-  if (status === "aktif") {
-    if (tp === "menuju_jemput") return { label: "Mitra sedang menuju lokasi jemput", tone: "bg-blue-100 text-blue-800", Icon: Navigation2 };
-    if (tp === "dalam_perjalanan") return { label: "Sedang dalam perjalanan", tone: "bg-emerald-100 text-emerald-800", Icon: CheckCircle2 };
-    if (tp === "selesai") return { label: "Perjalanan selesai", tone: "bg-muted text-muted-foreground", Icon: CheckCircle2 };
-    return { label: "Tiket aktif — menunggu mitra", tone: "bg-emerald-100 text-emerald-800", Icon: CheckCircle2 };
-  }
+  if (tp === "menuju_jemput") return { label: "Mitra sedang menuju lokasi jemput", tone: "bg-blue-100 text-blue-800", Icon: Navigation2 };
+  if (tp === "dalam_perjalanan") return { label: "Sedang dalam perjalanan", tone: "bg-emerald-100 text-emerald-800", Icon: CheckCircle2 };
+  if (tp === "selesai" || status === "selesai") return { label: "Perjalanan selesai", tone: "bg-muted text-muted-foreground", Icon: CheckCircle2 };
+  if (status === "aktif") return { label: "Tiket aktif — menunggu mitra", tone: "bg-emerald-100 text-emerald-800", Icon: CheckCircle2 };
   switch (status) {
     case "paid": return { label: "Menunggu mitra menjemput", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
-    case "selesai": return { label: "Perjalanan selesai", tone: "bg-muted text-muted-foreground", Icon: CheckCircle2 };
     case "batal": return { label: "Dibatalkan", tone: "bg-red-100 text-red-800", Icon: Clock4 };
     case "pending": return { label: "Menunggu pembayaran", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
     default: return { label: status, tone: "bg-muted text-muted-foreground", Icon: Clock4 };
@@ -149,7 +146,7 @@ export default function CarterEtiket() {
 
   useEffect(() => {
     if (!booking) return;
-    const isActive = booking.status === "aktif" && booking.trip_progress !== "selesai";
+    const isActive = (booking.status === "aktif" || booking.status === "paid") && booking.trip_progress !== "selesai";
 
     if (booking.is_mitra && isActive) {
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
