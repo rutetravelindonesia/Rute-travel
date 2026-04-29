@@ -49,6 +49,7 @@ interface CarterBooking {
   is_mitra: boolean;
   driver: { id: number; nama: string; foto_profil: string | null; no_whatsapp: string | null } | null;
   kendaraan: { id: number; merek: string; model: string; plat_nomor: string; warna: string; foto_url: string | null } | null;
+  pickup_confirmed_at: string | null;
   my_rating: { stars: number; comment: string | null } | null;
 }
 
@@ -109,6 +110,7 @@ export default function CarterEtiket() {
   const [ratingComment, setRatingComment] = useState("");
   const [ratingBusy, setRatingBusy] = useState(false);
   const [ratingDone, setRatingDone] = useState(false);
+  const [confirmPickupBusy, setConfirmPickupBusy] = useState(false);
 
   const watchIdRef = useRef<number | null>(null);
 
@@ -209,6 +211,20 @@ export default function CarterEtiket() {
       if (res.ok) await fetchBooking(true);
     } finally {
       setBusyProgress(false);
+    }
+  }
+
+  async function confirmPickup() {
+    if (!booking) return;
+    setConfirmPickupBusy(true);
+    try {
+      const res = await fetch(`${apiBase}/carter-bookings/${id}/confirm-pickup`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) await fetchBooking(true);
+    } finally {
+      setConfirmPickupBusy(false);
     }
   }
 
@@ -620,8 +636,26 @@ export default function CarterEtiket() {
           )}
         </div>
 
+        {/* PENUMPANG: Konfirmasi sudah dijemput */}
+        {!booking.is_mitra && !booking.pickup_confirmed_at && ["menuju_jemput", "dalam_perjalanan"].includes(tp) && booking.status !== "batal" && (
+          <button
+            data-testid="confirm-pickup-btn"
+            onClick={confirmPickup}
+            disabled={confirmPickupBusy}
+            className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {confirmPickupBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            Konfirmasi Sudah Dijemput
+          </button>
+        )}
+        {!booking.is_mitra && booking.pickup_confirmed_at && booking.status !== "batal" && (
+          <div className="w-full py-3 rounded-xl bg-green-50 text-green-700 text-sm font-bold flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4" /> Penjemputan sudah dikonfirmasi
+          </div>
+        )}
+
         {/* Batalkan Booking */}
-        {!booking.is_mitra && ["pending", "paid"].includes(booking.status) && (
+        {!booking.is_mitra && ["pending", "paid"].includes(booking.status) && booking.trip_progress === "menunggu" && (
           <button
             data-testid="cancel-btn"
             onClick={() => setShowCancel(true)}

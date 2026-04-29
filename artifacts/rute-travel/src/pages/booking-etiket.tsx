@@ -882,7 +882,7 @@ export default function BookingEtiket() {
         )}
 
         {/* Batalkan Booking */}
-        {booking.can_cancel && (
+        {booking.can_cancel && tp === "belum_jemput" && (
           <button
             data-testid="cancel-btn"
             onClick={() => setShowCancel(true)}
