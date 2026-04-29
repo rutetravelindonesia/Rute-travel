@@ -50,6 +50,7 @@ interface CarterBooking {
   driver: { id: number; nama: string; foto_profil: string | null; no_whatsapp: string | null } | null;
   kendaraan: { id: number; merek: string; model: string; plat_nomor: string; warna: string; foto_url: string | null } | null;
   pickup_confirmed_at: string | null;
+  dropoff_confirmed_at: string | null;
   my_rating: { stars: number; comment: string | null } | null;
 }
 
@@ -112,6 +113,8 @@ export default function CarterEtiket() {
   const [ratingBusy, setRatingBusy] = useState(false);
   const [ratingDone, setRatingDone] = useState(false);
   const [confirmPickupBusy, setConfirmPickupBusy] = useState(false);
+  const [confirmDropoffBusy, setConfirmDropoffBusy] = useState(false);
+  const [showRating, setShowRating] = useState(false);
 
   const watchIdRef = useRef<number | null>(null);
 
@@ -229,6 +232,20 @@ export default function CarterEtiket() {
     }
   }
 
+  async function confirmDropoff() {
+    if (!booking) return;
+    setConfirmDropoffBusy(true);
+    try {
+      const res = await fetch(`${apiBase}/carter-bookings/${id}/confirm-dropoff`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) await fetchBooking(true);
+    } finally {
+      setConfirmDropoffBusy(false);
+    }
+  }
+
   async function submitRating() {
     if (!booking || ratingStars === 0) return;
     setRatingBusy(true);
@@ -240,6 +257,7 @@ export default function CarterEtiket() {
       });
       if (res.ok) {
         setRatingDone(true);
+        setShowRating(false);
         await fetchBooking(true);
       }
     } finally {
@@ -535,14 +553,31 @@ export default function CarterEtiket() {
           </div>
         )}
 
-        {/* PENUMPANG: Rating section after trip ends */}
+        {/* PENUMPANG: Konfirmasi selesai + rating */}
         {!booking.is_mitra && (booking.status === "selesai" || tp === "selesai") && (
-          <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
+            {/* Konfirmasi Trip Selesai */}
+            {booking.dropoff_confirmed_at ? (
+              <div className="w-full py-3 rounded-xl bg-green-50 text-green-700 text-sm font-bold flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> Anda sudah mengonfirmasi tiba di tujuan
+              </div>
+            ) : (
+              <button
+                onClick={confirmDropoff}
+                disabled={confirmDropoffBusy}
+                className="w-full py-3 rounded-xl bg-green-600 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {confirmDropoffBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Konfirmasi Trip Selesai
+              </button>
+            )}
+
+            {/* Beri Rating / Rating sudah dikirim */}
             {booking.my_rating || ratingDone ? (
-              <div className="flex flex-col items-center gap-1">
+              <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 flex flex-col items-center gap-1">
                 <div className="flex gap-1">
                   {[1,2,3,4,5].map(s => (
-                    <Star key={s} className={`w-6 h-6 ${s <= (booking.my_rating?.stars ?? ratingStars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                    <Star key={s} className={`w-5 h-5 ${s <= (booking.my_rating?.stars ?? ratingStars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
                   ))}
                 </div>
                 <span className="text-xs text-muted-foreground">Terima kasih atas penilaian Anda!</span>
@@ -551,37 +586,12 @@ export default function CarterEtiket() {
                 )}
               </div>
             ) : (
-              <>
-                <p className="text-sm font-bold text-amber-800 text-center">Bagaimana perjalanan Anda?</p>
-                <div className="flex justify-center gap-2">
-                  {[1,2,3,4,5].map(s => (
-                    <button
-                      key={s}
-                      onMouseEnter={() => setRatingHover(s)}
-                      onMouseLeave={() => setRatingHover(0)}
-                      onClick={() => setRatingStars(s)}
-                      className="p-1"
-                    >
-                      <Star className={`w-8 h-8 transition-colors ${s <= (ratingHover || ratingStars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
-                    </button>
-                  ))}
-                </div>
-                <textarea
-                  value={ratingComment}
-                  onChange={e => setRatingComment(e.target.value)}
-                  placeholder="Komentar (opsional)..."
-                  rows={2}
-                  className="w-full text-sm rounded-lg border border-amber-200 bg-white px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
-                />
-                <button
-                  onClick={submitRating}
-                  disabled={ratingStars === 0 || ratingBusy}
-                  className="w-full py-2.5 rounded-lg bg-[#a85e28] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {ratingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
-                  Kirim Penilaian
-                </button>
-              </>
+              <button
+                onClick={() => setShowRating(true)}
+                className="w-full py-3 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 text-sm font-bold flex items-center justify-center gap-2"
+              >
+                <Star className="w-4 h-4" /> Beri Rating Mitra
+              </button>
             )}
           </div>
         )}
@@ -718,6 +728,56 @@ export default function CarterEtiket() {
               >
                 {cancelBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                 Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRating && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={() => setShowRating(false)}
+        >
+          <div
+            className="bg-card rounded-t-3xl w-full max-w-md p-6 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-base font-bold text-foreground text-center">Bagaimana perjalanan Anda?</p>
+            <div className="flex justify-center gap-2">
+              {[1,2,3,4,5].map(s => (
+                <button
+                  key={s}
+                  onMouseEnter={() => setRatingHover(s)}
+                  onMouseLeave={() => setRatingHover(0)}
+                  onClick={() => setRatingStars(s)}
+                  className="p-1"
+                >
+                  <Star className={`w-9 h-9 transition-colors ${s <= (ratingHover || ratingStars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={ratingComment}
+              onChange={e => setRatingComment(e.target.value)}
+              placeholder="Komentar (opsional)..."
+              rows={3}
+              className="w-full text-sm rounded-xl border border-amber-200 bg-muted px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
+            />
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => setShowRating(false)}
+                className="py-3 rounded-xl bg-muted text-foreground text-sm font-bold"
+              >
+                Nanti Saja
+              </button>
+              <button
+                onClick={submitRating}
+                disabled={ratingStars === 0 || ratingBusy}
+                className="py-3 rounded-xl bg-[#a85e28] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {ratingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
+                Kirim Penilaian
               </button>
             </div>
           </div>

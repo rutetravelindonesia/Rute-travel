@@ -733,6 +733,24 @@ router.post("/carter-bookings/:id/confirm-pickup", async (req, res): Promise<voi
   res.json({ ok: true });
 });
 
+router.post("/carter-bookings/:id/confirm-dropoff", async (req, res): Promise<void> => {
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [booking] = await db.select().from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  if (!booking) { res.status(404).json({ error: "Pesanan tidak ditemukan." }); return; }
+  if (booking.penumpang_id !== user.id) { res.status(403).json({ error: "Bukan pesanan Anda." }); return; }
+  if (booking.status !== "selesai" && booking.trip_progress !== "selesai") {
+    res.status(400).json({ error: "Trip belum selesai." }); return;
+  }
+  if (booking.dropoff_confirmed_at) {
+    res.json({ ok: true }); return;
+  }
+  await db.update(carterBookingsTable).set({ dropoff_confirmed_at: new Date(), updated_at: new Date() }).where(eq(carterBookingsTable.id, id));
+  res.json({ ok: true });
+});
+
 router.post("/carter-bookings/:id/cancel", async (req, res): Promise<void> => {
   const user = await getUserFromToken(req.headers.authorization);
   if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }

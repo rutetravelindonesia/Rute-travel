@@ -13,6 +13,7 @@ export async function runMigrations(): Promise<void> {
   const migrations = [
     `ALTER TABLE carter_settings ADD COLUMN IF NOT EXISTS kendaraan_id INTEGER`,
     `ALTER TABLE carter_bookings ADD COLUMN IF NOT EXISTS pickup_confirmed_at TIMESTAMPTZ`,
+    `ALTER TABLE carter_bookings ADD COLUMN IF NOT EXISTS dropoff_confirmed_at TIMESTAMPTZ`,
   ];
   for (const sql of migrations) {
     try {

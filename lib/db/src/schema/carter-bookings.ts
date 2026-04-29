@@ -31,6 +31,7 @@ export const carterBookingsTable = pgTable("carter_bookings", {
   driver_lng: real("driver_lng"),
   driver_location_updated_at: timestamp("driver_location_updated_at", { withTimezone: true }),
   pickup_confirmed_at: timestamp("pickup_confirmed_at", { withTimezone: true }),
+  dropoff_confirmed_at: timestamp("dropoff_confirmed_at", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
