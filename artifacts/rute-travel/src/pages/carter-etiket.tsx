@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { ArrowLeft, MapPin, Navigation, Ticket, Loader2, ExternalLink, CheckCircle2, Clock4, Car, Navigation2, LocateFixed, MessageCircle, Phone, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Navigation, Ticket, Loader2, ExternalLink, CheckCircle2, Clock4, Car, Navigation2, LocateFixed, MessageCircle, Phone, Star, XCircle, Camera } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { driverIcon, pickupIcon } from "@/components/mapIcons";
 import { getDriverPhotoUrl } from "@/lib/utils";
@@ -102,6 +102,8 @@ export default function CarterEtiket() {
   const [gpsActive, setGpsActive] = useState(false);
   const [driverPhotoError, setDriverPhotoError] = useState(false);
   const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [ratingStars, setRatingStars] = useState(0);
   const [ratingHover, setRatingHover] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
@@ -568,15 +570,23 @@ export default function CarterEtiket() {
         )}
 
         {/* Foto kendaraan */}
-        {booking.kendaraan?.foto_url && (
-          <div className="rounded-2xl overflow-hidden border border-border">
-            <img
-              src={booking.kendaraan.foto_url.startsWith("http") ? booking.kendaraan.foto_url : `${apiBase}/storage${booking.kendaraan.foto_url}`}
-              alt={`${booking.kendaraan.merek} ${booking.kendaraan.model}`}
-              className="w-full h-44 object-cover"
-            />
-          </div>
-        )}
+        {booking.kendaraan?.foto_url && (() => {
+          const url = booking.kendaraan.foto_url!.startsWith("http") ? booking.kendaraan.foto_url! : `${apiBase}/storage${booking.kendaraan.foto_url!}`;
+          const name = `${booking.kendaraan.merek} ${booking.kendaraan.model}`;
+          return (
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-1 mb-1.5">
+                <Camera className="w-3 h-3" /> Foto Kendaraan
+              </p>
+              <button
+                className="w-full rounded-2xl overflow-hidden border border-border cursor-zoom-in"
+                onClick={() => setPhotoModal({ url, name })}
+              >
+                <img src={url} alt={name} className="w-full h-44 object-cover" />
+              </button>
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -610,6 +620,17 @@ export default function CarterEtiket() {
           )}
         </div>
 
+        {/* Batalkan Booking */}
+        {!booking.is_mitra && ["pending", "paid"].includes(booking.status) && (
+          <button
+            data-testid="cancel-btn"
+            onClick={() => setShowCancel(true)}
+            className="w-full py-3 rounded-xl bg-red-50 text-red-700 text-sm font-bold flex items-center justify-center gap-2 border border-red-200"
+          >
+            <XCircle className="w-4 h-4" /> Batalkan Booking
+          </button>
+        )}
+
         <button
           data-testid="kembali-btn"
           onClick={() => setLocation(backPath)}
@@ -618,6 +639,55 @@ export default function CarterEtiket() {
           Kembali ke Beranda
         </button>
       </div>
+
+      {/* Modal: Cancel confirmation */}
+      {showCancel && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={() => setShowCancel(false)}
+        >
+          <div
+            className="bg-card rounded-t-3xl w-full max-w-md p-6 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-base font-bold text-foreground">Batalkan booking ini?</p>
+            <p className="text-xs text-muted-foreground">
+              Pembatalan hanya bisa dilakukan sebelum perjalanan aktif. Pengembalian dana diproses oleh admin.
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                onClick={() => setShowCancel(false)}
+                className="py-3 rounded-xl bg-muted text-foreground text-sm font-bold"
+              >
+                Batal
+              </button>
+              <button
+                data-testid="cancel-confirm-btn"
+                disabled={cancelBusy}
+                onClick={async () => {
+                  setCancelBusy(true);
+                  const r = await fetch(`${apiBase}/carter-bookings/${booking.id}/cancel`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  if (r.ok) {
+                    setShowCancel(false);
+                    await fetchBooking();
+                  } else {
+                    const j = await r.json().catch(() => ({}));
+                    alert(j.error ?? "Gagal membatalkan booking.");
+                  }
+                  setCancelBusy(false);
+                }}
+                className="py-3 rounded-xl bg-red-600 text-white text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {cancelBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {photoModal && (
         <PhotoLightbox

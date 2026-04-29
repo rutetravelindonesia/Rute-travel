@@ -715,6 +715,21 @@ router.get("/carter-bookings/:id", async (req, res): Promise<void> => {
   res.json({ ...detail, is_mitra: isOwnerMitra });
 });
 
+router.post("/carter-bookings/:id/cancel", async (req, res): Promise<void> => {
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [booking] = await db.select().from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  if (!booking) { res.status(404).json({ error: "Pesanan tidak ditemukan." }); return; }
+  if (booking.penumpang_id !== user.id) { res.status(403).json({ error: "Tidak boleh membatalkan pesanan ini." }); return; }
+  if (!["pending", "paid"].includes(booking.status)) {
+    res.status(400).json({ error: "Pesanan tidak dapat dibatalkan karena sudah aktif atau selesai." }); return;
+  }
+  await db.update(carterBookingsTable).set({ status: "batal" }).where(eq(carterBookingsTable.id, id));
+  res.json({ ok: true });
+});
+
 router.post("/carter-bookings/:id/payment-proof", async (req, res): Promise<void> => {
   const user = await getUserFromToken(req.headers.authorization);
   if (!user) {

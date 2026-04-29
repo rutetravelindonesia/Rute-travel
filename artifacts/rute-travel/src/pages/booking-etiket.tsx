@@ -15,6 +15,7 @@ import {
   XCircle,
   Send,
   LocateFixed,
+  Camera,
 } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
@@ -752,15 +753,23 @@ export default function BookingEtiket() {
         )}
 
         {/* Foto kendaraan */}
-        {booking.kendaraan?.foto_url && (
-          <div className="rounded-2xl overflow-hidden border border-border">
-            <img
-              src={booking.kendaraan.foto_url.startsWith("http") ? booking.kendaraan.foto_url : `${apiBase}/storage${booking.kendaraan.foto_url}`}
-              alt={`${booking.kendaraan.merek} ${booking.kendaraan.model}`}
-              className="w-full h-44 object-cover"
-            />
-          </div>
-        )}
+        {booking.kendaraan?.foto_url && (() => {
+          const url = booking.kendaraan.foto_url!.startsWith("http") ? booking.kendaraan.foto_url! : `${apiBase}/storage${booking.kendaraan.foto_url!}`;
+          const name = `${booking.kendaraan.merek} ${booking.kendaraan.model}`;
+          return (
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-1 mb-1.5">
+                <Camera className="w-3 h-3" /> Foto Kendaraan
+              </p>
+              <button
+                className="w-full rounded-2xl overflow-hidden border border-border cursor-zoom-in"
+                onClick={() => setPhotoModal({ url, name })}
+              >
+                <img src={url} alt={name} className="w-full h-44 object-cover" />
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Quick action: chat & telp */}
         <div className="grid grid-cols-2 gap-2">
