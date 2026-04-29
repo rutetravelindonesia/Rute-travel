@@ -88,9 +88,9 @@ function stageBadgeLabel(status: string, tp: TripProgress) {
   if (status === "pending") return "Menunggu Pembayaran";
   if (status === "batal") return "Dibatalkan";
   if (status === "selesai" || tp === "selesai") return "Selesai";
-  if (tp === "menuju_jemput") return "Menuju Penjemputan";
-  if (tp === "dalam_perjalanan") return "Dalam Perjalanan";
-  return "Menunggu Jemput";
+  if (tp === "menuju_jemput") return "Menuju lokasi jemput penumpang";
+  if (tp === "dalam_perjalanan") return "Dalam perjalanan ke kota tujuan";
+  return "Menuju lokasi jemput penumpang";
 }
 
 export default function CarterDetailDriverPage() {

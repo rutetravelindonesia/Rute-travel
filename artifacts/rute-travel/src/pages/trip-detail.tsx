@@ -224,7 +224,7 @@ export default function TripDetailPage() {
         </div>
         <div className="mt-3">
           <span className={`text-[11px] font-bold uppercase px-2.5 py-1 rounded-full ${stageCls(data.trip_progress)}`}>
-            {curStageIdx >= 0 ? STAGES[curStageIdx]?.label : "Menunggu Keberangkatan"}
+            {curStageIdx >= 0 ? STAGES[curStageIdx]?.label : "Menuju lokasi jemput penumpang"}
           </span>
         </div>
       </div>
