@@ -42,6 +42,7 @@ interface UnifiedOrder {
   pickup_lng?: number | null;
   pickup_label?: string | null;
   carter_trip_progress?: string | null;
+  carter_pickup_confirmed?: boolean;
   kendaraan_info?: string | null;
 }
 
@@ -109,7 +110,8 @@ function penumpangStatusBadge(o: UnifiedOrder): { label: string; cls: string } {
   }
 }
 
-function carterPenumpangBadge(status: Status, tp: string | null | undefined): { label: string; cls: string } {
+function carterPenumpangBadge(status: Status, tp: string | null | undefined, pickupConfirmed?: boolean): { label: string; cls: string } {
+  if (tp === "menuju_jemput" && pickupConfirmed) return { label: "Sudah Dijemput", cls: "bg-violet-100 text-violet-800" };
   if (tp === "menuju_jemput") return { label: "Mitra Menuju Jemput", cls: "bg-blue-100 text-blue-800" };
   if (tp === "dalam_perjalanan") return { label: "Dalam Perjalanan", cls: "bg-indigo-100 text-indigo-800" };
   if (tp === "selesai" || status === "selesai") return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
@@ -241,6 +243,7 @@ export default function PesananPage() {
             pickup_lng: b.pickup_lng ?? null,
             pickup_label: b.pickup_label ?? null,
             carter_trip_progress: b.trip_progress ?? null,
+            carter_pickup_confirmed: !!b.pickup_confirmed_at,
             kendaraan_info: b.kendaraan ? `${b.kendaraan.merek} ${b.kendaraan.model} · ${b.kendaraan.plat_nomor}` : null,
           });
         }
@@ -412,19 +415,21 @@ export default function PesananPage() {
     return null;
   }
 
-  function carterStageLabel(status: Status, tp: string | null | undefined): string {
+  function carterStageLabel(status: Status, tp: string | null | undefined, pickupConfirmed?: boolean): string {
     if (status === "pending") return "Menunggu Pembayaran";
     if (status === "batal") return "Dibatalkan";
     if (status === "selesai" || tp === "selesai") return "Selesai";
+    if (tp === "menuju_jemput" && pickupConfirmed) return "Sudah Dijemput";
     if (tp === "menuju_jemput") return "Menuju Penjemputan";
     if (tp === "dalam_perjalanan") return "Dalam Perjalanan";
     return "Menunggu Jemput";
   }
 
-  function carterStageCls(status: Status, tp: string | null | undefined): string {
+  function carterStageCls(status: Status, tp: string | null | undefined, pickupConfirmed?: boolean): string {
     if (status === "pending") return "bg-yellow-100 text-yellow-800";
     if (status === "batal") return "bg-red-100 text-red-800";
     if (status === "selesai" || tp === "selesai") return "bg-green-100 text-green-800";
+    if (tp === "menuju_jemput" && pickupConfirmed) return "bg-violet-100 text-violet-800";
     if (tp === "menuju_jemput") return "bg-blue-100 text-blue-800";
     if (tp === "dalam_perjalanan") return "bg-indigo-100 text-indigo-800";
     return "bg-amber-100 text-amber-800";
@@ -770,8 +775,8 @@ export default function PesananPage() {
         {isDriverView &&
           driverCarterList?.map((o) => {
             const tp = o.carter_trip_progress;
-            const stageLabel = carterStageLabel(o.status, tp);
-            const stageCls = carterStageCls(o.status, tp);
+            const stageLabel = carterStageLabel(o.status, tp, o.carter_pickup_confirmed);
+            const stageCls = carterStageCls(o.status, tp, o.carter_pickup_confirmed);
             const btnLabel = ["paid", "aktif"].includes(o.status) ? carterButtonLabel(tp) : null;
             const isDone = o.status === "selesai" || tp === "selesai";
             return (
@@ -886,7 +891,7 @@ export default function PesananPage() {
 
         {!isDriverView &&
           filtered?.map((o) => {
-            const sb = o.type === "schedule" ? penumpangStatusBadge(o) : carterPenumpangBadge(o.status, o.carter_trip_progress);
+            const sb = o.type === "schedule" ? penumpangStatusBadge(o) : carterPenumpangBadge(o.status, o.carter_trip_progress, o.carter_pickup_confirmed);
             return (
               <button
                 key={o.key}
