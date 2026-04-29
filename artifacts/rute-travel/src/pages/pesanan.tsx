@@ -100,7 +100,7 @@ function penumpangStatusBadge(o: UnifiedOrder): { label: string; cls: string } {
   if (o.status !== "aktif") return statusBadge(o.status);
   switch (o.trip_progress) {
     case "sudah_jemput":
-      return { label: "Menuju Penjemputan", cls: "bg-blue-100 text-blue-800" };
+      return { label: "Mitra Menuju Jemput", cls: "bg-blue-100 text-blue-800" };
     case "semua_naik":
       return { label: "Semua Sudah Naik", cls: "bg-violet-100 text-violet-800" };
     case "dalam_perjalanan":
