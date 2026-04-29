@@ -400,7 +400,7 @@ export default function PesananPage() {
   }
 
   function tripStageLabel(p: TripProgress): string {
-    if (p === "belum_jemput") return "Menunggu jemput";
+    if (p === "belum_jemput") return "Mulai Jemput Konsumen";
     if (p === "sudah_jemput") return "Sudah jemput";
     if (p === "semua_naik") return "Semua sudah naik";
     if (p === "dalam_perjalanan") return "Dalam perjalanan";
@@ -422,7 +422,7 @@ export default function PesananPage() {
     if (tp === "menuju_jemput" && pickupConfirmed) return "Sudah Jemput";
     if (tp === "menuju_jemput") return "Menuju Penjemputan";
     if (tp === "dalam_perjalanan") return "Dalam Perjalanan";
-    return "Menunggu Jemput";
+    return "Mulai Jemput Konsumen";
   }
 
   function carterStageCls(status: Status, tp: string | null | undefined, pickupConfirmed?: boolean): string {
