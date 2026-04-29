@@ -639,11 +639,25 @@ router.get("/carter-bookings/mine", async (req, res): Promise<void> => {
   }
 
   const rows = await db
-    .select()
+    .select({
+      b: carterBookingsTable,
+      driver: usersTable,
+      kendaraan: kendaraanTable,
+    })
     .from(carterBookingsTable)
+    .leftJoin(carterSettingsTable, eq(carterSettingsTable.id, carterBookingsTable.settings_id))
+    .leftJoin(usersTable, eq(usersTable.id, carterSettingsTable.driver_id))
+    .leftJoin(kendaraanTable, eq(kendaraanTable.id, carterSettingsTable.kendaraan_id))
     .where(eq(carterBookingsTable.penumpang_id, user.id))
     .orderBy(sql`${carterBookingsTable.created_at} DESC`);
-  res.json(rows);
+
+  res.json(
+    rows.map(({ b, driver, kendaraan }) => ({
+      ...b,
+      driver: driver ? { id: driver.id, nama: driver.nama, no_whatsapp: driver.no_whatsapp ?? null } : null,
+      kendaraan: kendaraan ? { id: kendaraan.id, merek: kendaraan.merek, model: kendaraan.model, plat_nomor: kendaraan.plat_nomor } : null,
+    })),
+  );
 });
 
 router.get("/carter-bookings/incoming", async (req, res): Promise<void> => {

@@ -42,6 +42,7 @@ interface UnifiedOrder {
   pickup_lng?: number | null;
   pickup_label?: string | null;
   carter_trip_progress?: string | null;
+  kendaraan_info?: string | null;
 }
 
 interface DriverTripPassenger {
@@ -213,6 +214,7 @@ export default function PesananPage() {
             detail_path: `/booking/${b.id}/etiket`,
             kursi_count: Array.isArray(b.kursi) ? b.kursi.length : undefined,
             trip_progress: b.schedule?.trip_progress ?? undefined,
+            kendaraan_info: b.kendaraan ? `${b.kendaraan.merek} ${b.kendaraan.model} · ${b.kendaraan.plat_nomor}` : null,
           });
         }
       } else {
@@ -232,13 +234,14 @@ export default function PesananPage() {
             total_amount: b.total_amount,
             status: b.status,
             created_at: b.created_at,
-            counterpart_nama: isPenumpang ? null : b.penumpang?.nama ?? null,
+            counterpart_nama: isPenumpang ? b.driver?.nama ?? null : b.penumpang?.nama ?? null,
             counterpart_no_wa: isPenumpang ? null : b.penumpang?.no_whatsapp ?? null,
             detail_path: `/carter-booking/${b.id}/etiket`,
             pickup_lat: b.pickup_lat ?? null,
             pickup_lng: b.pickup_lng ?? null,
             pickup_label: b.pickup_label ?? null,
             carter_trip_progress: b.trip_progress ?? null,
+            kendaraan_info: b.kendaraan ? `${b.kendaraan.merek} ${b.kendaraan.model} · ${b.kendaraan.plat_nomor}` : null,
           });
         }
       } else {
@@ -919,11 +922,14 @@ export default function PesananPage() {
                 </div>
 
                 <div className="flex items-end justify-between mt-3 pt-3 border-t border-border/50">
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-0.5">
                     {o.counterpart_nama && (
                       <p className="text-[11px] text-muted-foreground truncate">
                         Mitra: <span className="font-semibold text-foreground">{o.counterpart_nama}</span>
                       </p>
+                    )}
+                    {o.kendaraan_info && (
+                      <p className="text-[11px] text-muted-foreground truncate">{o.kendaraan_info}</p>
                     )}
                     {o.type === "schedule" && o.kursi_count != null && (
                       <p className="text-[11px] text-muted-foreground">{o.kursi_count} kursi</p>
