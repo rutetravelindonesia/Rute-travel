@@ -986,6 +986,9 @@ export default function BookingEtiket() {
               className="w-full rounded-xl border border-border px-3 py-2 text-sm bg-background"
               rows={3}
             />
+            {actionError && busyAction === null && (
+              <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 text-center">{actionError}</p>
+            )}
             <button
               data-testid="rating-submit-btn"
               onClick={async () => {

@@ -115,6 +115,7 @@ export default function CarterEtiket() {
   const [confirmPickupBusy, setConfirmPickupBusy] = useState(false);
   const [confirmDropoffBusy, setConfirmDropoffBusy] = useState(false);
   const [showRating, setShowRating] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
 
@@ -249,6 +250,7 @@ export default function CarterEtiket() {
   async function submitRating() {
     if (!booking || ratingStars === 0) return;
     setRatingBusy(true);
+    setRatingError(null);
     try {
       const res = await fetch(`${apiBase}/carter-bookings/${id}/rate`, {
         method: "POST",
@@ -259,7 +261,12 @@ export default function CarterEtiket() {
         setRatingDone(true);
         setShowRating(false);
         await fetchBooking(true);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        setRatingError(j.error ?? `Gagal mengirim rating (${res.status})`);
       }
+    } catch {
+      setRatingError("Koneksi gagal. Coba lagi.");
     } finally {
       setRatingBusy(false);
     }
@@ -763,9 +770,12 @@ export default function CarterEtiket() {
               rows={3}
               className="w-full text-sm rounded-xl border border-amber-200 bg-muted px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
             />
+            {ratingError && (
+              <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 text-center">{ratingError}</p>
+            )}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
-                onClick={() => setShowRating(false)}
+                onClick={() => { setShowRating(false); setRatingError(null); }}
                 className="py-3 rounded-xl bg-muted text-foreground text-sm font-bold"
               >
                 Nanti Saja
