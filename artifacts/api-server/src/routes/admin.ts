@@ -444,15 +444,17 @@ router.post("/admin/reset-demo-data", adminGuard(async (_req: any, res: any) => 
 
 // ===================== CLEAR ORDERS & CHAT =====================
 router.post("/admin/clear-orders-chat", adminGuard(async (_req: any, res: any) => {
-  // Hanya hapus: ratings, chat, carter_bookings, schedule_bookings, tebengan_bookings
-  // Pertahankan: users, schedules, kendaraan, carter_settings, sessions, dll
+  // Hapus: ratings, chat, bookings, schedules, tebengan
+  // Pertahankan: users, kendaraan, carter_settings, sessions, kota_list, route_prices
   await db.execute(drizzleSql`DELETE FROM ratings`);
   await db.execute(drizzleSql`DELETE FROM chat_messages`);
   await db.execute(drizzleSql`DELETE FROM chat_threads`);
   await db.execute(drizzleSql`DELETE FROM tebengan_bookings`);
   await db.execute(drizzleSql`DELETE FROM carter_bookings`);
   await db.execute(drizzleSql`DELETE FROM schedule_bookings`);
-  res.json({ ok: true, message: "Semua order dan chat berhasil dihapus." });
+  await db.execute(drizzleSql`DELETE FROM schedules`);
+  await db.execute(drizzleSql`DELETE FROM tebengan_pulang`);
+  res.json({ ok: true, message: "Semua order, jadwal, dan chat berhasil dihapus." });
 }));
 
 export default router;
