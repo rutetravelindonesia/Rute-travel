@@ -255,7 +255,7 @@ export default function CarterEtiket() {
   const code = bookingCode(booking.id);
   const tp = booking.trip_progress;
   const progressBtn = tripProgressBtn(tp);
-  const showLiveMap = !booking.is_mitra && booking.status === "paid" && tp !== "selesai";
+  const showLiveMap = !booking.is_mitra && ["paid", "aktif"].includes(booking.status) && tp !== "selesai";
   const showMitraMap = booking.is_mitra && booking.status === "aktif" && booking.pickup_lat && booking.pickup_lng;
 
   return (
