@@ -63,7 +63,8 @@ function longDate(d: string) {
 function bookingCode(id: number) {
   return "CARTER-" + String(id).padStart(6, "0");
 }
-function statusInfo(status: string, tp: TripProgress): { label: string; tone: string; Icon: typeof CheckCircle2 } {
+function statusInfo(status: string, tp: TripProgress, pickupConfirmed?: boolean): { label: string; tone: string; Icon: typeof CheckCircle2 } {
+  if (tp === "menuju_jemput" && pickupConfirmed) return { label: "Sudah dijemput — menunggu berangkat", tone: "bg-violet-100 text-violet-800", Icon: CheckCircle2 };
   if (tp === "menuju_jemput") return { label: "Mitra sedang menuju lokasi jemput", tone: "bg-blue-100 text-blue-800", Icon: Navigation2 };
   if (tp === "dalam_perjalanan") return { label: "Sedang dalam perjalanan", tone: "bg-emerald-100 text-emerald-800", Icon: CheckCircle2 };
   if (tp === "selesai" || status === "selesai") return { label: "Perjalanan selesai", tone: "bg-muted text-muted-foreground", Icon: CheckCircle2 };
@@ -266,7 +267,7 @@ export default function CarterEtiket() {
     );
   }
 
-  const si = statusInfo(booking.status, booking.trip_progress);
+  const si = statusInfo(booking.status, booking.trip_progress, !!booking.pickup_confirmed_at);
   const Icon = si.Icon;
   const code = bookingCode(booking.id);
   const tp = booking.trip_progress;
