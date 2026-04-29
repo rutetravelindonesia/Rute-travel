@@ -75,7 +75,8 @@ function stageIndex(p: TripProgress) {
 
 function buttonLabel(p: TripProgress): string | null {
   if (p === "belum_jemput") return "Mulai Jemput Konsumen";
-  if (p === "sudah_jemput") return "Berangkat ke Kota Tujuan";
+  if (p === "sudah_jemput") return "Penumpang Sudah Naik Semua";
+  if (p === "semua_naik") return "Berangkat ke Kota Tujuan";
   if (p === "dalam_perjalanan") return "Selesaikan Trip";
   return null;
 }

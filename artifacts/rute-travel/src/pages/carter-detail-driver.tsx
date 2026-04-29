@@ -198,7 +198,7 @@ export default function CarterDetailDriverPage() {
 
   const tp = data.trip_progress ?? "menunggu";
   const curStageIdx = stageIndex(tp);
-  const btn = data.status === "paid" ? buttonLabel(tp) : null;
+  const btn = ["paid", "aktif"].includes(data.status) ? buttonLabel(tp) : null;
   const isDone = data.status === "selesai" || tp === "selesai";
   const nama = data.penumpang?.nama ?? "—";
   const hasMap = data.pickup_lat != null && data.pickup_lng != null;
