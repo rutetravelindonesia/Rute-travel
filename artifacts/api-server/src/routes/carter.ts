@@ -921,18 +921,30 @@ router.post("/carter-bookings/:id/rate", async (req, res): Promise<void> => {
 
   const ratee_id = isPenumpang ? s.driver_id : b.penumpang_id;
 
-  await db.insert(ratingsTable).values({
-    carter_booking_id: id,
-    booking_id: id,
-    booking_type: "carter",
-    rater_id: user.id,
-    ratee_id,
-    stars,
-    comment: comment ?? null,
-  }).onConflictDoUpdate({
-    target: [ratingsTable.rater_id, ratingsTable.booking_id, ratingsTable.booking_type],
-    set: { stars, comment: comment ?? null },
-  });
+  const [existing] = await db
+    .select({ id: ratingsTable.id })
+    .from(ratingsTable)
+    .where(and(
+      eq(ratingsTable.rater_id, user.id),
+      eq(ratingsTable.booking_id, id),
+      eq(ratingsTable.booking_type, "carter"),
+    ));
+
+  if (existing) {
+    await db.update(ratingsTable)
+      .set({ stars, comment: comment ?? null })
+      .where(eq(ratingsTable.id, existing.id));
+  } else {
+    await db.insert(ratingsTable).values({
+      carter_booking_id: id,
+      booking_id: id,
+      booking_type: "carter",
+      rater_id: user.id,
+      ratee_id,
+      stars,
+      comment: comment ?? null,
+    });
+  }
 
   req.log.info({ bookingId: id, rater: user.id, stars }, "Carter booking rated");
   res.json({ ok: true });

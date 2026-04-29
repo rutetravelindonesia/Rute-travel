@@ -1379,7 +1379,7 @@ router.post("/bookings/:id/rating", async (req, res): Promise<void> => {
       stars: parsed.data.stars,
       comment: parsed.data.comment ?? null,
     })
-    .onConflictDoNothing({ target: [ratingsTable.rater_id, ratingsTable.booking_id] })
+    .onConflictDoNothing()
     .returning({ id: ratingsTable.id });
   if (inserted.length === 0) {
     res.status(400).json({ error: "Anda sudah memberi rating untuk pesanan ini." });

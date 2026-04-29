@@ -16,6 +16,7 @@ export async function runMigrations(): Promise<void> {
     `ALTER TABLE carter_bookings ADD COLUMN IF NOT EXISTS dropoff_confirmed_at TIMESTAMPTZ`,
     `ALTER TABLE ratings ADD COLUMN IF NOT EXISTS booking_type TEXT NOT NULL DEFAULT 'schedule'`,
     `ALTER TABLE ratings ADD COLUMN IF NOT EXISTS carter_booking_id INTEGER`,
+    `DROP INDEX IF EXISTS ratings_rater_booking_unique`,
     `CREATE UNIQUE INDEX IF NOT EXISTS ratings_rater_booking_unique ON ratings (rater_id, booking_id, booking_type)`,
   ];
   for (const sql of migrations) {
