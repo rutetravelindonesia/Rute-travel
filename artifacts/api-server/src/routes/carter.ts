@@ -4,6 +4,7 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import {
   db,
+  pool,
   sessionsTable,
   usersTable,
   carterSettingsTable,
@@ -921,29 +922,25 @@ router.post("/carter-bookings/:id/rate", async (req, res): Promise<void> => {
 
   const ratee_id = isPenumpang ? s.driver_id : b.penumpang_id;
 
-  const [existing] = await db
-    .select({ id: ratingsTable.id })
-    .from(ratingsTable)
-    .where(and(
-      eq(ratingsTable.rater_id, user.id),
-      eq(ratingsTable.booking_id, id),
-      eq(ratingsTable.booking_type, "carter"),
-    ));
-
-  if (existing) {
-    await db.update(ratingsTable)
-      .set({ stars, comment: comment ?? null })
-      .where(eq(ratingsTable.id, existing.id));
-  } else {
-    await db.insert(ratingsTable).values({
-      carter_booking_id: id,
-      booking_id: id,
-      booking_type: "carter",
-      rater_id: user.id,
-      ratee_id,
-      stars,
-      comment: comment ?? null,
-    });
+  try {
+    const insert = await pool.query(
+      `INSERT INTO ratings (booking_id, rater_id, ratee_id, stars, comment)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [id, user.id, ratee_id, stars, comment ?? null],
+    );
+    if (insert.rows.length === 0) {
+      await pool.query(
+        `UPDATE ratings SET stars = $1, comment = $2
+         WHERE rater_id = $3 AND booking_id = $4`,
+        [stars, comment ?? null, user.id, id],
+      );
+    }
+  } catch (err: any) {
+    req.log.error({ err, bookingId: id }, "Carter rate error");
+    res.status(500).json({ error: `DB error: ${err?.message ?? String(err)}` });
+    return;
   }
 
   req.log.info({ bookingId: id, rater: user.id, stars }, "Carter booking rated");
