@@ -581,16 +581,15 @@ async function loadCarterBookingDetail(bookingId: number, currentUserId?: number
     ? await db.select().from(kendaraanTable).where(eq(kendaraanTable.id, s.kendaraan_id))
     : [null];
 
-  let myRating = null;
+  let myRating: { stars: number; comment: string | null } | null = null;
   if (currentUserId) {
     try {
-      const rows = await db
-        .select()
-        .from(ratingsTable)
-        .where(and(eq(ratingsTable.carter_booking_id, bookingId), eq(ratingsTable.rater_id, currentUserId)));
-      myRating = rows[0] ?? null;
-    } catch (err) {
-      console.error("Rating query failed for carter booking", bookingId, err);
+      const result = await pool.query<{ stars: number; comment: string | null }>(
+        `SELECT stars, comment FROM ratings WHERE booking_id = $1 AND rater_id = $2 LIMIT 1`,
+        [bookingId, currentUserId],
+      );
+      myRating = result.rows[0] ?? null;
+    } catch {
       myRating = null;
     }
   }
