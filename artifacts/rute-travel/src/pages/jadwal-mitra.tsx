@@ -372,7 +372,7 @@ export default function JadwalMitraPage() {
                 <p className="text-sm font-bold text-foreground">Kamu siap menerima Carter</p>
                 {carterSettings?.routes && carterSettings.routes.length > 0 && (
                   <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                    Rute: {carterSettings.routes.map((r) => `${r.origin_city} → ${r.destination_city}`).join(", ")}
+                    Rute: {carterSettings.routes.map((r) => `${carterSettings.origin_city} → ${r.destination_city}`).join(", ")}
                   </p>
                 )}
               </div>
