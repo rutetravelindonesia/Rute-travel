@@ -770,7 +770,7 @@ export default function PesananPage() {
             const tp = o.carter_trip_progress;
             const stageLabel = carterStageLabel(o.status, tp);
             const stageCls = carterStageCls(o.status, tp);
-            const btnLabel = o.status === "paid" ? carterButtonLabel(tp) : null;
+            const btnLabel = ["paid", "aktif"].includes(o.status) ? carterButtonLabel(tp) : null;
             const isDone = o.status === "selesai" || tp === "selesai";
             return (
               <div
