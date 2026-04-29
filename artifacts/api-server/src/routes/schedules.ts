@@ -1032,7 +1032,8 @@ router.patch("/schedules/:id/trip-progress", async (req, res): Promise<void> => 
 
   const next: Record<string, string> = {
     belum_jemput: "sudah_jemput",
-    sudah_jemput: "dalam_perjalanan",
+    sudah_jemput: "semua_naik",
+    semua_naik: "dalam_perjalanan",
     dalam_perjalanan: "selesai",
   };
   const nextProgress = next[sched.trip_progress];

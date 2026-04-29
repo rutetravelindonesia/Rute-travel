@@ -143,6 +143,12 @@ function deriveStage(b: Booking): {
       tone: "bg-blue-100 text-blue-800",
       Icon: CheckCircle2,
     };
+  if (tp === "semua_naik")
+    return {
+      label: "Semua penumpang naik, bersiap berangkat",
+      tone: "bg-violet-100 text-violet-800",
+      Icon: CheckCircle2,
+    };
   // status paid|aktif but trip_progress belum_jemput
   return {
     label: "Menunggu mitra menjemput",
@@ -252,7 +258,7 @@ export default function BookingEtiket() {
     if (!booking?.is_mitra) return;
     const tp = booking.schedule?.trip_progress;
     const scheduleId = booking.schedule?.id;
-    const isActive = tp === "belum_jemput" || tp === "sudah_jemput" || tp === "dalam_perjalanan";
+    const isActive = tp === "belum_jemput" || tp === "sudah_jemput" || tp === "semua_naik" || tp === "dalam_perjalanan";
     if (!isActive || !scheduleId || !token) return;
 
     if (!navigator.geolocation) {
@@ -368,7 +374,7 @@ export default function BookingEtiket() {
   const showConfirmPickup =
     !booking.is_mitra &&
     !booking.pickup_confirmed_at &&
-    ["sudah_jemput", "dalam_perjalanan", "selesai"].includes(tp) &&
+    ["sudah_jemput", "semua_naik", "dalam_perjalanan", "selesai"].includes(tp) &&
     booking.status !== "batal";
   const showConfirmDropoff =
     !booking.is_mitra &&
@@ -669,7 +675,7 @@ export default function BookingEtiket() {
         </div>
 
         {/* DRIVER: Navigasi ke Titik Jemput + GPS status */}
-        {booking.is_mitra && booking.schedule && ["belum_jemput", "sudah_jemput", "dalam_perjalanan"].includes(booking.schedule.trip_progress) && (
+        {booking.is_mitra && booking.schedule && ["belum_jemput", "sudah_jemput", "semua_naik", "dalam_perjalanan"].includes(booking.schedule.trip_progress) && (
           <div className="space-y-2">
             {booking.pickup_lat && booking.pickup_lng && (
               <a
@@ -707,7 +713,7 @@ export default function BookingEtiket() {
         )}
 
         {/* PENUMPANG: Live map driver */}
-        {!booking.is_mitra && booking.schedule && ["sudah_jemput", "dalam_perjalanan"].includes(booking.schedule.trip_progress) && (
+        {!booking.is_mitra && booking.schedule && ["sudah_jemput", "semua_naik", "dalam_perjalanan"].includes(booking.schedule.trip_progress) && (
           <div className="rounded-xl overflow-hidden border border-border">
             <div className="px-3 py-2 bg-muted/50 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />

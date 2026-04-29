@@ -389,7 +389,8 @@ export default function PesananPage() {
 
   function tripButtonLabel(p: TripProgress): string | null {
     if (p === "belum_jemput") return "Mulai Jemput Konsumen";
-    if (p === "sudah_jemput") return "Berangkat ke Kota Tujuan";
+    if (p === "sudah_jemput") return "Penumpang Sudah Naik Semua";
+    if (p === "semua_naik") return "Berangkat ke Kota Tujuan";
     if (p === "dalam_perjalanan") return "Selesaikan Trip";
     if (p === "selesai") return null;
     return "Lanjutkan";
@@ -398,6 +399,7 @@ export default function PesananPage() {
   function tripStageLabel(p: TripProgress): string {
     if (p === "belum_jemput") return "Menunggu jemput";
     if (p === "sudah_jemput") return "Sudah jemput";
+    if (p === "semua_naik") return "Semua sudah naik";
     if (p === "dalam_perjalanan") return "Dalam perjalanan";
     if (p === "selesai") return "Selesai";
     return p;

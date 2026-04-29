@@ -76,6 +76,8 @@ function tripProgressLabel(p: string): { label: string; cls: string } {
   switch (p) {
     case "sudah_jemput":
       return { label: "Sudah jemput", cls: "bg-blue-100 text-blue-800" };
+    case "semua_naik":
+      return { label: "Semua sudah naik", cls: "bg-violet-100 text-violet-800" };
     case "dalam_perjalanan":
       return { label: "Dalam perjalanan", cls: "bg-indigo-100 text-indigo-800" };
     case "selesai":
