@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, count, sum, and, gte, lte, ilike, or } from "drizzle-orm";
+import { eq, desc, count, sum, and, gte, lte, ilike, or, sql as drizzleSql } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -440,6 +440,19 @@ router.post("/admin/reset-demo-data", adminGuard(async (_req: any, res: any) => 
   await db.delete(sessionsTable);
   await db.delete(pushSubscriptionsTable);
   res.json({ ok: true, message: "Semua data riwayat, chat, dan sesi berhasil direset." });
+}));
+
+// ===================== CLEAR ORDERS & CHAT =====================
+router.post("/admin/clear-orders-chat", adminGuard(async (_req: any, res: any) => {
+  // Hanya hapus: ratings, chat, carter_bookings, schedule_bookings, tebengan_bookings
+  // Pertahankan: users, schedules, kendaraan, carter_settings, sessions, dll
+  await db.execute(drizzleSql`DELETE FROM ratings`);
+  await db.execute(drizzleSql`DELETE FROM chat_messages`);
+  await db.execute(drizzleSql`DELETE FROM chat_threads`);
+  await db.execute(drizzleSql`DELETE FROM tebengan_bookings`);
+  await db.execute(drizzleSql`DELETE FROM carter_bookings`);
+  await db.execute(drizzleSql`DELETE FROM schedule_bookings`);
+  res.json({ ok: true, message: "Semua order dan chat berhasil dihapus." });
 }));
 
 export default router;
