@@ -718,13 +718,13 @@ export default function BookingEtiket() {
             <div className="px-3 py-2 bg-muted/50 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />
               Lokasi Mitra (diperbarui setiap 1 detik)
-              {booking.schedule.driver_location_updated_at && (
+              {booking.schedule.trip_progress !== "belum_jemput" && booking.schedule.driver_location_updated_at && (
                 <span className="ml-auto font-normal">
                   {new Date(booking.schedule.driver_location_updated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                 </span>
               )}
             </div>
-            {booking.schedule.driver_lat && booking.schedule.driver_lng ? (
+            {booking.schedule.trip_progress !== "belum_jemput" && booking.schedule.driver_lat && booking.schedule.driver_lng ? (
               <MapContainer
                 center={[booking.schedule.driver_lat, booking.schedule.driver_lng]}
                 zoom={14}
