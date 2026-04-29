@@ -713,7 +713,7 @@ export default function BookingEtiket() {
         )}
 
         {/* PENUMPANG: Live map driver */}
-        {!booking.is_mitra && booking.schedule && ["sudah_jemput", "semua_naik", "dalam_perjalanan"].includes(booking.schedule.trip_progress) && (
+        {!booking.is_mitra && booking.schedule && ["belum_jemput", "sudah_jemput", "semua_naik", "dalam_perjalanan"].includes(booking.schedule.trip_progress) && booking.status !== "pending" && booking.status !== "batal" && (
           <div className="rounded-xl overflow-hidden border border-border">
             <div className="px-3 py-2 bg-muted/50 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />
