@@ -89,6 +89,7 @@ interface Booking {
   is_mitra: boolean;
   can_cancel: boolean;
   already_rated: boolean;
+  my_rating: { stars: number; comment: string | null } | null;
 }
 
 function formatRupiah(n: number) {
@@ -178,6 +179,7 @@ export default function BookingEtiket() {
   const [showRating, setShowRating] = useState(false);
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState("");
+  const [ratingDone, setRatingDone] = useState(false);
   const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
   const [driverPhotoError, setDriverPhotoError] = useState(false);
 
@@ -827,12 +829,12 @@ export default function BookingEtiket() {
           </button>
         )}
         {booking.pickup_confirmed_at && !booking.is_mitra && (
-          <p
-            className="text-[11px] text-blue-700 text-center"
+          <div
+            className="w-full py-3 rounded-xl bg-green-50 text-green-700 text-sm font-bold flex items-center justify-center gap-2"
             data-testid="pickup-confirmed-note"
           >
-            ✓ Anda mengonfirmasi sudah dijemput
-          </p>
+            <CheckCircle2 className="w-4 h-4" /> Penjemputan sudah dikonfirmasi
+          </div>
         )}
 
         {/* Konfirmasi trip selesai */}
@@ -854,31 +856,42 @@ export default function BookingEtiket() {
           </button>
         )}
         {booking.dropoff_confirmed_at && !booking.is_mitra && (
-          <p
-            className="text-[11px] text-green-700 text-center"
+          <div
+            className="w-full py-3 rounded-xl bg-green-50 text-green-700 text-sm font-bold flex items-center justify-center gap-2"
             data-testid="dropoff-confirmed-note"
           >
-            ✓ Anda mengonfirmasi sudah sampai tujuan
-          </p>
+            <CheckCircle2 className="w-4 h-4" /> Anda sudah mengonfirmasi tiba di tujuan
+          </div>
         )}
 
-        {/* Beri Rating */}
-        {showRatingBtn && (
-          <button
-            data-testid="rating-btn"
-            onClick={() => setShowRating(true)}
-            className="w-full py-3 rounded-xl bg-amber-500 text-white text-sm font-bold flex items-center justify-center gap-2"
-          >
-            <Star className="w-4 h-4" /> Beri Rating Mitra
-          </button>
-        )}
-        {booking.already_rated && !booking.is_mitra && (
-          <p
-            className="text-[11px] text-muted-foreground text-center"
-            data-testid="rating-done-note"
-          >
-            ✓ Anda sudah memberi rating
-          </p>
+        {/* Beri Rating / tampilan rating */}
+        {!booking.is_mitra && booking.status === "selesai" && (
+          <>
+            {booking.my_rating || ratingDone ? (
+              <div
+                className="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 flex flex-col items-center gap-1"
+                data-testid="rating-done-note"
+              >
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} className={`w-5 h-5 ${s <= (booking.my_rating?.stars ?? stars) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">Terima kasih atas penilaian Anda!</span>
+                {booking.my_rating?.comment && (
+                  <span className="text-xs text-foreground italic">"{booking.my_rating.comment}"</span>
+                )}
+              </div>
+            ) : (
+              <button
+                data-testid="rating-btn"
+                onClick={() => setShowRating(true)}
+                className="w-full py-3 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 text-sm font-bold flex items-center justify-center gap-2"
+              >
+                <Star className="w-4 h-4" /> Beri Rating Mitra
+              </button>
+            )}
+          </>
         )}
 
         {/* Batalkan Booking */}
@@ -998,6 +1011,7 @@ export default function BookingEtiket() {
                   { stars, comment: comment.trim() || null },
                 );
                 if (ok) {
+                  setRatingDone(true);
                   setShowRating(false);
                   setComment("");
                 }

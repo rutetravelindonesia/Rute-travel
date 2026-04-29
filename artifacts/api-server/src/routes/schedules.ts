@@ -1141,11 +1141,11 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
     !!row.s?.departure_time &&
     !pastCancellationCutoff(row.s.departure_date, row.s.departure_time);
 
-  // already_rated by current user (penumpang)
-  let alreadyRated = false;
+  // my_rating by current user (penumpang)
+  let myRating: { stars: number; comment: string | null } | null = null;
   if (isPenumpang) {
     const [r] = await db
-      .select({ id: ratingsTable.id })
+      .select({ id: ratingsTable.id, stars: ratingsTable.stars, comment: ratingsTable.comment })
       .from(ratingsTable)
       .where(
         and(
@@ -1153,7 +1153,7 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
           eq(ratingsTable.booking_id, id),
         ),
       );
-    alreadyRated = !!r;
+    if (r) myRating = { stars: r.stars, comment: r.comment ?? null };
   }
 
   res.json({
@@ -1194,7 +1194,8 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
       : null,
     is_mitra: isMitra,
     can_cancel: canCancel,
-    already_rated: alreadyRated,
+    already_rated: !!myRating,
+    my_rating: myRating,
   });
 });
 
