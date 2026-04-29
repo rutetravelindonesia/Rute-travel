@@ -62,13 +62,14 @@ function formatRupiah(n: number) {
 }
 
 const STAGES: { key: TripProgress; label: string }[] = [
-  { key: "belum_jemput", label: "Menunggu Jemput" },
-  { key: "sudah_jemput", label: "Sudah Menjemput" },
-  { key: "dalam_perjalanan", label: "Dalam Perjalanan" },
+  { key: "sudah_jemput", label: "Menuju lokasi jemput penumpang" },
+  { key: "dalam_perjalanan", label: "Dalam perjalanan ke kota tujuan" },
   { key: "selesai", label: "Selesai" },
 ];
 
 function stageIndex(p: TripProgress) {
+  if (p === "belum_jemput") return -1;
+  if (p === "semua_naik") return 0;
   return STAGES.findIndex((s) => s.key === p);
 }
 
@@ -223,7 +224,7 @@ export default function TripDetailPage() {
         </div>
         <div className="mt-3">
           <span className={`text-[11px] font-bold uppercase px-2.5 py-1 rounded-full ${stageCls(data.trip_progress)}`}>
-            {STAGES[curStageIdx]?.label ?? data.trip_progress}
+            {curStageIdx >= 0 ? STAGES[curStageIdx]?.label : "Menunggu Keberangkatan"}
           </span>
         </div>
       </div>

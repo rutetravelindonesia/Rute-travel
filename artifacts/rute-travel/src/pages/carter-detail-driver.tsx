@@ -58,13 +58,13 @@ function initials(nama: string) {
 }
 
 const STAGES: { key: TripProgress; label: string }[] = [
-  { key: "menunggu", label: "Menunggu Jemput" },
-  { key: "menuju_jemput", label: "Menuju Lokasi Jemput" },
-  { key: "dalam_perjalanan", label: "Dalam Perjalanan" },
+  { key: "menuju_jemput", label: "Menuju lokasi jemput penumpang" },
+  { key: "dalam_perjalanan", label: "Dalam perjalanan ke kota tujuan" },
   { key: "selesai", label: "Selesai" },
 ];
 
 function stageIndex(p: TripProgress) {
+  if (p === "menunggu") return -1;
   return STAGES.findIndex((s) => s.key === p);
 }
 
