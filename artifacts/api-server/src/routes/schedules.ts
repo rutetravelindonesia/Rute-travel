@@ -1188,6 +1188,7 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
           model: row.kendaraan.model,
           plat_nomor: row.kendaraan.plat_nomor,
           warna: row.kendaraan.warna,
+          foto_url: row.kendaraan.foto_url,
         }
       : null,
     is_mitra: isMitra,

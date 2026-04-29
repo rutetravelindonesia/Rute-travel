@@ -48,7 +48,7 @@ interface CarterBooking {
   created_at: string;
   is_mitra: boolean;
   driver: { id: number; nama: string; foto_profil: string | null; no_whatsapp: string | null } | null;
-  kendaraan: { id: number; merek: string; model: string; plat_nomor: string; warna: string } | null;
+  kendaraan: { id: number; merek: string; model: string; plat_nomor: string; warna: string; foto_url: string | null } | null;
   my_rating: { stars: number; comment: string | null } | null;
 }
 
@@ -564,6 +564,17 @@ export default function CarterEtiket() {
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {/* Foto kendaraan */}
+        {booking.kendaraan?.foto_url && (
+          <div className="rounded-2xl overflow-hidden border border-border">
+            <img
+              src={booking.kendaraan.foto_url.startsWith("http") ? booking.kendaraan.foto_url : `${apiBase}/storage${booking.kendaraan.foto_url}`}
+              alt={`${booking.kendaraan.merek} ${booking.kendaraan.model}`}
+              className="w-full h-44 object-cover"
+            />
           </div>
         )}
 

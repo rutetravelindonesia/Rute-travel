@@ -83,6 +83,7 @@ interface Booking {
     model: string;
     plat_nomor: string;
     warna: string;
+    foto_url: string | null;
   } | null;
   is_mitra: boolean;
   can_cancel: boolean;
@@ -747,6 +748,17 @@ export default function BookingEtiket() {
                 Menunggu mitra mengaktifkan lokasi...
               </div>
             )}
+          </div>
+        )}
+
+        {/* Foto kendaraan */}
+        {booking.kendaraan?.foto_url && (
+          <div className="rounded-2xl overflow-hidden border border-border">
+            <img
+              src={booking.kendaraan.foto_url.startsWith("http") ? booking.kendaraan.foto_url : `${apiBase}/storage${booking.kendaraan.foto_url}`}
+              alt={`${booking.kendaraan.merek} ${booking.kendaraan.model}`}
+              className="w-full h-44 object-cover"
+            />
           </div>
         )}
 
