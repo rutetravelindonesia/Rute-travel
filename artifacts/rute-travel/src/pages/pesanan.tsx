@@ -411,7 +411,7 @@ export default function PesananPage() {
   function carterButtonLabel(tp: string | null | undefined): string | null {
     if (tp === "menunggu") return "Mulai Jemput Konsumen";
     if (tp === "menuju_jemput") return "Penumpang Sudah Naik";
-    if (tp === "dalam_perjalanan") return "Selesaikan Perjalanan";
+    if (tp === "dalam_perjalanan") return "Selesaikan Trip";
     return null;
   }
 
