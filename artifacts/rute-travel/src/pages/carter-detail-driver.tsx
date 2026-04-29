@@ -65,13 +65,15 @@ const STAGES: { key: TripProgress; label: string }[] = [
 
 function stageIndex(p: TripProgress) {
   if (p === "menunggu") return -1;
+  if (p === "sudah_jemput") return 0;
   return STAGES.findIndex((s) => s.key === p);
 }
 
 function buttonLabel(p: TripProgress): string | null {
   if (p === "menunggu") return "Mulai Jemput Konsumen";
   if (p === "menuju_jemput") return "Penumpang Sudah Naik";
-  if (p === "dalam_perjalanan") return "Selesaikan Perjalanan";
+  if (p === "sudah_jemput") return "Berangkat ke Kota Tujuan";
+  if (p === "dalam_perjalanan") return "Selesaikan Trip";
   return null;
 }
 
@@ -89,6 +91,7 @@ function stageBadgeLabel(status: string, tp: TripProgress) {
   if (status === "batal") return "Dibatalkan";
   if (status === "selesai" || tp === "selesai") return "Selesai";
   if (tp === "menuju_jemput") return "Menuju lokasi jemput penumpang";
+  if (tp === "sudah_jemput") return "Menuju lokasi jemput penumpang";
   if (tp === "dalam_perjalanan") return "Dalam perjalanan ke kota tujuan";
   return "Menuju lokasi jemput penumpang";
 }

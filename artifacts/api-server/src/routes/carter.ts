@@ -854,13 +854,14 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
   }
   const NEXT: Record<string, string> = {
     menunggu: "menuju_jemput",
-    menuju_jemput: "dalam_perjalanan",
+    menuju_jemput: "sudah_jemput",
+    sudah_jemput: "dalam_perjalanan",
     dalam_perjalanan: "selesai",
   };
   const requestedProgress = (req.body as Record<string, unknown> | undefined)?.trip_progress as string | undefined;
   const currentProgress = b.trip_progress ?? "menunggu";
   const next_progress = requestedProgress ?? NEXT[currentProgress];
-  const allowed = ["menunggu", "menuju_jemput", "dalam_perjalanan", "selesai"];
+  const allowed = ["menunggu", "menuju_jemput", "sudah_jemput", "dalam_perjalanan", "selesai"];
   if (!next_progress || !allowed.includes(next_progress)) {
     res.status(400).json({ error: "trip_progress tidak valid." });
     return;

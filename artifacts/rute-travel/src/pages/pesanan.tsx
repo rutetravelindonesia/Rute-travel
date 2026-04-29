@@ -113,6 +113,7 @@ function penumpangStatusBadge(o: UnifiedOrder): { label: string; cls: string } {
 function carterPenumpangBadge(status: Status, tp: string | null | undefined, pickupConfirmed?: boolean): { label: string; cls: string } {
   if (tp === "menuju_jemput" && pickupConfirmed) return { label: "Sudah Jemput", cls: "bg-violet-100 text-violet-800" };
   if (tp === "menuju_jemput") return { label: "Mitra Menuju Jemput", cls: "bg-blue-100 text-blue-800" };
+  if (tp === "sudah_jemput") return { label: "Siap Berangkat", cls: "bg-violet-100 text-violet-800" };
   if (tp === "dalam_perjalanan") return { label: "Dalam Perjalanan", cls: "bg-indigo-100 text-indigo-800" };
   if (tp === "selesai" || status === "selesai") return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
   if (status === "pending") return { label: "Menunggu Pembayaran", cls: "bg-amber-100 text-amber-800" };
@@ -411,6 +412,7 @@ export default function PesananPage() {
   function carterButtonLabel(tp: string | null | undefined): string | null {
     if (tp === "menunggu") return "Mulai Jemput Konsumen";
     if (tp === "menuju_jemput") return "Penumpang Sudah Naik";
+    if (tp === "sudah_jemput") return "Berangkat ke Kota Tujuan";
     if (tp === "dalam_perjalanan") return "Selesaikan Trip";
     return null;
   }
@@ -421,6 +423,7 @@ export default function PesananPage() {
     if (status === "selesai" || tp === "selesai") return "Selesai";
     if (tp === "menuju_jemput" && pickupConfirmed) return "Sudah Jemput";
     if (tp === "menuju_jemput") return "Menuju Penjemputan";
+    if (tp === "sudah_jemput") return "Berangkat ke Kota Tujuan";
     if (tp === "dalam_perjalanan") return "Dalam Perjalanan";
     return "Mulai Jemput Konsumen";
   }
@@ -431,6 +434,7 @@ export default function PesananPage() {
     if (status === "selesai" || tp === "selesai") return "bg-green-100 text-green-800";
     if (tp === "menuju_jemput" && pickupConfirmed) return "bg-violet-100 text-violet-800";
     if (tp === "menuju_jemput") return "bg-blue-100 text-blue-800";
+    if (tp === "sudah_jemput") return "bg-violet-100 text-violet-800";
     if (tp === "dalam_perjalanan") return "bg-indigo-100 text-indigo-800";
     return "bg-amber-100 text-amber-800";
   }
