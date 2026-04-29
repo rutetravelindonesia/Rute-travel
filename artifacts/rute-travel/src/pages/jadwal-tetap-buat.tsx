@@ -513,15 +513,6 @@ export default function JadwalTetapBuat() {
                 </div>
               )}
 
-              {form.capacity && !hasWaypoints && form.price_per_seat && parseInt(form.capacity) > 0 && parseNum(form.price_per_seat) > 0 && (
-                <div className="bg-accent/5 rounded-xl p-3 border border-accent/20">
-                  <p className="text-xs text-muted-foreground">Potensi pendapatan penuh:</p>
-                  <p className="text-base font-bold text-foreground mt-0.5">
-                    {formatRupiah(parseInt(form.capacity) * parseNum(form.price_per_seat))}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{form.capacity} kursi × {formatRupiah(parseNum(form.price_per_seat))}</p>
-                </div>
-              )}
             </div>
 
             {/* Kota Singgah */}
@@ -757,20 +748,6 @@ export default function JadwalTetapBuat() {
                 )}
               </div>
 
-              {/* Potensi pendapatan */}
-              <div className="bg-muted/40 px-5 py-3.5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Potensi pendapatan penuh</p>
-                    <p className="text-[10px] text-muted-foreground/70">Jika semua {form.capacity} kursi rute penuh terisi</p>
-                  </div>
-                  <p className="text-sm font-bold text-foreground">
-                    {hasWaypoints && totalWaypointPrice
-                      ? formatRupiah(parseInt(form.capacity) * totalWaypointPrice)
-                      : formatRupiah(parseInt(form.capacity) * parseInt(form.price_per_seat))}
-                  </p>
-                </div>
-              </div>
             </div>
 
             <p className="text-xs text-muted-foreground text-center px-4">
