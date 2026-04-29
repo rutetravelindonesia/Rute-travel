@@ -114,7 +114,7 @@ function carterPenumpangBadge(status: Status, tp: string | null | undefined): { 
   if (tp === "selesai" || status === "selesai") return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
   if (status === "pending") return { label: "Menunggu Pembayaran", cls: "bg-amber-100 text-amber-800" };
   if (status === "batal") return { label: "Dibatalkan", cls: "bg-red-100 text-red-700" };
-  return { label: "Menunggu Mitra Jemput", cls: "bg-blue-100 text-blue-800" };
+  return { label: "Menunggu Mitra Menjemput", cls: "bg-blue-100 text-blue-800" };
 }
 
 function formatDate(iso: string) {
