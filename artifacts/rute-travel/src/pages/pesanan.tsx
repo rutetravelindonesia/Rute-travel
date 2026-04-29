@@ -405,7 +405,7 @@ export default function PesananPage() {
   function tripStageLabel(p: TripProgress): string {
     if (p === "belum_jemput") return "Mulai Jemput Konsumen";
     if (p === "sudah_jemput") return "Menuju Penjemputan";
-    if (p === "semua_naik") return "Semua sudah naik";
+    if (p === "semua_naik") return "Berangkat ke Kota Tujuan";
     if (p === "dalam_perjalanan") return "Dalam perjalanan";
     if (p === "selesai") return "Selesai";
     return p;
