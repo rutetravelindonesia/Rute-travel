@@ -111,7 +111,7 @@ function penumpangStatusBadge(o: UnifiedOrder): { label: string; cls: string } {
 }
 
 function carterPenumpangBadge(status: Status, tp: string | null | undefined, pickupConfirmed?: boolean): { label: string; cls: string } {
-  if (tp === "menuju_jemput" && pickupConfirmed) return { label: "Sudah Dijemput", cls: "bg-violet-100 text-violet-800" };
+  if (tp === "menuju_jemput" && pickupConfirmed) return { label: "Sudah Jemput", cls: "bg-violet-100 text-violet-800" };
   if (tp === "menuju_jemput") return { label: "Mitra Menuju Jemput", cls: "bg-blue-100 text-blue-800" };
   if (tp === "dalam_perjalanan") return { label: "Dalam Perjalanan", cls: "bg-indigo-100 text-indigo-800" };
   if (tp === "selesai" || status === "selesai") return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
@@ -419,7 +419,7 @@ export default function PesananPage() {
     if (status === "pending") return "Menunggu Pembayaran";
     if (status === "batal") return "Dibatalkan";
     if (status === "selesai" || tp === "selesai") return "Selesai";
-    if (tp === "menuju_jemput" && pickupConfirmed) return "Sudah Dijemput";
+    if (tp === "menuju_jemput" && pickupConfirmed) return "Sudah Jemput";
     if (tp === "menuju_jemput") return "Menuju Penjemputan";
     if (tp === "dalam_perjalanan") return "Dalam Perjalanan";
     return "Menunggu Jemput";
