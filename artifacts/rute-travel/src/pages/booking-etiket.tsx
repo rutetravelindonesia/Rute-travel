@@ -139,9 +139,9 @@ function deriveStage(b: Booking): {
     };
   if (tp === "sudah_jemput")
     return {
-      label: "Mitra sudah menjemput Anda",
+      label: "Mitra menuju lokasi jemput Anda",
       tone: "bg-blue-100 text-blue-800",
-      Icon: CheckCircle2,
+      Icon: Navigation,
     };
   if (tp === "semua_naik")
     return {
