@@ -13,6 +13,10 @@ const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(artifactDir, "../..");
 
 async function buildFrontend() {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("Skipping frontend build (not production).");
+    return;
+  }
   console.log("Building frontend (rute-travel)...");
   const result = spawnSync(
     "pnpm",
@@ -20,7 +24,7 @@ async function buildFrontend() {
     {
       cwd: repoRoot,
       stdio: "inherit",
-      env: { ...process.env, NODE_ENV: "production" },
+      env: { ...process.env, NODE_ENV: "production", BASE_PATH: "/" },
     }
   );
   if (result.status !== 0) {
