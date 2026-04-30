@@ -375,6 +375,48 @@ export default function BookingEtiket() {
     );
   }
 
+  if (booking.status === "paid" && !booking.is_mitra) {
+    return (
+      <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
+        <div className="bg-card border-b border-border px-5 pt-10 pb-4 flex items-center gap-3">
+          <button
+            onClick={() => setLocation("/dashboard-penumpang")}
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-muted"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-base font-bold text-foreground">E-Tiket</h1>
+            <p className="text-xs text-muted-foreground">{bookingCode(booking.id)}</p>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center">
+            <Clock4 className="w-10 h-10 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Pembayaran Sedang Diverifikasi</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Tim RUTE sedang memeriksa bukti pembayaran Anda. Etiket akan terbit secara otomatis setelah pembayaran dikonfirmasi oleh admin.
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 w-full text-left space-y-1 mt-2">
+            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Info Pesanan</p>
+            <p className="text-sm text-foreground font-medium">{booking.schedule?.origin_city} → {booking.schedule?.destination_city}</p>
+            <p className="text-xs text-muted-foreground">
+              {booking.schedule?.departure_date} · {booking.schedule?.departure_time}
+            </p>
+            <p className="text-xs text-muted-foreground">Kursi: {booking.kursi.join(", ")}</p>
+          </div>
+          <button
+            onClick={() => setLocation("/dashboard-penumpang")}
+            className="mt-2 w-full py-3 rounded-2xl bg-accent text-white text-sm font-bold"
+          >
+            Kembali ke Beranda
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const stage = deriveStage(booking);
   const Icon = stage.Icon;
   const code = bookingCode(booking.id);
