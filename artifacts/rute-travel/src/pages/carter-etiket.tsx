@@ -140,7 +140,13 @@ export default function CarterEtiket() {
           setError(null);
           return;
         }
-        // Non-pending_verification 403 (e.g. mitra driver access) — fall through to full fetch
+        // Non-pending_verification 403: only fall through for mitra drivers (who are
+        // not the booking owner and are blocked by the owner-only /etiket endpoint).
+        // Any other role gets a forbidden error.
+        if (user?.role !== "driver") {
+          setError("Tidak boleh mengakses pesanan ini.");
+          return;
+        }
       } else if (gateRes.status === 401) {
         setLocation("/login");
         return;
