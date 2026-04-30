@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import {
   LayoutDashboard, Users, CalendarDays, Ticket, Car, Star,
   BarChart3, MapPin, Megaphone, DollarSign, ClipboardList,
-  LogOut, Menu, X, ShoppingBag, CheckCircle, UserCheck
+  LogOut, Menu, X, ShoppingBag, CheckCircle, UserCheck, Map
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useLogout } from "@workspace/api-client-react";
@@ -23,6 +23,7 @@ const NAV = [
   { href: "/admin/harga", label: "Pengaturan Harga", icon: DollarSign },
   { href: "/admin/pengumuman", label: "Pengumuman", icon: Megaphone },
   { href: "/admin/logs", label: "Log Aktivitas", icon: ClipboardList },
+  { href: "/admin/peta", label: "Peta Lokasi Live", icon: Map },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
