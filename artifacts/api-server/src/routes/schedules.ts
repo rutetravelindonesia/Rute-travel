@@ -281,7 +281,7 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
         kursi_tersisa: s.capacity - kursi_terisi,
         kursi_booked: activeBookings.flatMap((b) => b.kursi),
         pendapatan,
-        penumpang: activeBookings.map((b) => ({
+        penumpang: activeBookings.filter((b) => ["confirmed", "aktif", "selesai"].includes(b.status)).map((b) => ({
           id: b.id,
           nama: b.nama,
           jumlah_kursi: b.jumlah_kursi,
@@ -1236,6 +1236,15 @@ router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
   const isAdmin = currentUser.role === "admin";
   if (!isOwner && !isAdmin) {
     res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
+  }
+
+  if (row.b.status === "pending" || row.b.status === "paid") {
+    res.status(403).json({
+      error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
+      status: "pending_verification",
+      booking_status: row.b.status,
+    });
+    return;
   }
 
   // Fetch penumpang name
