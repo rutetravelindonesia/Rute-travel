@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
-import { Loader2, XCircle } from "lucide-react";
+import { Loader2, XCircle, Trash2 } from "lucide-react";
 
 interface CarterBooking {
   id: number; status: string; total_amount: number; created_at: string;
-  pickup_label: string; dropoff_label: string; pickup_date: string; payment_method: string;
+  pickup_label: string; dropoff_label: string; payment_method: string;
+  origin_city: string; destination_city: string;
   user: { id: number; nama: string } | null;
 }
 
@@ -17,6 +18,23 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Pending",
+  paid: "Sudah Bayar",
+  confirmed: "Dikonfirmasi",
+  cancelled: "Dibatalkan",
+};
+
+const TRIP_STATUS_FILTERS = [
+  { value: "", label: "Semua" },
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Sudah Bayar" },
+  { value: "confirmed", label: "Sedang Berjalan" },
+  { value: "cancelled", label: "Dibatalkan" },
+];
+
+interface ConfirmDelete { id: number; nama: string }
+
 export default function AdminCarter() {
   const { token, user } = useAuth();
   const [, setLocation] = useLocation();
@@ -24,6 +42,8 @@ export default function AdminCarter() {
   const [rows, setRows] = useState<CarterBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -43,7 +63,17 @@ export default function AdminCarter() {
 
   async function handleCancel(id: number) {
     if (!confirm("Batalkan booking carter ini?")) return;
+    setBusy(`cancel-${id}`);
     await fetch(`${apiBase}/admin/carter-bookings/${id}/cancel`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` } });
+    setBusy(null);
+    await load();
+  }
+
+  async function handleDelete(id: number) {
+    setBusy(`delete-${id}`);
+    await fetch(`${apiBase}/admin/carter-bookings/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    setBusy(null);
+    setConfirmDelete(null);
     await load();
   }
 
@@ -51,17 +81,40 @@ export default function AdminCarter() {
 
   return (
     <AdminLayout>
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-[#1a1208]">Hapus Carter Permanen?</h3>
+            <p className="text-sm text-muted-foreground">
+              Booking carter #{confirmDelete.id} atas nama <strong>{confirmDelete.nama}</strong> akan dihapus permanen dari database.
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-[#f5f0e8]">
+                Batal
+              </button>
+              <button onClick={() => handleDelete(confirmDelete.id)} disabled={!!busy}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-1.5">
+                {busy === `delete-${confirmDelete.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Hapus Permanen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h1 className="text-2xl font-bold text-[#1a1208]">Booking Carter</h1>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="border border-border rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-            <option value="">Semua Status</option>
-            <option value="pending">Pending</option>
-            <option value="paid">Sudah Bayar</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="cancelled">Dibatalkan</option>
-          </select>
+          <div className="flex gap-1.5 flex-wrap">
+            {TRIP_STATUS_FILTERS.map(f => (
+              <button key={f.value} onClick={() => setStatusFilter(f.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${statusFilter === f.value ? "bg-[#a85e28] text-white" : "bg-white border border-border text-muted-foreground hover:bg-[#f5f0e8]"}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -76,7 +129,7 @@ export default function AdminCarter() {
                   <tr>
                     <th className="text-left px-4 py-3 font-semibold text-xs">#</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Pemesan</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs">Pickup</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs">Rute</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Total</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Status</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Tanggal</th>
@@ -88,20 +141,31 @@ export default function AdminCarter() {
                     <tr key={b.id} className="hover:bg-[#f5f0e8]/50">
                       <td className="px-4 py-3 text-muted-foreground">{b.id}</td>
                       <td className="px-4 py-3 font-medium">{b.user?.nama ?? "-"}</td>
-                      <td className="px-4 py-3 text-muted-foreground max-w-[180px] truncate">{b.pickup_label}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{b.origin_city ?? "–"} → {b.destination_city ?? "–"}</td>
                       <td className="px-4 py-3">{fmtRp(b.total_amount)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOR[b.status] ?? "bg-gray-100 text-gray-600"}`}>
-                          {b.status}
+                          {STATUS_LABEL[b.status] ?? b.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(b.created_at).toLocaleDateString("id-ID")}</td>
                       <td className="px-4 py-3">
-                        {b.status !== "cancelled" && (
-                          <button onClick={() => handleCancel(b.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500">
-                            <XCircle className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-1">
+                          {b.status !== "cancelled" && (
+                            <button onClick={() => handleCancel(b.id)} disabled={!!busy}
+                              title="Batalkan booking"
+                              className="p-1.5 rounded-lg hover:bg-orange-100 text-orange-500 disabled:opacity-50">
+                              <XCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setConfirmDelete({ id: b.id, nama: b.user?.nama ?? `Carter #${b.id}` })}
+                            disabled={!!busy}
+                            title="Hapus permanen"
+                            className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 disabled:opacity-50">
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -113,7 +113,7 @@ function deriveStage(b: Booking): {
   tone: string;
   Icon: typeof CheckCircle2;
 } {
-  if (b.status === "batal")
+  if (b.status === "batal" || b.status === "cancelled")
     return {
       label: "Pesanan dibatalkan",
       tone: "bg-red-100 text-red-800",
@@ -123,6 +123,12 @@ function deriveStage(b: Booking): {
     return {
       label: "Menunggu pembayaran",
       tone: "bg-amber-100 text-amber-800",
+      Icon: Clock4,
+    };
+  if (b.status === "paid")
+    return {
+      label: "Menunggu verifikasi pembayaran",
+      tone: "bg-blue-100 text-blue-800",
       Icon: Clock4,
     };
   const tp = b.schedule?.trip_progress ?? "belum_jemput";

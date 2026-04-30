@@ -193,6 +193,21 @@ router.get("/admin/schedules", adminGuard(async (req: any, res: any) => {
   res.json(rows.map(r => ({ ...r.s, driver: r.driver })));
 }));
 
+router.patch("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const { departure_date, departure_time, price_per_seat } = req.body as Record<string, any>;
+  const updates: Record<string, any> = {};
+  if (departure_date !== undefined) updates.departure_date = departure_date;
+  if (departure_time !== undefined) updates.departure_time = departure_time;
+  if (price_per_seat !== undefined) updates.price_per_seat = Number(price_per_seat);
+  if (!Object.keys(updates).length) { res.status(400).json({ error: "Tidak ada perubahan." }); return; }
+  const [s] = await db.update(schedulesTable).set(updates).where(eq(schedulesTable.id, id)).returning();
+  if (!s) { res.status(404).json({ error: "Jadwal tidak ditemukan." }); return; }
+  await logAdmin(req.admin.id, req.admin.nama, "EDIT_SCHEDULE", `Jadwal #${id} diupdate: ${JSON.stringify(updates)}`);
+  res.json(s);
+}));
+
 router.delete("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
@@ -228,6 +243,16 @@ router.patch("/admin/bookings/:id/cancel", adminGuard(async (req: any, res: any)
   res.json(b);
 }));
 
+router.delete("/admin/bookings/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [b] = await db.select().from(scheduleBookingsTable).where(eq(scheduleBookingsTable.id, id));
+  if (!b) { res.status(404).json({ error: "Booking tidak ditemukan." }); return; }
+  await db.delete(scheduleBookingsTable).where(eq(scheduleBookingsTable.id, id));
+  await logAdmin(req.admin.id, req.admin.nama, "DELETE_BOOKING", `Booking reguler #${id} dihapus permanen`);
+  res.json({ ok: true });
+}));
+
 // ===================== CARTER BOOKINGS =====================
 router.get("/admin/carter-bookings", adminGuard(async (req: any, res: any) => {
   const { status } = req.query as Record<string, string>;
@@ -251,6 +276,16 @@ router.patch("/admin/carter-bookings/:id/cancel", adminGuard(async (req: any, re
     .where(eq(carterBookingsTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "CANCEL_CARTER", `Carter booking #${id} dibatalkan`);
   res.json(b);
+}));
+
+router.delete("/admin/carter-bookings/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [b] = await db.select().from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  if (!b) { res.status(404).json({ error: "Booking carter tidak ditemukan." }); return; }
+  await db.delete(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  await logAdmin(req.admin.id, req.admin.nama, "DELETE_CARTER_BOOKING", `Booking carter #${id} dihapus permanen`);
+  res.json({ ok: true });
 }));
 
 // ===================== VERIFIKASI PEMBAYARAN =====================

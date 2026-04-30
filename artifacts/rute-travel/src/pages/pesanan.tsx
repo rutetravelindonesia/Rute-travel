@@ -74,8 +74,8 @@ interface DriverGroupedTrip {
   trip_progress: TripProgress;
 }
 
-const ACTIVE: Status[] = ["pending", "paid", "aktif"];
-const ARCHIVED: Status[] = ["selesai", "batal"];
+const ACTIVE: Status[] = ["pending", "paid", "aktif", "confirmed"];
+const ARCHIVED: Status[] = ["selesai", "batal", "cancelled"];
 
 const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
@@ -84,12 +84,15 @@ function statusBadge(s: Status): { label: string; cls: string } {
     case "pending":
       return { label: "Menunggu pembayaran", cls: "bg-amber-100 text-amber-800" };
     case "paid":
-      return { label: "Menunggu mitra menjemput", cls: "bg-blue-100 text-blue-800" };
+      return { label: "Menunggu verifikasi", cls: "bg-blue-100 text-blue-800" };
+    case "confirmed":
+      return { label: "E-Tiket Aktif", cls: "bg-green-100 text-green-800" };
     case "aktif":
       return { label: "Aktif", cls: "bg-green-100 text-green-800" };
     case "selesai":
       return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
     case "batal":
+    case "cancelled":
       return { label: "Dibatalkan", cls: "bg-red-100 text-red-700" };
     default:
       return { label: s, cls: "bg-muted text-muted-foreground" };
@@ -97,6 +100,13 @@ function statusBadge(s: Status): { label: string; cls: string } {
 }
 
 function penumpangStatusBadge(o: UnifiedOrder): { label: string; cls: string } {
+  if (o.status === "confirmed") {
+    const tp = o.trip_progress;
+    if (tp === "dalam_perjalanan") return { label: "Dalam perjalanan", cls: "bg-indigo-100 text-indigo-800" };
+    if (tp === "sudah_jemput" || tp === "semua_naik") return { label: "Mitra Menuju Jemput", cls: "bg-blue-100 text-blue-800" };
+    if (tp === "selesai") return { label: "Trip selesai", cls: "bg-gray-100 text-gray-700" };
+    return { label: "E-Tiket Aktif", cls: "bg-green-100 text-green-800" };
+  }
   if (o.status !== "aktif") return statusBadge(o.status);
   switch (o.trip_progress) {
     case "sudah_jemput":
@@ -119,7 +129,9 @@ function carterPenumpangBadge(status: Status, tp: string | null | undefined, pic
   if (tp === "dalam_perjalanan") return { label: "Dalam Perjalanan", cls: "bg-indigo-100 text-indigo-800" };
   if (tp === "selesai" || status === "selesai") return { label: "Selesai", cls: "bg-gray-100 text-gray-700" };
   if (status === "pending") return { label: "Menunggu Pembayaran", cls: "bg-amber-100 text-amber-800" };
-  if (status === "batal") return { label: "Dibatalkan", cls: "bg-red-100 text-red-700" };
+  if (status === "paid") return { label: "Menunggu Verifikasi", cls: "bg-blue-100 text-blue-800" };
+  if (status === "confirmed") return { label: "E-Tiket Aktif", cls: "bg-green-100 text-green-800" };
+  if (status === "batal" || status === "cancelled") return { label: "Dibatalkan", cls: "bg-red-100 text-red-700" };
   return { label: "Menunggu Mitra Menjemput", cls: "bg-blue-100 text-blue-800" };
 }
 
