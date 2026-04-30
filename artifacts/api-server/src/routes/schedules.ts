@@ -1146,15 +1146,6 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  if (isPenumpang && !isMitra && (row.b.status === "pending" || row.b.status === "paid")) {
-    res.status(403).json({
-      error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
-      status: "pending_verification",
-      booking_status: row.b.status,
-    });
-    return;
-  }
-
   const canCancel =
     isPenumpang &&
     ["pending", "paid", "aktif"].includes(row.b.status) &&
@@ -1247,7 +1238,7 @@ router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
   }
 
-  if (row.b.status === "pending" || row.b.status === "paid") {
+  if (!["confirmed", "aktif", "selesai"].includes(row.b.status)) {
     res.status(403).json({
       error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
       status: "pending_verification",
