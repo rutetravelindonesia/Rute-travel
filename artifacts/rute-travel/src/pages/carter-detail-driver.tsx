@@ -19,6 +19,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { pickupIcon } from "@/components/mapIcons";
 import "leaflet/dist/leaflet.css";
 import { useAuth } from "@/contexts/auth";
+import { getDriverPhotoUrl } from "@/lib/utils";
 
 type TripProgress = "menunggu" | "menuju_jemput" | "dalam_perjalanan" | "selesai";
 
@@ -237,8 +238,19 @@ export default function CarterDetailDriverPage() {
           <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-3">Penumpang</p>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-amber-800">
-                {initials(nama)}
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-amber-800 overflow-hidden relative">
+                <span>{initials(nama)}</span>
+                {(() => {
+                  const photoUrl = getDriverPhotoUrl(apiBase, data.penumpang?.foto_profil);
+                  return photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={nama}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
+                  ) : null;
+                })()}
               </div>
               <div>
                 <p className="font-semibold text-foreground text-sm">{nama}</p>

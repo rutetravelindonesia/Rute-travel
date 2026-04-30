@@ -17,6 +17,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { getDriverPhotoUrl } from "@/lib/utils";
 
 type TripProgress = "belum_jemput" | "sudah_jemput" | "dalam_perjalanan" | "selesai";
 
@@ -260,8 +261,19 @@ export default function TripDetailPage() {
                   <div key={p.booking_id} className="border border-border/50 rounded-xl p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-amber-800">
-                          {initials(nama)}
+                        <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-amber-800 overflow-hidden relative">
+                          <span>{initials(nama)}</span>
+                          {(() => {
+                            const photoUrl = getDriverPhotoUrl(apiBase, p.penumpang?.foto_profil);
+                            return photoUrl ? (
+                              <img
+                                src={photoUrl}
+                                alt={nama}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                              />
+                            ) : null;
+                          })()}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
