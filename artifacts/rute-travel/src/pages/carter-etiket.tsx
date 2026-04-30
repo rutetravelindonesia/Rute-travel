@@ -172,7 +172,7 @@ export default function CarterEtiket() {
 
   useEffect(() => {
     if (!booking) return;
-    const isActive = (booking.status === "aktif" || booking.status === "paid") && booking.trip_progress !== "selesai";
+    const isActive = (booking.status === "aktif" || booking.status === "confirmed" || booking.status === "paid") && booking.trip_progress !== "selesai";
 
     if (booking.is_mitra && isActive) {
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
@@ -300,8 +300,9 @@ export default function CarterEtiket() {
   const code = bookingCode(booking.id);
   const tp = booking.trip_progress;
   const progressBtn = tripProgressBtn(tp);
-  const showLiveMap = !booking.is_mitra && ["paid", "aktif"].includes(booking.status) && tp !== "selesai";
-  const showMitraMap = booking.is_mitra && booking.status === "aktif" && booking.pickup_lat && booking.pickup_lng;
+  const isActiveStatus = ["paid", "aktif", "confirmed"].includes(booking.status);
+  const showLiveMap = !booking.is_mitra && isActiveStatus && tp !== "selesai";
+  const showMitraMap = booking.is_mitra && isActiveStatus && booking.pickup_lat && booking.pickup_lng;
 
   return (
     <div className="min-h-screen bg-background max-w-md mx-auto pb-8">
@@ -526,7 +527,7 @@ export default function CarterEtiket() {
         )}
 
         {/* MITRA: GPS status banner */}
-        {booking.is_mitra && booking.status === "aktif" && (
+        {booking.is_mitra && isActiveStatus && (
           <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium ${
             gpsPermission === "denied" ? "bg-red-100 text-red-700" :
             gpsActive ? "bg-green-100 text-green-700" :
@@ -551,7 +552,7 @@ export default function CarterEtiket() {
         )}
 
         {/* MITRA: Tombol progress perjalanan */}
-        {booking.is_mitra && booking.status === "aktif" && progressBtn && (
+        {booking.is_mitra && isActiveStatus && progressBtn && (
           <button
             data-testid="progress-btn"
             onClick={advanceProgress}
@@ -563,7 +564,7 @@ export default function CarterEtiket() {
           </button>
         )}
 
-        {booking.is_mitra && booking.status === "aktif" && tp === "selesai" && (
+        {booking.is_mitra && isActiveStatus && tp === "selesai" && (
           <div className="w-full py-3 rounded-xl bg-green-50 text-green-700 text-sm font-bold flex items-center justify-center gap-2">
             <CheckCircle2 className="w-4 h-4" /> Perjalanan selesai
           </div>
