@@ -179,7 +179,6 @@ export default function BookingEtiket() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pendingVerification, setPendingVerification] = useState<{ booking_status: string } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [showCancel, setShowCancel] = useState(false);
@@ -206,19 +205,11 @@ export default function BookingEtiket() {
         if (res.ok) {
           const data: Booking = await res.json();
           setBooking(data);
-          setPendingVerification(null);
           setError(null);
-        } else if (res.status === 403) {
-          const body = await res.json().catch(() => ({}));
-          if (body?.status === "pending_verification") {
-            setBooking(null);
-            setPendingVerification({ booking_status: body.booking_status ?? "paid" });
-            setError(null);
-          } else {
-            setError("Tidak boleh melihat pesanan ini.");
-          }
         } else if (res.status === 404) {
           setError("E-tiket tidak ditemukan.");
+        } else if (res.status === 403) {
+          setError("Tidak boleh melihat pesanan ini.");
         }
       } catch (e: any) {
         if (e?.name !== "AbortError") {
@@ -386,8 +377,22 @@ export default function BookingEtiket() {
     );
   }
 
-  if (pendingVerification) {
-    const isPending = pendingVerification.booking_status === "pending";
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
+        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
+        <button
+          onClick={() => setLocation("/dashboard-penumpang")}
+          className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold"
+        >
+          Ke beranda
+        </button>
+      </div>
+    );
+  }
+
+  if (!booking.is_mitra && (booking.status === "pending" || booking.status === "paid")) {
+    const isPending = booking.status === "pending";
     return (
       <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
         <div className="bg-card border-b border-border px-5 pt-10 pb-4 flex items-center gap-3">
@@ -433,20 +438,6 @@ export default function BookingEtiket() {
             </>
           )}
         </div>
-      </div>
-    );
-  }
-
-  if (!booking) {
-    return (
-      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
-        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
-        <button
-          onClick={() => setLocation("/dashboard-penumpang")}
-          className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold"
-        >
-          Ke beranda
-        </button>
       </div>
     );
   }
