@@ -1064,7 +1064,7 @@ router.patch("/schedules/:id/trip-progress", async (req, res): Promise<void> => 
       .where(
         and(
           eq(scheduleBookingsTable.schedule_id, id),
-          inArray(scheduleBookingsTable.status, ["paid", "pending"]),
+          inArray(scheduleBookingsTable.status, ["paid", "pending", "confirmed"]),
         ),
       );
   } else if (nextProgress === "selesai") {
@@ -1074,7 +1074,7 @@ router.patch("/schedules/:id/trip-progress", async (req, res): Promise<void> => 
       .where(
         and(
           eq(scheduleBookingsTable.schedule_id, id),
-          inArray(scheduleBookingsTable.status, ["paid", "aktif"]),
+          inArray(scheduleBookingsTable.status, ["paid", "aktif", "confirmed"]),
         ),
       );
   }
@@ -1481,7 +1481,7 @@ router.post("/bookings/:id/rating", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Jadwal tidak ditemukan." });
     return;
   }
-  if (row.b.status !== "selesai") {
+  if (row.b.status !== "selesai" && row.s?.trip_progress !== "selesai") {
     res.status(400).json({ error: "Rating hanya bisa diberikan setelah trip selesai." });
     return;
   }
@@ -1590,6 +1590,53 @@ router.patch("/schedules/:id/driver-location", async (req, res): Promise<void> =
     .set({ driver_lat: lat, driver_lng: lng, driver_location_updated_at: new Date() })
     .where(eq(schedulesTable.id, id));
   res.json({ ok: true });
+});
+
+router.get("/schedules/:id/passenger-ratings", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+
+  const [sched] = await db
+    .select({ driver_id: schedulesTable.driver_id })
+    .from(schedulesTable)
+    .where(eq(schedulesTable.id, id));
+  if (!sched) { res.status(404).json({ error: "Jadwal tidak ditemukan." }); return; }
+  if (sched.driver_id !== user.id) { res.status(403).json({ error: "Akses ditolak." }); return; }
+
+  const rows = await db
+    .select({
+      booking_id: scheduleBookingsTable.id,
+      kursi: scheduleBookingsTable.kursi,
+      penumpang_nama: usersTable.nama,
+      rating_stars: ratingsTable.stars,
+      rating_comment: ratingsTable.comment,
+    })
+    .from(scheduleBookingsTable)
+    .leftJoin(usersTable, eq(usersTable.id, scheduleBookingsTable.penumpang_id))
+    .leftJoin(
+      ratingsTable,
+      and(
+        eq(ratingsTable.booking_id, scheduleBookingsTable.id),
+        eq(ratingsTable.rater_id, scheduleBookingsTable.penumpang_id),
+      ),
+    )
+    .where(
+      and(
+        eq(scheduleBookingsTable.schedule_id, id),
+        ne(scheduleBookingsTable.status, "batal"),
+      ),
+    );
+
+  res.json(
+    rows.map((r) => ({
+      booking_id: r.booking_id,
+      penumpang_nama: r.penumpang_nama ?? "—",
+      kursi: Array.isArray(r.kursi) ? r.kursi : [],
+      rating: r.rating_stars != null ? { stars: r.rating_stars, comment: r.rating_comment ?? null } : null,
+    })),
+  );
 });
 
 export default router;
