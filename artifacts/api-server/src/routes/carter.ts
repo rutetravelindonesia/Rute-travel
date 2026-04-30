@@ -748,7 +748,7 @@ router.get("/carter-bookings/:id/etiket", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
   }
 
-  if (detail.status === "pending" || detail.status === "paid") {
+  if (!["confirmed", "aktif", "selesai"].includes(detail.status)) {
     res.status(403).json({
       error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
       status: "pending_verification",
