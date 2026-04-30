@@ -99,7 +99,9 @@ export default function AdminPayments() {
         ) : (
           <div className="space-y-3">
             {rows.map(b => {
-              const proofUrl = b.payment_proof_url ? `${apiBase}/storage${b.payment_proof_url}` : null;
+              const proofUrl = b.payment_proof_url
+                ? (b.payment_proof_url.startsWith("http") ? b.payment_proof_url : `${apiBase}/storage${b.payment_proof_url}`)
+                : null;
               return (
                 <div key={b.id} className="bg-white rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="flex-1 space-y-1">
