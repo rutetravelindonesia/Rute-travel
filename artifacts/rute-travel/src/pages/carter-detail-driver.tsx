@@ -15,8 +15,8 @@ import {
   FileText,
   Banknote,
 } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { pickupIcon } from "@/components/mapIcons";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { pickupIcon, dropoffIcon } from "@/components/mapIcons";
 import "leaflet/dist/leaflet.css";
 import { useAuth } from "@/contexts/auth";
 import { getDriverPhotoUrl } from "@/lib/utils";
@@ -35,6 +35,9 @@ interface CarterBookingDetail {
   pickup_lat: number | null;
   pickup_lng: number | null;
   pickup_label: string | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
+  dropoff_label: string | null;
   catatan: string | null;
   driver_lat: number | null;
   driver_lng: number | null;
@@ -42,6 +45,15 @@ interface CarterBookingDetail {
   kendaraan: {
     jenis: string; merek: string; model: string; warna: string; plat_nomor: string;
   } | null;
+}
+
+function MapFitBounds({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points.length === 1) map.setView(points[0], 15);
+    else if (points.length >= 2) map.fitBounds(points, { padding: [40, 40] });
+  }, [points.map(p => p.join(",")).join("|"), map]);
+  return null;
 }
 
 function formatDate(d: string) {
@@ -327,22 +339,33 @@ export default function CarterDetailDriverPage() {
           ) : (
             <p className="text-sm text-muted-foreground mb-3">Belum diisi penumpang.</p>
           )}
-          {hasMap && (
-            <div className="rounded-xl overflow-hidden border border-border" style={{ height: 200 }}>
-              <MapContainer
-                center={[data.pickup_lat!, data.pickup_lng!]}
-                zoom={15}
-                style={{ height: "100%", width: "100%" }}
-                zoomControl={false}
-                scrollWheelZoom={false}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[data.pickup_lat!, data.pickup_lng!]} icon={pickupIcon}>
-                  <Popup>Titik Jemput</Popup>
-                </Marker>
-              </MapContainer>
-            </div>
-          )}
+          {hasMap && (() => {
+            const hasDropoff = tp === "dalam_perjalanan" && data.dropoff_lat != null && data.dropoff_lng != null;
+            const fitPoints: [number, number][] = [[data.pickup_lat!, data.pickup_lng!]];
+            if (hasDropoff) fitPoints.push([data.dropoff_lat!, data.dropoff_lng!]);
+            return (
+              <div className="rounded-xl overflow-hidden border border-border" style={{ height: 200 }}>
+                <MapContainer
+                  center={[data.pickup_lat!, data.pickup_lng!]}
+                  zoom={15}
+                  style={{ height: "100%", width: "100%" }}
+                  zoomControl={false}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <MapFitBounds points={fitPoints} />
+                  <Marker position={[data.pickup_lat!, data.pickup_lng!]} icon={pickupIcon}>
+                    <Popup>Titik Jemput</Popup>
+                  </Marker>
+                  {hasDropoff && (
+                    <Marker position={[data.dropoff_lat!, data.dropoff_lng!]} icon={dropoffIcon}>
+                      <Popup>{data.dropoff_label ?? "Tujuan Pengantaran"}</Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              </div>
+            );
+          })()}
           {hasMap && tp !== "dalam_perjalanan" && (
             <button
               onClick={() => window.open(`https://www.google.com/maps?q=${data.pickup_lat},${data.pickup_lng}`, "_blank", "noopener,noreferrer")}
