@@ -4,18 +4,19 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { ArrowLeft, MapPin, Navigation, Ticket, Loader2, ExternalLink, CheckCircle2, Clock4, Car, Navigation2, LocateFixed, MessageCircle, Phone, Star, XCircle, Camera } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { driverIcon, pickupIcon } from "@/components/mapIcons";
+import { driverIcon, pickupIcon, dropoffIcon } from "@/components/mapIcons";
 import { getDriverPhotoUrl } from "@/lib/utils";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 
-function MapAutoFit({ driverLat, driverLng, pickupLat, pickupLng }: { driverLat: number; driverLng: number; pickupLat: number | null; pickupLng: number | null }) {
+function MapAutoFit({ driverLat, driverLng, pickupLat, pickupLng, dropoffLat, dropoffLng }: { driverLat: number; driverLng: number; pickupLat: number | null; pickupLng: number | null; dropoffLat?: number | null; dropoffLng?: number | null }) {
   const map = useMap();
   useEffect(() => {
     const pts: [number, number][] = [[driverLat, driverLng]];
     if (pickupLat && pickupLng) pts.push([pickupLat, pickupLng]);
-    if (pts.length === 2) map.fitBounds(pts, { padding: [40, 40] });
+    if (dropoffLat && dropoffLng) pts.push([dropoffLat, dropoffLng]);
+    if (pts.length >= 2) map.fitBounds(pts, { padding: [40, 40] });
     else map.setView(pts[0], 15);
-  }, [driverLat, driverLng, pickupLat, pickupLng, map]);
+  }, [driverLat, driverLng, pickupLat, pickupLng, dropoffLat, dropoffLng, map]);
   return null;
 }
 
@@ -598,6 +599,8 @@ export default function CarterEtiket() {
                   driverLng={booking.driver_lng}
                   pickupLat={tp === "dalam_perjalanan" ? null : booking.pickup_lat}
                   pickupLng={tp === "dalam_perjalanan" ? null : booking.pickup_lng}
+                  dropoffLat={tp === "dalam_perjalanan" ? booking.dropoff_lat : null}
+                  dropoffLng={tp === "dalam_perjalanan" ? booking.dropoff_lng : null}
                 />
                 <Marker position={[booking.driver_lat, booking.driver_lng]} icon={driverIcon}>
                   <Popup>Mitra Driver</Popup>
@@ -605,6 +608,11 @@ export default function CarterEtiket() {
                 {tp !== "dalam_perjalanan" && booking.pickup_lat && booking.pickup_lng && (
                   <Marker position={[booking.pickup_lat, booking.pickup_lng]} icon={pickupIcon}>
                     <Popup>Titik Jemput Anda</Popup>
+                  </Marker>
+                )}
+                {tp === "dalam_perjalanan" && booking.dropoff_lat && booking.dropoff_lng && (
+                  <Marker position={[booking.dropoff_lat, booking.dropoff_lng]} icon={dropoffIcon}>
+                    <Popup>{booking.dropoff_label ?? "Tujuan Pengantaran"}</Popup>
                   </Marker>
                 )}
               </MapContainer>
