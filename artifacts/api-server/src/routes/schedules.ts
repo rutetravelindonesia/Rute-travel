@@ -1211,34 +1211,42 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
   });
 });
 
-// ===== E-TIKET endpoint (owner OR admin) =====
+// ===== E-TIKET endpoint (penumpang owner OR admin only) =====
 router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
-  const user = await getUserFromToken(req.headers.authorization);
-  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+  const currentUser = await getUserFromToken(req.headers.authorization);
+  if (!currentUser) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
 
+  // Join: booking → schedule → driver (usersTable) + penumpang (usersTable alias) + kendaraan
   const [row] = await db
     .select({
       b: scheduleBookingsTable,
       s: schedulesTable,
-      driver: usersTable,
       kendaraan: kendaraanTable,
     })
     .from(scheduleBookingsTable)
     .leftJoin(schedulesTable, eq(schedulesTable.id, scheduleBookingsTable.schedule_id))
-    .leftJoin(usersTable, eq(usersTable.id, schedulesTable.driver_id))
     .leftJoin(kendaraanTable, eq(kendaraanTable.id, schedulesTable.kendaraan_id))
     .where(eq(scheduleBookingsTable.id, id));
 
   if (!row) { res.status(404).json({ error: "E-tiket tidak ditemukan." }); return; }
 
-  const isOwner = user.id === row.b.penumpang_id;
-  const isMitra = !!row.s && user.id === row.s.driver_id;
-  const isAdmin = user.role === "admin";
-  if (!isOwner && !isMitra && !isAdmin) {
+  const isOwner = currentUser.id === row.b.penumpang_id;
+  const isAdmin = currentUser.role === "admin";
+  if (!isOwner && !isAdmin) {
     res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
   }
+
+  // Fetch penumpang name
+  const [penumpangRow] = row.b.penumpang_id
+    ? await db.select({ id: usersTable.id, nama: usersTable.nama }).from(usersTable).where(eq(usersTable.id, row.b.penumpang_id))
+    : [];
+
+  // Fetch driver info separately (avoid ambiguous join)
+  const [driverRow] = row.s?.driver_id
+    ? await db.select({ id: usersTable.id, nama: usersTable.nama, no_whatsapp: usersTable.no_whatsapp }).from(usersTable).where(eq(usersTable.id, row.s.driver_id))
+    : [];
 
   const bookingCode = `RUTE-${String(id).padStart(6, "0")}`;
   res.json({
@@ -1251,7 +1259,7 @@ router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
     pickup_label: row.b.pickup_label,
     dropoff_label: row.b.dropoff_label,
     created_at: row.b.created_at,
-    penumpang_id: row.b.penumpang_id,
+    penumpang: penumpangRow ? { id: penumpangRow.id, nama: penumpangRow.nama } : null,
     schedule: row.s ? {
       id: row.s.id,
       origin_city: row.s.origin_city,
@@ -1260,10 +1268,10 @@ router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
       departure_time: row.s.departure_time,
       trip_progress: row.s.trip_progress,
     } : null,
-    driver: row.driver ? {
-      id: row.driver.id,
-      nama: row.driver.nama,
-      no_whatsapp: row.driver.no_whatsapp,
+    driver: driverRow ? {
+      id: driverRow.id,
+      nama: driverRow.nama,
+      no_whatsapp: driverRow.no_whatsapp,
     } : null,
     kendaraan: row.kendaraan ? {
       merek: row.kendaraan.merek,

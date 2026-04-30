@@ -173,7 +173,7 @@ export default function BookingEtiket() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/booking/:id/etiket");
   const id = params?.id ? parseInt(params.id, 10) : NaN;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -490,6 +490,25 @@ export default function BookingEtiket() {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                  Penumpang
+                </p>
+                <p className="font-bold text-foreground" data-testid="etiket-penumpang">
+                  {user?.nama ?? "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                  Kursi
+                </p>
+                <p
+                  className="font-bold text-foreground"
+                  data-testid="etiket-kursi"
+                >
+                  #{booking.kursi.join(", ")}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
                   Mitra
                 </p>
                 <div className="flex items-center gap-2 mt-1">
@@ -538,17 +557,6 @@ export default function BookingEtiket() {
                     {booking.kendaraan.plat_nomor} · {booking.kendaraan.warna}
                   </p>
                 )}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                  Kursi
-                </p>
-                <p
-                  className="font-bold text-foreground"
-                  data-testid="etiket-kursi"
-                >
-                  #{booking.kursi.join(", ")}
-                </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">

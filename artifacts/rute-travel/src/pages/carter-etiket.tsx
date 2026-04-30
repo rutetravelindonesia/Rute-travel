@@ -48,6 +48,7 @@ interface CarterBooking {
   created_at: string;
   is_mitra: boolean;
   driver: { id: number; nama: string; foto_profil: string | null; no_whatsapp: string | null } | null;
+  penumpang: { id: number; nama: string; no_whatsapp: string | null } | null;
   kendaraan: { id: number; merek: string; model: string; plat_nomor: string; warna: string; foto_url: string | null } | null;
   pickup_confirmed_at: string | null;
   dropoff_confirmed_at: string | null;
@@ -354,6 +355,16 @@ export default function CarterEtiket() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Penumpang</p>
+                <p className="font-bold text-foreground" data-testid="etiket-penumpang">
+                  {booking.penumpang?.nama ?? "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Tipe</p>
+                <p className="font-bold text-foreground">Carter</p>
+              </div>
+              <div>
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Mitra</p>
                 <div className="flex items-center gap-2 mt-1">
                   {(() => {
@@ -384,10 +395,6 @@ export default function CarterEtiket() {
                 {booking.kendaraan && (
                   <p className="text-[11px] text-muted-foreground">{booking.kendaraan.plat_nomor} · {booking.kendaraan.warna}</p>
                 )}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Tipe</p>
-                <p className="font-bold text-foreground">Carter</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Total Bayar</p>
