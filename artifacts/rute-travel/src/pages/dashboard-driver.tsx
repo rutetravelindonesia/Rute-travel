@@ -148,7 +148,8 @@ function statusLabel(s: string) {
 
 function progressLabel(p: string) {
   if (p === "belum_jemput") return { label: "Belum berangkat", cls: "bg-amber-50 text-amber-700" };
-  if (p === "sudah_jemput") return { label: "Sudah jemput", cls: "bg-blue-50 text-blue-700" };
+  if (p === "sudah_jemput") return { label: "Menuju jemput", cls: "bg-blue-50 text-blue-700" };
+  if (p === "semua_naik") return { label: "Semua Penumpang Naik", cls: "bg-violet-50 text-violet-700" };
   if (p === "dalam_perjalanan") return { label: "Dalam perjalanan", cls: "bg-blue-50 text-blue-700" };
   if (p === "selesai") return { label: "Selesai", cls: "bg-green-50 text-green-700" };
   return { label: p, cls: "bg-muted text-muted-foreground" };
@@ -494,7 +495,8 @@ export default function DashboardDriver() {
                           const tp = j.trip_progress;
                           const advanceLabel: Record<string, string | null> = {
                             belum_jemput: "Mulai Jemput",
-                            sudah_jemput: "Mulai Berangkat",
+                            sudah_jemput: "Penumpang Sudah Naik",
+                            semua_naik: "Berangkat ke Kota Tujuan",
                             dalam_perjalanan: "Tandai Selesai",
                             selesai: null,
                           };
