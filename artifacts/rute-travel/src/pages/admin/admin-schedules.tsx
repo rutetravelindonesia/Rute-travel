@@ -8,6 +8,7 @@ interface Schedule {
   id: number; origin_city: string; destination_city: string; departure_date: string;
   departure_time: string; capacity: number; price_per_seat: number; trip_progress: string;
   created_at: string; driver: { id: number; nama: string } | null;
+  penumpang_count: number; total_pendapatan: number;
 }
 
 const PROGRESS_LABEL: Record<string, string> = {
@@ -163,7 +164,9 @@ export default function AdminSchedules() {
                   <tr>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Rute</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Tanggal</th>
-                    <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Driver</th>
+                    <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Mitra</th>
+                    <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Penumpang</th>
+                    <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Total Pendapatan</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Harga/Kursi</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Kapasitas</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Status</th>
@@ -177,7 +180,16 @@ export default function AdminSchedules() {
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                         {new Date(s.departure_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })} {s.departure_time}
                       </td>
-                      <td className="px-4 py-3">{s.driver?.nama ?? "-"}</td>
+                      <td className="px-4 py-3">{s.driver?.nama ?? <span className="text-muted-foreground">-</span>}</td>
+                      <td className="px-4 py-3">
+                        <span className={`font-semibold ${s.penumpang_count > 0 ? "text-[#1a1208]" : "text-muted-foreground"}`}>
+                          {s.penumpang_count}
+                        </span>
+                        <span className="text-muted-foreground text-xs"> / {s.capacity} kursi</span>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-green-700">
+                        {s.total_pendapatan > 0 ? fmtRp(s.total_pendapatan) : <span className="text-muted-foreground font-normal">-</span>}
+                      </td>
                       <td className="px-4 py-3">{fmtRp(s.price_per_seat)}</td>
                       <td className="px-4 py-3">{s.capacity} kursi</td>
                       <td className="px-4 py-3">
