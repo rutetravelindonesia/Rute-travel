@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import {
   ArrowLeft,
@@ -109,6 +109,7 @@ export default function CarterDetailDriverPage() {
   const [busyTrip, setBusyTrip] = useState(false);
   const [busyChat, setBusyChat] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const gpsWatchRef = useRef<number | null>(null);
 
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
@@ -134,6 +135,41 @@ export default function CarterDetailDriverPage() {
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, [token, bookingId]);
+
+  const ACTIVE_PROGRESS = new Set(["menuju_jemput", "sudah_jemput", "dalam_perjalanan"]);
+  useEffect(() => {
+    const tp = data?.trip_progress;
+    const shouldTrack = !!token && !!bookingId && !!tp && ACTIVE_PROGRESS.has(tp);
+
+    if (!shouldTrack || !navigator.geolocation) {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+      return;
+    }
+
+    if (gpsWatchRef.current !== null) return;
+
+    gpsWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        fetch(`${apiBase}/carter-bookings/${bookingId}/driver-location`, {
+          method: "PATCH",
+          headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+          body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        }).catch(() => {});
+      },
+      undefined,
+      { enableHighAccuracy: true, maximumAge: 3000 },
+    );
+
+    return () => {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+    };
+  }, [token, bookingId, data?.trip_progress]);
 
   async function openChat() {
     if (!token || !bookingId) return;
