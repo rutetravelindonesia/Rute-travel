@@ -316,7 +316,9 @@ export default function CarterDetailDriverPage() {
         </div>
 
         <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
-          <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-2">Titik Jemput</p>
+          <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-2">
+            {tp === "dalam_perjalanan" ? "Titik Jemput (sudah dijemput)" : "Titik Jemput"}
+          </p>
           {data.pickup_label ? (
             <div className="flex items-start gap-2 mb-3">
               <MapPin className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
@@ -341,13 +343,23 @@ export default function CarterDetailDriverPage() {
               </MapContainer>
             </div>
           )}
-          {hasMap && (
+          {hasMap && tp !== "dalam_perjalanan" && (
             <button
               onClick={() => window.open(`https://www.google.com/maps?q=${data.pickup_lat},${data.pickup_lng}`, "_blank", "noopener,noreferrer")}
               className="w-full mt-2.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
             >
               <MapPin className="w-4 h-4" /> Buka di Google Maps
             </button>
+          )}
+          {tp === "dalam_perjalanan" && (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(data.destination_city + ", Kalimantan Timur, Indonesia")}&travelmode=driving`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mt-2.5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors"
+            >
+              <Navigation className="w-4 h-4" /> Navigasi ke {data.destination_city}
+            </a>
           )}
         </div>
 
