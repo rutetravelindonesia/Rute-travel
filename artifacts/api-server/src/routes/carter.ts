@@ -960,7 +960,7 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
   const updates: Record<string, unknown> = { trip_progress: next_progress, updated_at: new Date() };
   if (next_progress === "selesai") {
     updates.status = "selesai";
-  } else if (b.status === "paid") {
+  } else if (b.status === "paid" || b.status === "confirmed") {
     updates.status = "aktif";
   }
   await db.update(carterBookingsTable).set(updates).where(eq(carterBookingsTable.id, id));
@@ -995,10 +995,10 @@ router.post("/carter-bookings/:id/rate", async (req, res): Promise<void> => {
   }
 
   const [b] = await db
-    .select({ penumpang_id: carterBookingsTable.penumpang_id, settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status })
+    .select({ penumpang_id: carterBookingsTable.penumpang_id, settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status, trip_progress: carterBookingsTable.trip_progress })
     .from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
   if (!b) { res.status(404).json({ error: "Pesanan tidak ditemukan." }); return; }
-  if (b.status !== "selesai") { res.status(400).json({ error: "Perjalanan belum selesai." }); return; }
+  if (b.status !== "selesai" && b.trip_progress !== "selesai") { res.status(400).json({ error: "Perjalanan belum selesai." }); return; }
 
   const [s] = await db.select({ driver_id: carterSettingsTable.driver_id }).from(carterSettingsTable).where(eq(carterSettingsTable.id, b.settings_id));
   if (!s) { res.status(404).json({ error: "Mitra tidak ditemukan." }); return; }
