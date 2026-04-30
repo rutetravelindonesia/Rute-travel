@@ -729,6 +729,14 @@ router.get("/carter-bookings/:id", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Tidak boleh mengakses pesanan ini." });
     return;
   }
+  if (isOwnerPenumpang && !isOwnerMitra && (detail.status === "pending" || detail.status === "paid")) {
+    res.status(403).json({
+      error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
+      status: "pending_verification",
+      booking_status: detail.status,
+    });
+    return;
+  }
   res.json({ ...detail, is_mitra: isOwnerMitra });
 });
 
