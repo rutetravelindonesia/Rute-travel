@@ -17,6 +17,7 @@ export const usersTable = pgTable("users", {
   foto_diri: text("foto_diri"),
   foto_stnk: text("foto_stnk"),
   is_verified: boolean("is_verified").notNull().default(true),
+  is_suspended: boolean("is_suspended").notNull().default(false),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

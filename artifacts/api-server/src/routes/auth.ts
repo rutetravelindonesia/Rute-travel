@@ -83,6 +83,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  if (user.is_suspended) {
+    res.status(403).json({ error: "Akun Anda telah disuspend. Hubungi admin untuk informasi lebih lanjut." });
+    return;
+  }
+
   if (!user.is_verified && user.role === "penumpang") {
     res.status(403).json({ error: "Akun belum diverifikasi. Silakan cek WhatsApp Anda untuk kode OTP.", needs_otp: true, user_id: user.id });
     return;

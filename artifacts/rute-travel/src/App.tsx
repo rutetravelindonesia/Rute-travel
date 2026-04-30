@@ -46,6 +46,7 @@ import AdminKota from "@/pages/admin/admin-kota";
 import AdminHarga from "@/pages/admin/admin-harga";
 import AdminPengumuman from "@/pages/admin/admin-pengumuman";
 import AdminLogs from "@/pages/admin/admin-logs";
+import AdminVerifikasiMitra from "@/pages/admin/admin-verifikasi-mitra";
 import TripDetailPage from "@/pages/trip-detail";
 import CarterDetailDriverPage from "@/pages/carter-detail-driver";
 import NotifikasiPage from "@/pages/notifikasi";
@@ -98,6 +99,7 @@ function Router() {
       <Route path="/admin/harga" component={AdminHarga} />
       <Route path="/admin/pengumuman" component={AdminPengumuman} />
       <Route path="/admin/logs" component={AdminLogs} />
+      <Route path="/admin/verifikasi-mitra" component={AdminVerifikasiMitra} />
       <Route component={NotFound} />
     </Switch>
   );

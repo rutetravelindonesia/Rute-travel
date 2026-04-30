@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
-import { Loader2, Search, Pencil, Trash2, X, Check } from "lucide-react";
+import { Loader2, Search, Pencil, Trash2, X, Check, ShieldOff, ShieldCheck } from "lucide-react";
 
 interface User {
   id: number; nama: string; no_whatsapp: string; role: string;
   kota: string | null; nik: string | null; created_at: string;
+  is_verified: boolean; is_suspended: boolean;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -17,6 +18,28 @@ const ROLE_COLOR: Record<string, string> = {
   driver: "bg-emerald-100 text-emerald-700",
   admin: "bg-red-100 text-red-700",
 };
+
+function StatusBadge({ user }: { user: User }) {
+  if (user.is_suspended) {
+    return (
+      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+        Suspended
+      </span>
+    );
+  }
+  if (!user.is_verified && user.role === "driver") {
+    return (
+      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+        Belum Verified
+      </span>
+    );
+  }
+  return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+      Aktif
+    </span>
+  );
+}
 
 export default function AdminUsers() {
   const { token, user } = useAuth();
@@ -30,7 +53,7 @@ export default function AdminUsers() {
   const [editing, setEditing] = useState<User | null>(null);
   const [editNama, setEditNama] = useState("");
   const [editRole, setEditRole] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -52,24 +75,46 @@ export default function AdminUsers() {
 
   async function handleEdit() {
     if (!editing || !token) return;
-    setBusy(true); setError(null);
+    setBusy(editing.id); setError(null);
     const r = await fetch(`${apiBase}/admin/users/${editing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ nama: editNama, role: editRole }),
     });
     const d = await r.json();
-    if (!r.ok) { setError(d.error ?? "Gagal."); setBusy(false); return; }
+    if (!r.ok) { setError(d.error ?? "Gagal."); setBusy(null); return; }
     setEditing(null);
     await load();
-    setBusy(false);
+    setBusy(null);
   }
 
   async function handleDelete(id: number, nama: string) {
     if (!confirm(`Hapus user "${nama}"? Aksi ini tidak bisa dibatalkan.`)) return;
+    setBusy(id);
     await fetch(`${apiBase}/admin/users/${id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
+    setBusy(null);
+    await load();
+  }
+
+  async function handleSuspend(id: number, nama: string) {
+    if (!confirm(`Suspend akun "${nama}"? User tidak bisa login sampai diaktifkan kembali.`)) return;
+    setBusy(id);
+    await fetch(`${apiBase}/admin/users/${id}/suspend`, {
+      method: "PATCH", headers: { Authorization: `Bearer ${token}` },
+    });
+    setBusy(null);
+    await load();
+  }
+
+  async function handleUnsuspend(id: number, nama: string) {
+    if (!confirm(`Aktifkan kembali akun "${nama}"?`)) return;
+    setBusy(id);
+    await fetch(`${apiBase}/admin/users/${id}/unsuspend`, {
+      method: "PATCH", headers: { Authorization: `Bearer ${token}` },
+    });
+    setBusy(null);
     await load();
   }
 
@@ -107,6 +152,7 @@ export default function AdminUsers() {
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Nama</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">No WA</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Role</th>
+                    <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Status</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Kota</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Daftar</th>
                     <th className="px-4 py-3"></th>
@@ -114,7 +160,7 @@ export default function AdminUsers() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {users.map(u => (
-                    <tr key={u.id} className="hover:bg-[#f5f0e8]/50">
+                    <tr key={u.id} className={`hover:bg-[#f5f0e8]/50 ${u.is_suspended ? "opacity-60" : ""}`}>
                       <td className="px-4 py-3 font-medium">{u.nama}</td>
                       <td className="px-4 py-3 text-muted-foreground">•••• {u.no_whatsapp.slice(-4)}</td>
                       <td className="px-4 py-3">
@@ -122,19 +168,43 @@ export default function AdminUsers() {
                           {ROLE_LABEL[u.role] ?? u.role}
                         </span>
                       </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge user={u} />
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{u.kota ?? "-"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(u.created_at).toLocaleDateString("id-ID")}</td>
-                      <td className="px-4 py-3 flex gap-2 justify-end">
-                        <button onClick={() => { setEditing(u); setEditNama(u.nama); setEditRole(u.role); setError(null); }}
-                          className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-600">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        {u.role !== "admin" && (
-                          <button onClick={() => handleDelete(u.id, u.nama)}
-                            className="p-1.5 rounded-lg hover:bg-red-100 text-red-500">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1.5 justify-end items-center">
+                          {busy === u.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-[#a85e28]" />
+                          ) : (
+                            <>
+                              <button onClick={() => { setEditing(u); setEditNama(u.nama); setEditRole(u.role); setError(null); }}
+                                title="Edit" className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-600">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              {u.role !== "admin" && (
+                                <>
+                                  {u.is_suspended ? (
+                                    <button onClick={() => handleUnsuspend(u.id, u.nama)}
+                                      title="Aktifkan kembali" className="p-1.5 rounded-lg hover:bg-emerald-100 text-emerald-600">
+                                      <ShieldCheck className="w-3.5 h-3.5" />
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => handleSuspend(u.id, u.nama)}
+                                      title="Suspend akun" className="p-1.5 rounded-lg hover:bg-orange-100 text-orange-500">
+                                      <ShieldOff className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button onClick={() => handleDelete(u.id, u.nama)}
+                                    title="Hapus permanen" className="p-1.5 rounded-lg hover:bg-red-100 text-red-500">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -145,7 +215,6 @@ export default function AdminUsers() {
         )}
       </div>
 
-      {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4">
@@ -170,9 +239,9 @@ export default function AdminUsers() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setEditing(null)} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-semibold">Batal</button>
-              <button onClick={handleEdit} disabled={busy}
+              <button onClick={handleEdit} disabled={busy === editing.id}
                 className="flex-1 py-2.5 bg-[#a85e28] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Simpan
+                {busy === editing.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Simpan
               </button>
             </div>
           </div>

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   LayoutDashboard, Users, CalendarDays, Ticket, Car, Star,
   BarChart3, MapPin, Megaphone, DollarSign, ClipboardList,
-  LogOut, Menu, X, ShoppingBag, CheckCircle
+  LogOut, Menu, X, ShoppingBag, CheckCircle, UserCheck
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useLogout } from "@workspace/api-client-react";
@@ -11,6 +11,7 @@ import { useLogout } from "@workspace/api-client-react";
 const NAV = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Manajemen User", icon: Users },
+  { href: "/admin/verifikasi-mitra", label: "Verifikasi Mitra", icon: UserCheck, pendingBadge: true },
   { href: "/admin/schedules", label: "Jadwal", icon: CalendarDays },
   { href: "/admin/bookings", label: "Booking Reguler", icon: Ticket },
   { href: "/admin/carter", label: "Booking Carter", icon: ShoppingBag },
@@ -26,9 +27,19 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { clearAuth } = useAuth();
+  const { clearAuth, token } = useAuth();
   const logoutMutation = useLogout();
   const [open, setOpen] = useState(false);
+  const [pendingMitraCount, setPendingMitraCount] = useState(0);
+  const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${apiBase}/admin/pending-mitra`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setPendingMitraCount(d.length); })
+      .catch(() => {});
+  }, [token, location, apiBase]);
 
   function handleLogout() {
     logoutMutation.mutate(undefined, {
@@ -41,12 +52,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-[#f5f0e8] flex">
-      {/* Overlay mobile */}
       {open && (
         <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed top-0 left-0 h-full w-64 bg-[#1a1208] text-white z-40 flex flex-col transform transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static lg:flex`}>
         <div className="p-4 border-b border-white/10 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-[#a85e28] flex items-center justify-center font-black text-white text-sm">R</div>
@@ -60,8 +69,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {NAV.map(({ href, label, icon: Icon, pendingBadge }) => {
             const active = location === href || location.startsWith(href + "/");
+            const count = pendingBadge ? pendingMitraCount : 0;
             return (
               <button
                 key={href}
@@ -71,7 +81,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {count > 0 && (
+                  <span className="bg-amber-400 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -89,9 +104,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top bar mobile */}
         <header className="lg:hidden bg-[#1a1208] text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-20">
           <button onClick={() => setOpen(true)}>
             <Menu className="w-5 h-5" />

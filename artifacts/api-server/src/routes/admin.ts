@@ -95,8 +95,62 @@ router.get("/admin/users", adminGuard(async (req: any, res: any) => {
   res.json(users.map(u => ({
     id: u.id, nama: u.nama, no_whatsapp: u.no_whatsapp,
     role: u.role, kota: u.kota, nik: u.nik,
-    foto_profil: u.foto_profil, created_at: u.created_at,
+    foto_profil: u.foto_profil, is_verified: u.is_verified,
+    is_suspended: u.is_suspended, created_at: u.created_at,
   })));
+}));
+
+// ===================== PENDING MITRA =====================
+router.get("/admin/pending-mitra", adminGuard(async (_req: any, res: any) => {
+  const mitra = await db.select().from(usersTable)
+    .where(and(eq(usersTable.role, "driver"), eq(usersTable.is_verified, false)))
+    .orderBy(desc(usersTable.created_at));
+  res.json(mitra.map(u => ({
+    id: u.id, nama: u.nama, no_whatsapp: u.no_whatsapp,
+    kota: u.kota, model_kendaraan: u.model_kendaraan,
+    foto_diri: u.foto_diri, foto_stnk: u.foto_stnk,
+    created_at: u.created_at,
+  })));
+}));
+
+router.patch("/admin/users/:id/approve", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [u] = await db.update(usersTable).set({ is_verified: true }).where(eq(usersTable.id, id)).returning();
+  if (!u) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  await logAdmin(req.admin.id, req.admin.nama, "APPROVE_MITRA", `Mitra #${id} (${u.nama}) disetujui`);
+  createNotification(id, "mitra_approved", "Pendaftaran Disetujui!", "Selamat! Akun Mitra Driver Anda telah diverifikasi oleh admin. Anda sudah bisa mulai menerima penumpang.", "user", id).catch(() => {});
+  res.json({ ok: true });
+}));
+
+router.patch("/admin/users/:id/reject", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [u] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!u) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  await db.delete(sessionsTable).where(eq(sessionsTable.user_id, id));
+  await db.delete(usersTable).where(eq(usersTable.id, id));
+  await logAdmin(req.admin.id, req.admin.nama, "REJECT_MITRA", `Mitra #${id} (${u.nama}) ditolak dan dihapus`);
+  res.json({ ok: true });
+}));
+
+router.patch("/admin/users/:id/suspend", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [u] = await db.update(usersTable).set({ is_suspended: true }).where(eq(usersTable.id, id)).returning();
+  if (!u) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  await db.delete(sessionsTable).where(eq(sessionsTable.user_id, id));
+  await logAdmin(req.admin.id, req.admin.nama, "SUSPEND_USER", `User #${id} (${u.nama}) disuspend`);
+  res.json({ ok: true });
+}));
+
+router.patch("/admin/users/:id/unsuspend", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [u] = await db.update(usersTable).set({ is_suspended: false }).where(eq(usersTable.id, id)).returning();
+  if (!u) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  await logAdmin(req.admin.id, req.admin.nama, "UNSUSPEND_USER", `User #${id} (${u.nama}) diaktifkan kembali`);
+  res.json({ ok: true });
 }));
 
 router.patch("/admin/users/:id", adminGuard(async (req: any, res: any) => {
