@@ -179,6 +179,7 @@ export default function BookingEtiket() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVerification, setPendingVerification] = useState<{ booking_status: string } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [showCancel, setShowCancel] = useState(false);
@@ -205,7 +206,17 @@ export default function BookingEtiket() {
         if (res.ok) {
           const data: Booking = await res.json();
           setBooking(data);
+          setPendingVerification(null);
           setError(null);
+        } else if (res.status === 403) {
+          const body = await res.json().catch(() => ({}));
+          if (body?.status === "pending_verification") {
+            setBooking(null);
+            setPendingVerification({ booking_status: body.booking_status ?? "paid" });
+            setError(null);
+          } else {
+            setError("Tidak boleh melihat pesanan ini.");
+          }
         } else if (res.status === 404) {
           setError("E-tiket tidak ditemukan.");
         }
@@ -356,14 +367,14 @@ export default function BookingEtiket() {
       </div>
     );
   }
-  if (error || !booking) {
+  if (error) {
     return (
       <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
         <p
           className="text-sm font-bold text-foreground mt-12"
           data-testid="etiket-error"
         >
-          {error ?? "E-tiket tidak ditemukan."}
+          {error}
         </p>
         <button
           onClick={() => setLocation("/dashboard-penumpang")}
@@ -375,7 +386,8 @@ export default function BookingEtiket() {
     );
   }
 
-  if (booking.status === "paid" && !booking.is_mitra) {
+  if (pendingVerification) {
+    const isPending = pendingVerification.booking_status === "pending";
     return (
       <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
         <div className="bg-card border-b border-border px-5 pt-10 pb-4 flex items-center gap-3">
@@ -387,32 +399,54 @@ export default function BookingEtiket() {
           </button>
           <div className="flex-1">
             <h1 className="text-base font-bold text-foreground">E-Tiket</h1>
-            <p className="text-xs text-muted-foreground">{bookingCode(booking.id)}</p>
           </div>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-4">
           <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center">
             <Clock4 className="w-10 h-10 text-amber-600" />
           </div>
-          <h2 className="text-xl font-bold text-foreground">Pembayaran Sedang Diverifikasi</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Tim RUTE sedang memeriksa bukti pembayaran Anda. Etiket akan terbit secara otomatis setelah pembayaran dikonfirmasi oleh admin.
-          </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 w-full text-left space-y-1 mt-2">
-            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Info Pesanan</p>
-            <p className="text-sm text-foreground font-medium">{booking.schedule?.origin_city} → {booking.schedule?.destination_city}</p>
-            <p className="text-xs text-muted-foreground">
-              {booking.schedule?.departure_date} · {booking.schedule?.departure_time}
-            </p>
-            <p className="text-xs text-muted-foreground">Kursi: {booking.kursi.join(", ")}</p>
-          </div>
-          <button
-            onClick={() => setLocation("/dashboard-penumpang")}
-            className="mt-2 w-full py-3 rounded-2xl bg-accent text-white text-sm font-bold"
-          >
-            Kembali ke Beranda
-          </button>
+          {isPending ? (
+            <>
+              <h2 className="text-xl font-bold text-foreground">Belum Ada Bukti Pembayaran</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Pesanan Anda sudah dibuat. Silakan upload bukti pembayaran agar dapat diverifikasi oleh admin.
+              </p>
+              <button
+                onClick={() => setLocation(`/booking/${id}/bayar`)}
+                className="mt-2 w-full py-3 rounded-2xl bg-accent text-white text-sm font-bold"
+              >
+                Upload Bukti Pembayaran
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-foreground">Pembayaran Sedang Diverifikasi</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Tim RUTE sedang memeriksa bukti pembayaran Anda. Etiket akan terbit secara otomatis setelah pembayaran dikonfirmasi oleh admin.
+              </p>
+              <button
+                onClick={() => setLocation("/dashboard-penumpang")}
+                className="mt-2 w-full py-3 rounded-2xl bg-accent text-white text-sm font-bold"
+              >
+                Kembali ke Beranda
+              </button>
+            </>
+          )}
         </div>
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
+        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
+        <button
+          onClick={() => setLocation("/dashboard-penumpang")}
+          className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold"
+        >
+          Ke beranda
+        </button>
       </div>
     );
   }
