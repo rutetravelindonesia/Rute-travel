@@ -83,6 +83,7 @@ function activeStage(b: MyBooking): { label: string; tone: string; Icon: any } {
   if (b.status === "selesai" || tp === "selesai") return { label: "Trip selesai", tone: "bg-green-100 text-green-800", Icon: CheckCircle2 };
   if (tp === "dalam_perjalanan") return { label: "Dalam perjalanan", tone: "bg-indigo-100 text-indigo-800", Icon: Navigation };
   if (tp === "sudah_jemput") return { label: "Mitra menuju lokasi Anda", tone: "bg-blue-100 text-blue-800", Icon: CheckCircle2 };
+  if (tp === "semua_naik") return { label: "Semua penumpang sudah naik, bersiap berangkat", tone: "bg-violet-100 text-violet-800", Icon: CheckCircle2 };
   return { label: "Menunggu mitra menjemput", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
 }
 
@@ -423,7 +424,7 @@ export default function DashboardPenumpang() {
                   {(() => {
                     const tp = activeTrip.schedule?.trip_progress ?? "belum_jemput";
                     const showPickup =
-                      (tp === "sudah_jemput" || tp === "dalam_perjalanan" || tp === "selesai") &&
+                      (tp === "sudah_jemput" || tp === "semua_naik" || tp === "dalam_perjalanan" || tp === "selesai") &&
                       !activeTrip.pickup_confirmed_at;
                     const showDropoff =
                       tp === "selesai" && !activeTrip.dropoff_confirmed_at;
