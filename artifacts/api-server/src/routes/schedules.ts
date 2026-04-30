@@ -1146,6 +1146,15 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  if (isPenumpang && !isMitra && (row.b.status === "pending" || row.b.status === "paid")) {
+    res.status(403).json({
+      error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
+      status: "pending_verification",
+      booking_status: row.b.status,
+    });
+    return;
+  }
+
   const canCancel =
     isPenumpang &&
     ["pending", "paid", "aktif"].includes(row.b.status) &&
