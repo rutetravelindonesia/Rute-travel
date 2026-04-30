@@ -1,4 +1,5 @@
 import { pool } from "@workspace/db";
+import { sendPushToUser } from "./push";
 
 export async function createNotification(
   userId: number,
@@ -17,4 +18,7 @@ export async function createNotification(
   } catch {
     // silent — don't disrupt main flow
   }
+
+  // juga kirim push notification ke device pengguna
+  sendPushToUser(userId, { title, body: body ?? "", tag: type }).catch(() => {});
 }
