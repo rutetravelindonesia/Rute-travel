@@ -9,15 +9,26 @@ import {
   Users,
   MessageCircle,
   Phone,
-  Map as MapIcon,
+  Navigation,
   CheckCircle2,
   Loader2,
-  Navigation2,
   Circle,
   AlertCircle,
 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { pickupIcon, dropoffIcon } from "@/components/mapIcons";
+import "leaflet/dist/leaflet.css";
 import { useAuth } from "@/contexts/auth";
 import { getDriverPhotoUrl } from "@/lib/utils";
+
+function MapFitAll({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points.length === 1) map.setView(points[0], 15);
+    else if (points.length >= 2) map.fitBounds(points, { padding: [48, 48] });
+  }, [points.map((p) => p.join(",")).join("|"), map]);
+  return null;
+}
 
 type TripProgress = "belum_jemput" | "sudah_jemput" | "dalam_perjalanan" | "selesai";
 
@@ -29,6 +40,9 @@ interface Passenger {
   pickup_lat: number | null;
   pickup_lng: number | null;
   pickup_label: string | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
+  dropoff_label: string | null;
   catatan: string | null;
   penumpang: { id: number; nama: string; no_whatsapp: string | null; foto_profil: string | null } | null;
 }
@@ -155,14 +169,6 @@ export default function TripDetailPage() {
     window.location.href = `tel:${noWa}`;
   }
 
-  function openMap(p: Passenger) {
-    if (p.pickup_lat == null || p.pickup_lng == null) {
-      setActionError("Titik jemput belum diisi penumpang.");
-      return;
-    }
-    window.open(`https://www.google.com/maps?q=${p.pickup_lat},${p.pickup_lng}`, "_blank", "noopener,noreferrer");
-  }
-
   async function advanceProgress() {
     if (!token || !scheduleId || !data) return;
     setBusyTrip(true);
@@ -250,6 +256,40 @@ export default function TripDetailPage() {
             </span>
           </div>
 
+          {(() => {
+            const tp = data.trip_progress;
+            const mapPoints: { pos: [number, number]; label: string; isDropoff: boolean }[] = [];
+            for (const p of data.passengers) {
+              if (tp === "dalam_perjalanan") {
+                if (p.dropoff_lat && p.dropoff_lng)
+                  mapPoints.push({ pos: [p.dropoff_lat, p.dropoff_lng], label: p.dropoff_label ?? p.penumpang?.nama ?? "Titik Turun", isDropoff: true });
+              } else {
+                if (p.pickup_lat && p.pickup_lng)
+                  mapPoints.push({ pos: [p.pickup_lat, p.pickup_lng], label: p.pickup_label ?? p.penumpang?.nama ?? "Titik Jemput", isDropoff: false });
+              }
+            }
+            if (mapPoints.length === 0) return null;
+            return (
+              <div className="mb-3 rounded-xl overflow-hidden border border-border" style={{ height: 200 }}>
+                <MapContainer
+                  center={mapPoints[0].pos}
+                  zoom={14}
+                  style={{ height: "100%", width: "100%" }}
+                  zoomControl={false}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <MapFitAll points={mapPoints.map((m) => m.pos)} />
+                  {mapPoints.map((m, i) => (
+                    <Marker key={i} position={m.pos} icon={m.isDropoff ? dropoffIcon : pickupIcon}>
+                      <Popup>{m.label}</Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </div>
+            );
+          })()}
+
           {data.passengers.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Belum ada penumpang aktif.</p>
           ) : (
@@ -316,12 +356,25 @@ export default function TripDetailPage() {
                       >
                         <Phone className="w-3.5 h-3.5" /> Telp
                       </button>
-                      <button
-                        onClick={() => openMap(p)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold transition-colors"
-                      >
-                        <MapIcon className="w-3.5 h-3.5" /> Peta
-                      </button>
+                      {data.trip_progress === "dalam_perjalanan" && p.dropoff_lat && p.dropoff_lng ? (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${p.dropoff_lat},${p.dropoff_lng}&travelmode=driving`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold transition-colors"
+                        >
+                          <Navigation className="w-3.5 h-3.5" /> Titik Turun
+                        </a>
+                      ) : p.pickup_lat && p.pickup_lng ? (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${p.pickup_lat},${p.pickup_lng}&travelmode=driving`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold transition-colors"
+                        >
+                          <Navigation className="w-3.5 h-3.5" /> Navigasi
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 );
