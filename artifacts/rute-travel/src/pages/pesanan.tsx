@@ -18,6 +18,7 @@ import {
   Map as MapIcon,
   CheckCircle2,
   Ticket,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 
@@ -167,6 +168,8 @@ export default function PesananPage() {
   const [busyCarterChat, setBusyCarterChat] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
+  type PassengerRating = { booking_id: number; penumpang_nama: string; kursi: string[]; rating: { stars: number; comment: string | null } | null };
+  const [scheduleRatings, setScheduleRatings] = useState<Map<number, PassengerRating[]>>(new Map());
 
   // Baca filter jadwal dari URL param (dari halaman Jadwal Mitra)
   const urlParams = new URLSearchParams(window.location.search);
@@ -282,6 +285,35 @@ export default function PesananPage() {
       clearInterval(intervalId);
     };
   }, [token, user, reloadTick]);
+
+  // Fetch passenger ratings for completed driver trips when viewing riwayat tab
+  useEffect(() => {
+    if (!token || user?.role !== "driver" || tab !== "riwayat" || !rawSchedBookings) return;
+    const selesaiIds = new Set<number>();
+    for (const b of rawSchedBookings) {
+      const sid = b.schedule_id ?? b.schedule?.id;
+      if (sid != null && b.schedule?.trip_progress === "selesai") selesaiIds.add(sid);
+    }
+    if (selesaiIds.size === 0) return;
+    let cancelled = false;
+    async function fetchRatings() {
+      const next = new Map<number, any[]>();
+      await Promise.allSettled(
+        Array.from(selesaiIds).map(async (sid) => {
+          const res = await fetch(`${apiBase}/schedules/${sid}/passenger-ratings`, {
+            headers: { authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            next.set(sid, data);
+          }
+        }),
+      );
+      if (!cancelled) setScheduleRatings(new Map(next));
+    }
+    fetchRatings();
+    return () => { cancelled = true; };
+  }, [token, user, tab, rawSchedBookings]);
 
   const filtered = useMemo(() => {
     if (!orders) return null;
@@ -765,6 +797,46 @@ export default function PesananPage() {
                     {formatRupiah(g.total_amount)}
                   </p>
                 </div>
+
+                {/* Rating penumpang — tampil di riwayat (selesai) */}
+                {g.trip_progress === "selesai" && scheduleRatings.has(g.schedule_id) && (
+                  <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+                    <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                      Rating dari Penumpang
+                    </p>
+                    {(scheduleRatings.get(g.schedule_id) ?? []).map((pr) => (
+                      <div key={pr.booking_id} className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-semibold text-foreground truncate">
+                            {pr.penumpang_nama}
+                            <span className="font-normal text-muted-foreground ml-1">
+                              · Kursi {pr.kursi.length ? pr.kursi.join(", ") : "—"}
+                            </span>
+                          </p>
+                          {pr.rating ? (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <div className="flex gap-0.5">
+                                {[1,2,3,4,5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    className={`w-3.5 h-3.5 ${s <= pr.rating!.stars ? "fill-amber-500 text-amber-500" : "text-muted-foreground/40"}`}
+                                  />
+                                ))}
+                              </div>
+                              {pr.rating.comment && (
+                                <span className="text-[10px] text-muted-foreground italic truncate max-w-[160px]">
+                                  "{pr.rating.comment}"
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground/60 mt-0.5 italic">Belum memberi rating</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {btnLabel ? (
                   <button
