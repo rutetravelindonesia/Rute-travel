@@ -22,20 +22,22 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { getDriverPhotoUrl } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
 import { useAuth } from "@/contexts/auth";
-import { driverIcon, pickupIcon } from "@/components/mapIcons";
+import { driverIcon, pickupIcon, dropoffIcon } from "@/components/mapIcons";
 
-function MapAutoFit({ driverLat, driverLng, pickupLat, pickupLng }: {
+function MapAutoFit({ driverLat, driverLng, pickupLat, pickupLng, dropoffLat, dropoffLng }: {
   driverLat: number | null; driverLng: number | null;
   pickupLat: number | null; pickupLng: number | null;
+  dropoffLat?: number | null; dropoffLng?: number | null;
 }) {
   const map = useMap();
   useEffect(() => {
     const pts: [number, number][] = [];
     if (driverLat && driverLng) pts.push([driverLat, driverLng]);
     if (pickupLat && pickupLng) pts.push([pickupLat, pickupLng]);
-    if (pts.length === 2) map.fitBounds(pts, { padding: [40, 40] });
+    if (dropoffLat && dropoffLng) pts.push([dropoffLat, dropoffLng]);
+    if (pts.length >= 2) map.fitBounds(pts, { padding: [40, 40] });
     else if (pts.length === 1) map.setView(pts[0], 15);
-  }, [driverLat, driverLng, pickupLat, pickupLng, map]);
+  }, [driverLat, driverLng, pickupLat, pickupLng, dropoffLat, dropoffLng, map]);
   return null;
 }
 
@@ -853,15 +855,22 @@ export default function BookingEtiket() {
                 <MapAutoFit
                   driverLat={booking.schedule.driver_lat}
                   driverLng={booking.schedule.driver_lng}
-                  pickupLat={booking.pickup_lat ?? null}
-                  pickupLng={booking.pickup_lng ?? null}
+                  pickupLat={booking.schedule.trip_progress === "dalam_perjalanan" ? null : booking.pickup_lat ?? null}
+                  pickupLng={booking.schedule.trip_progress === "dalam_perjalanan" ? null : booking.pickup_lng ?? null}
+                  dropoffLat={booking.schedule.trip_progress === "dalam_perjalanan" ? booking.dropoff_lat ?? null : null}
+                  dropoffLng={booking.schedule.trip_progress === "dalam_perjalanan" ? booking.dropoff_lng ?? null : null}
                 />
                 <Marker position={[booking.schedule.driver_lat, booking.schedule.driver_lng]} icon={driverIcon}>
                   <Popup>Mitra Driver</Popup>
                 </Marker>
-                {booking.pickup_lat && booking.pickup_lng && (
+                {booking.schedule.trip_progress !== "dalam_perjalanan" && booking.pickup_lat && booking.pickup_lng && (
                   <Marker position={[booking.pickup_lat, booking.pickup_lng]} icon={pickupIcon}>
                     <Popup>Titik Jemput Anda</Popup>
+                  </Marker>
+                )}
+                {booking.schedule.trip_progress === "dalam_perjalanan" && booking.dropoff_lat && booking.dropoff_lng && (
+                  <Marker position={[booking.dropoff_lat, booking.dropoff_lng]} icon={dropoffIcon}>
+                    <Popup>{booking.dropoff_label ?? "Titik Turun Anda"}</Popup>
                   </Marker>
                 )}
               </MapContainer>
