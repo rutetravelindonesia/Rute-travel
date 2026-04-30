@@ -212,7 +212,13 @@ export default function BookingEtiket() {
             setError(null);
             return;
           }
-          // Non-pending_verification 403 (e.g. mitra access) — fall through to full fetch
+          // Non-pending_verification 403: only fall through for mitra drivers (who are
+          // not the booking owner and are blocked by the owner-only /etiket endpoint).
+          // Any other role gets a forbidden error.
+          if (user?.role !== "driver") {
+            setError("Tidak boleh melihat pesanan ini.");
+            return;
+          }
         } else if (gateRes.status === 404) {
           setError("E-tiket tidak ditemukan.");
           return;
