@@ -748,6 +748,15 @@ router.get("/carter-bookings/:id/etiket", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
   }
 
+  if (detail.status === "pending" || detail.status === "paid") {
+    res.status(403).json({
+      error: "Etiket belum tersedia. Menunggu verifikasi pembayaran oleh admin.",
+      status: "pending_verification",
+      booking_status: detail.status,
+    });
+    return;
+  }
+
   const bookingCode = `RUTE-C${String(id).padStart(5, "0")}`;
   res.json({ ...detail, booking_code: bookingCode, is_mitra: false });
 });
