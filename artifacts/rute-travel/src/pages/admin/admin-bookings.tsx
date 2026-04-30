@@ -8,6 +8,7 @@ interface Booking {
   id: number; status: string; total_amount: number; created_at: string;
   kursi: string[]; pickup_label: string; payment_method: string;
   user: { id: number; nama: string } | null;
+  driver: { id: number; nama: string } | null;
   schedule: {
     id: number;
     origin_city: string;
@@ -157,6 +158,7 @@ export default function AdminBookings() {
                     <th className="text-left px-4 py-3 font-semibold text-xs">#</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Penumpang</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Rute</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs">Mitra</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Total</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Status</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Tanggal</th>
@@ -169,6 +171,7 @@ export default function AdminBookings() {
                       <td className="px-4 py-3 text-muted-foreground">{b.id}</td>
                       <td className="px-4 py-3 font-medium">{b.user?.nama ?? "-"}</td>
                       <td className="px-4 py-3">{b.schedule ? `${b.schedule.origin_city} → ${b.schedule.destination_city}` : "-"}</td>
+                      <td className="px-4 py-3">{b.driver?.nama ?? <span className="text-muted-foreground">-</span>}</td>
                       <td className="px-4 py-3">{fmtRp(b.total_amount)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOR[b.status] ?? "bg-gray-100 text-gray-600"}`}>
