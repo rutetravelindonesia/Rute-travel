@@ -30,7 +30,7 @@ function MapFitAll({ points }: { points: [number, number][] }) {
   return null;
 }
 
-type TripProgress = "belum_jemput" | "sudah_jemput" | "dalam_perjalanan" | "selesai";
+type TripProgress = "belum_jemput" | "sudah_jemput" | "semua_naik" | "dalam_perjalanan" | "selesai";
 
 interface Passenger {
   booking_id: number;
@@ -78,13 +78,12 @@ function formatRupiah(n: number) {
 
 const STAGES: { key: TripProgress; label: string }[] = [
   { key: "sudah_jemput", label: "Menuju lokasi jemput penumpang" },
+  { key: "semua_naik", label: "Semua penumpang sudah naik" },
   { key: "dalam_perjalanan", label: "Dalam perjalanan ke kota tujuan" },
   { key: "selesai", label: "Selesai" },
 ];
 
 function stageIndex(p: TripProgress) {
-  if (p === "belum_jemput") return -1;
-  if (p === "semua_naik") return 0;
   return STAGES.findIndex((s) => s.key === p);
 }
 
@@ -190,6 +189,7 @@ export default function TripDetailPage() {
 
   const stageCls = (tp: TripProgress) => {
     if (tp === "sudah_jemput") return "bg-blue-100 text-blue-800";
+    if (tp === "semua_naik") return "bg-violet-100 text-violet-800";
     if (tp === "dalam_perjalanan") return "bg-indigo-100 text-indigo-800";
     if (tp === "selesai") return "bg-green-100 text-green-800";
     return "bg-amber-100 text-amber-800";
