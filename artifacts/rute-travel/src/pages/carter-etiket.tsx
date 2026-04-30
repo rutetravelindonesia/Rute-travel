@@ -103,7 +103,6 @@ export default function CarterEtiket() {
   const [booking, setBooking] = useState<CarterBooking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pendingVerification, setPendingVerification] = useState<{ booking_status: string } | null>(null);
   const [busyProgress, setBusyProgress] = useState(false);
   const [gpsPermission, setGpsPermission] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown");
   const [gpsActive, setGpsActive] = useState(false);
@@ -134,19 +133,9 @@ export default function CarterEtiket() {
       if (res.ok) {
         const data: CarterBooking = await res.json();
         setBooking(data);
-        setPendingVerification(null);
         setError(null);
       } else if (res.status === 401) {
         setLocation("/login");
-      } else if (res.status === 403) {
-        const body = await res.json().catch(() => ({}));
-        if (body?.status === "pending_verification") {
-          setBooking(null);
-          setPendingVerification({ booking_status: body.booking_status ?? "paid" });
-          setError(null);
-        } else {
-          setError("Tidak boleh mengakses pesanan ini.");
-        }
       } else {
         const j = await res.json().catch(() => ({}));
         setError(j.error ?? `Gagal memuat tiket (${res.status}).`);
@@ -306,8 +295,19 @@ export default function CarterEtiket() {
     );
   }
 
-  if (pendingVerification) {
-    const isPending = pendingVerification.booking_status === "pending";
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
+        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
+        <button onClick={() => setLocation(backPath)} className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold">
+          Ke beranda
+        </button>
+      </div>
+    );
+  }
+
+  if (!booking.is_mitra && (booking.status === "pending" || booking.status === "paid")) {
+    const isPending = booking.status === "pending";
     return (
       <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
         <div className="bg-card border-b border-border px-5 pt-10 pb-4 flex items-center gap-3">
@@ -353,17 +353,6 @@ export default function CarterEtiket() {
             </>
           )}
         </div>
-      </div>
-    );
-  }
-
-  if (!booking) {
-    return (
-      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
-        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
-        <button onClick={() => setLocation(backPath)} className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold">
-          Ke beranda
-        </button>
       </div>
     );
   }
