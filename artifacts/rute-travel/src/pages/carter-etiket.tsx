@@ -463,7 +463,7 @@ export default function CarterEtiket() {
           <div className="rounded-xl overflow-hidden border border-border">
             <div className="px-3 py-2 bg-muted/50 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />
-              Lokasi Mitra (diperbarui setiap 1 detik)
+              Lokasi mitra
               {booking.driver_location_updated_at && (
                 <span className="ml-auto font-normal">
                   {new Date(booking.driver_location_updated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
@@ -498,7 +498,7 @@ export default function CarterEtiket() {
               </MapContainer>
             ) : (
               <div className="h-24 flex items-center justify-center text-xs text-muted-foreground bg-muted/30">
-                Menunggu mitra mengaktifkan lokasi…
+                Menunggu mitra menuju lokasi anda
               </div>
             )}
           </div>
