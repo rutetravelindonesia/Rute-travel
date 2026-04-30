@@ -42,7 +42,10 @@ export interface RegisterBody {
   nik?: string;
   kota?: string;
   jenis_kendaraan?: string;
+  model_kendaraan?: string;
   plat_nomor?: string;
+  foto_diri?: string;
+  foto_stnk?: string;
 }
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];

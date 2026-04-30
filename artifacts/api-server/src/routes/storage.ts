@@ -57,6 +57,34 @@ router.post("/storage/uploads", upload.single("file"), async (req: Request, res:
 });
 
 /**
+ * POST /storage/register-upload
+ *
+ * Upload foto tanpa auth (khusus proses pendaftaran).
+ * Hanya menerima gambar, max 5MB.
+ */
+const registerUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Hanya file gambar yang diizinkan."));
+  },
+});
+router.post("/storage/register-upload", registerUpload.single("file"), async (req: Request, res: Response) => {
+  if (!req.file) {
+    res.status(400).json({ error: "File tidak ditemukan." });
+    return;
+  }
+  try {
+    const url = await uploadBufferToCloudinary(req.file.buffer, req.file.mimetype, "rute-register");
+    res.json({ url });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: `Gagal mengunggah file: ${msg}` });
+  }
+});
+
+/**
  * GET /storage/objects/*path
  *
  * Legacy: objectPath sekarang berupa URL Cloudinary langsung.

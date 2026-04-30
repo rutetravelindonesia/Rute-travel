@@ -11,3 +11,4 @@ export * from "./ratings";
 export * from "./push-subscriptions";
 export * from "./admin";
 export * from "./waypoints";
+export * from "./otp-codes";

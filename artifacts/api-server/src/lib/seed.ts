@@ -31,6 +31,18 @@ export async function runMigrations(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`,
     `CREATE INDEX IF NOT EXISTS notifications_user_id_idx ON notifications (user_id, created_at DESC)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS model_kendaraan TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS foto_diri TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS foto_stnk TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT TRUE`,
+    `CREATE TABLE IF NOT EXISTS otp_codes (
+      id SERIAL PRIMARY KEY,
+      no_whatsapp TEXT NOT NULL,
+      code TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
   ];
   for (const sql of migrations) {
     try {

@@ -50,7 +50,10 @@ export const RegisterBody = zod.object({
   nik: zod.string().optional(),
   kota: zod.string().optional(),
   jenis_kendaraan: zod.string().optional(),
+  model_kendaraan: zod.string().optional(),
   plat_nomor: zod.string().optional(),
+  foto_diri: zod.string().optional(),
+  foto_stnk: zod.string().optional(),
 });
 
 /**
