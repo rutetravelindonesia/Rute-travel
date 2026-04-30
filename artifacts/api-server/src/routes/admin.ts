@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, count, sum, and, gte, lte, ilike, or, sql as drizzleSql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   db,
   usersTable,
@@ -185,12 +186,34 @@ router.delete("/admin/users/:id", adminGuard(async (req: any, res: any) => {
 
 // ===================== SCHEDULES =====================
 router.get("/admin/schedules", adminGuard(async (req: any, res: any) => {
-  const rows = await db
-    .select({ s: schedulesTable, driver: { id: usersTable.id, nama: usersTable.nama } })
-    .from(schedulesTable)
-    .leftJoin(usersTable, eq(schedulesTable.driver_id, usersTable.id))
-    .orderBy(desc(schedulesTable.created_at)).limit(200);
-  res.json(rows.map(r => ({ ...r.s, driver: r.driver })));
+  const [schedRows, aggRows] = await Promise.all([
+    db.select({ s: schedulesTable, driver: { id: usersTable.id, nama: usersTable.nama } })
+      .from(schedulesTable)
+      .leftJoin(usersTable, eq(schedulesTable.driver_id, usersTable.id))
+      .orderBy(desc(schedulesTable.created_at)).limit(200),
+    db.select({
+      schedule_id: scheduleBookingsTable.schedule_id,
+      penumpang_count: count(scheduleBookingsTable.id),
+      total_pendapatan: sum(scheduleBookingsTable.total_amount),
+    })
+      .from(scheduleBookingsTable)
+      .where(or(
+        eq(scheduleBookingsTable.status, "confirmed"),
+        eq(scheduleBookingsTable.status, "aktif"),
+        eq(scheduleBookingsTable.status, "selesai"),
+      ))
+      .groupBy(scheduleBookingsTable.schedule_id),
+  ]);
+  const aggMap = new Map(aggRows.map(a => [
+    a.schedule_id,
+    { penumpang_count: Number(a.penumpang_count), total_pendapatan: Number(a.total_pendapatan ?? 0) },
+  ]));
+  res.json(schedRows.map(r => ({
+    ...r.s,
+    driver: r.driver,
+    penumpang_count: aggMap.get(r.s.id)?.penumpang_count ?? 0,
+    total_pendapatan: aggMap.get(r.s.id)?.total_pendapatan ?? 0,
+  })));
 }));
 
 router.patch("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
@@ -233,6 +256,7 @@ router.delete("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
 }));
 
 // ===================== BOOKINGS REGULER =====================
+const driverAlias = alias(usersTable, "driver_alias");
 router.get("/admin/bookings", adminGuard(async (_req: any, res: any) => {
   const rows = await db.select({
     b: scheduleBookingsTable,
@@ -244,13 +268,15 @@ router.get("/admin/bookings", adminGuard(async (_req: any, res: any) => {
       departure_date: schedulesTable.departure_date,
       trip_progress: schedulesTable.trip_progress,
     },
+    driver: { id: driverAlias.id, nama: driverAlias.nama },
   })
     .from(scheduleBookingsTable)
     .leftJoin(usersTable, eq(scheduleBookingsTable.user_id, usersTable.id))
     .leftJoin(schedulesTable, eq(scheduleBookingsTable.schedule_id, schedulesTable.id))
+    .leftJoin(driverAlias, eq(schedulesTable.driver_id, driverAlias.id))
     .orderBy(desc(scheduleBookingsTable.created_at))
     .limit(200);
-  res.json(rows.map(r => ({ ...r.b, user: r.user, schedule: r.schedule })));
+  res.json(rows.map(r => ({ ...r.b, user: r.user, schedule: r.schedule, driver: r.driver })));
 }));
 
 router.patch("/admin/bookings/:id/cancel", adminGuard(async (req: any, res: any) => {
