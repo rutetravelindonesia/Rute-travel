@@ -116,8 +116,12 @@ router.get("/admin/pending-mitra", adminGuard(async (_req: any, res: any) => {
 router.patch("/admin/users/:id/approve", adminGuard(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!target) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  if (target.role !== "driver" || target.is_verified) {
+    res.status(400).json({ error: "Hanya mitra driver yang belum diverifikasi yang bisa disetujui." }); return;
+  }
   const [u] = await db.update(usersTable).set({ is_verified: true }).where(eq(usersTable.id, id)).returning();
-  if (!u) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
   await logAdmin(req.admin.id, req.admin.nama, "APPROVE_MITRA", `Mitra #${id} (${u.nama}) disetujui`);
   createNotification(id, "mitra_approved", "Pendaftaran Disetujui!", "Selamat! Akun Mitra Driver Anda telah diverifikasi oleh admin. Anda sudah bisa mulai menerima penumpang.", "user", id).catch(() => {});
   res.json({ ok: true });
@@ -128,6 +132,9 @@ router.patch("/admin/users/:id/reject", adminGuard(async (req: any, res: any) =>
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
   const [u] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!u) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  if (u.role !== "driver" || u.is_verified) {
+    res.status(400).json({ error: "Hanya mitra driver yang belum diverifikasi yang bisa ditolak." }); return;
+  }
   await db.delete(sessionsTable).where(eq(sessionsTable.user_id, id));
   await db.delete(usersTable).where(eq(usersTable.id, id));
   await logAdmin(req.admin.id, req.admin.nama, "REJECT_MITRA", `Mitra #${id} (${u.nama}) ditolak dan dihapus`);

@@ -10,7 +10,7 @@ import { ApiError } from "@workspace/api-client-react";
 import { KOTA_GROUPED } from "@/lib/kota";
 
 type UserType = "penumpang" | "driver";
-type Step = 1 | 2 | "otp";
+type Step = 1 | 2 | "otp" | "pending_review";
 
 const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
@@ -361,7 +361,9 @@ export default function RegisterPage() {
       { data: payload },
       {
         onSuccess: (data) => {
-          if ("needs_otp" in data && data.needs_otp) {
+          if ("pending_review" in data && data.pending_review) {
+            setStep("pending_review");
+          } else if ("needs_otp" in data && data.needs_otp) {
             setOtpData({
               userId: (data as { user_id: number }).user_id,
               noWa: form.phone,
@@ -386,6 +388,7 @@ export default function RegisterPage() {
   const isStep1 = step === 1;
   const isStep2 = step === 2;
   const isStepOTP = step === "otp";
+  const isStepPending = step === "pending_review";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -399,6 +402,7 @@ export default function RegisterPage() {
             onClick={() => {
               if (isStepOTP) { setStep(1); setOtpData(null); }
               else if (isStep2) setStep(1);
+              else if (isStepPending) setLocation("/login");
               else setLocation("/login");
             }}
             className="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-foreground hover:bg-muted transition-colors"
@@ -416,7 +420,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Heading */}
-        {!isStepOTP && (
+        {!isStepOTP && !isStepPending && (
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-foreground leading-tight">
               <span style={{ fontFamily: "var(--app-font-serif)" }}>Buat </span>
@@ -485,8 +489,40 @@ export default function RegisterPage() {
           />
         )}
 
+        {/* Pending Review Screen (mitra driver) */}
+        {isStepPending && (
+          <div className="flex flex-col items-center text-center py-8 space-y-5">
+            <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center">
+              <CheckCircle2 className="w-10 h-10 text-amber-600" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--app-font-serif)" }}>
+                Pendaftaran Terkirim!
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                Permohonan Anda sebagai Mitra Driver sedang ditinjau oleh tim admin. Kami akan menghubungi Anda melalui WhatsApp setelah disetujui.
+              </p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left w-full max-w-xs space-y-2">
+              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Langkah selanjutnya</p>
+              <ul className="space-y-1.5 text-sm text-amber-700">
+                <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Admin akan memeriksa foto diri dan STNK Anda</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Proses verifikasi biasanya 1×24 jam</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Anda akan mendapat notifikasi WhatsApp saat disetujui</li>
+              </ul>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLocation("/login")}
+              className="w-full max-w-xs py-3.5 rounded-xl bg-foreground text-background font-semibold text-sm"
+            >
+              Kembali ke Login
+            </button>
+          </div>
+        )}
+
         {/* Registration Form */}
-        {!isStepOTP && (
+        {!isStepOTP && !isStepPending && (
           <form onSubmit={handleNext} className="space-y-4">
             {/* ── STEP 1 ── */}
             {isStep1 && (
@@ -682,7 +718,7 @@ export default function RegisterPage() {
           </form>
         )}
 
-        {!isStepOTP && (
+        {!isStepOTP && !isStepPending && (
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Sudah punya akun?{" "}

@@ -88,6 +88,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  if (!user.is_verified && user.role === "driver") {
+    res.status(403).json({ error: "Pendaftaran Anda sedang menunggu verifikasi admin. Kami akan memberitahu Anda setelah disetujui.", pending_review: true });
+    return;
+  }
+
   if (!user.is_verified && user.role === "penumpang") {
     res.status(403).json({ error: "Akun belum diverifikasi. Silakan cek WhatsApp Anda untuk kode OTP.", needs_otp: true, user_id: user.id });
     return;
@@ -144,6 +149,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
   const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
   const isPenumpang = role === "penumpang";
+  const isDriver = role === "driver";
 
   const [user] = await db.insert(usersTable).values({
     nama,
@@ -157,10 +163,15 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     plat_nomor: plat_nomor ?? null,
     foto_diri: foto_diri ?? null,
     foto_stnk: foto_stnk ?? null,
-    is_verified: !isPenumpang,
+    is_verified: false,
   }).returning();
 
   req.log.info({ userId: user.id, role: user.role }, "User registered");
+
+  if (isDriver) {
+    res.status(201).json({ pending_review: true, user_id: user.id });
+    return;
+  }
 
   if (isPenumpang) {
     const code = generateOTP();
