@@ -18,6 +18,12 @@ import { CarterSettingsBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
+function pastCancellationCutoff(travelDate: string, travelTime: string): boolean {
+  const depMs = new Date(`${travelDate}T${travelTime}:00+08:00`).getTime();
+  const cutoffMs = depMs - 24 * 60 * 60 * 1000;
+  return Date.now() >= cutoffMs;
+}
+
 async function getUserFromToken(authHeader: string | undefined) {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
@@ -624,6 +630,10 @@ async function loadCarterBookingDetail(bookingId: number, currentUserId?: number
         }
       : null,
     my_rating: myRating ?? null,
+    can_cancel:
+      ["pending", "paid"].includes(b.status) &&
+      b.trip_progress === "menunggu" &&
+      !pastCancellationCutoff(b.travel_date, b.travel_time),
   };
 }
 
@@ -761,6 +771,9 @@ router.post("/carter-bookings/:id/cancel", async (req, res): Promise<void> => {
   if (booking.penumpang_id !== user.id) { res.status(403).json({ error: "Tidak boleh membatalkan pesanan ini." }); return; }
   if (!["pending", "paid"].includes(booking.status)) {
     res.status(400).json({ error: "Pesanan tidak dapat dibatalkan karena sudah aktif atau selesai." }); return;
+  }
+  if (pastCancellationCutoff(booking.travel_date, booking.travel_time)) {
+    res.status(400).json({ error: "Pembatalan hanya bisa dilakukan minimal 24 jam sebelum keberangkatan." }); return;
   }
   await db.update(carterBookingsTable).set({ status: "batal" }).where(eq(carterBookingsTable.id, id));
   res.json({ ok: true });

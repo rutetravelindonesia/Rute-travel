@@ -52,6 +52,7 @@ interface CarterBooking {
   pickup_confirmed_at: string | null;
   dropoff_confirmed_at: string | null;
   my_rating: { stars: number; comment: string | null } | null;
+  can_cancel: boolean;
 }
 
 function formatRupiah(n: number) {
@@ -631,7 +632,7 @@ export default function CarterEtiket() {
         )}
 
         {/* Batalkan Booking */}
-        {!booking.is_mitra && ["pending", "paid"].includes(booking.status) && booking.trip_progress === "menunggu" && (
+        {!booking.is_mitra && booking.can_cancel && (
           <button
             data-testid="cancel-btn"
             onClick={() => setShowCancel(true)}
@@ -703,7 +704,7 @@ export default function CarterEtiket() {
           >
             <p className="text-base font-bold text-foreground">Batalkan booking ini?</p>
             <p className="text-xs text-muted-foreground">
-              Pembatalan hanya bisa dilakukan sebelum perjalanan aktif. Pengembalian dana diproses oleh admin.
+              Pembatalan hanya bisa dilakukan minimal 24 jam sebelum keberangkatan. Pengembalian dana diproses oleh admin.
             </p>
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
