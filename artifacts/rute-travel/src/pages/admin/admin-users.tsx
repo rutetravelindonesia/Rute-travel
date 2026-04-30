@@ -27,10 +27,10 @@ function StatusBadge({ user }: { user: User }) {
       </span>
     );
   }
-  if (!user.is_verified && user.role === "driver") {
+  if (!user.is_verified) {
     return (
       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-        Belum Verified
+        Belum Diverifikasi
       </span>
     );
   }

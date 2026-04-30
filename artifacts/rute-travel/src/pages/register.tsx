@@ -500,7 +500,7 @@ export default function RegisterPage() {
                 Pendaftaran Terkirim!
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                Permohonan Anda sebagai Mitra Driver sedang ditinjau oleh tim admin. Kami akan menghubungi Anda melalui WhatsApp setelah disetujui.
+                Permohonan Anda sebagai Mitra Driver sedang ditinjau oleh tim admin. Silakan coba login kembali setelah akun Anda disetujui.
               </p>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left w-full max-w-xs space-y-2">
@@ -508,7 +508,7 @@ export default function RegisterPage() {
               <ul className="space-y-1.5 text-sm text-amber-700">
                 <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Admin akan memeriksa foto diri dan STNK Anda</li>
                 <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Proses verifikasi biasanya 1×24 jam</li>
-                <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Anda akan mendapat notifikasi WhatsApp saat disetujui</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>Setelah disetujui, Anda bisa login dan mulai menerima penumpang</li>
               </ul>
             </div>
             <button
