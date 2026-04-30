@@ -1004,7 +1004,7 @@ export default function BookingEtiket() {
         )}
 
         {/* Beri Rating / tampilan rating */}
-        {!booking.is_mitra && booking.status === "selesai" && (
+        {!booking.is_mitra && (booking.status === "selesai" || tp === "selesai") && (
           <>
             {booking.my_rating || ratingDone ? (
               <div
