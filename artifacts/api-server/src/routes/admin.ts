@@ -555,6 +555,82 @@ router.delete("/admin/pengumuman/:id", adminGuard(async (req: any, res: any) => 
   res.json({ ok: true });
 }));
 
+// ===================== PETA LOKASI LIVE =====================
+router.get("/admin/lokasi", adminGuard(async (_req: any, res: any) => {
+  const activeSchedules = await db.select({
+    s: schedulesTable,
+    driver: { id: usersTable.id, nama: usersTable.nama },
+  })
+    .from(schedulesTable)
+    .leftJoin(usersTable, eq(schedulesTable.driver_id, usersTable.id))
+    .where(eq(schedulesTable.trip_progress, "dalam_perjalanan"));
+
+  if (!activeSchedules.length) { res.json([]); return; }
+
+  const scheduleIds = activeSchedules.map(r => r.s.id);
+
+  const bookingRows = await db.select({
+    b: {
+      id: scheduleBookingsTable.id,
+      schedule_id: scheduleBookingsTable.schedule_id,
+      pickup_lat: scheduleBookingsTable.pickup_lat,
+      pickup_lng: scheduleBookingsTable.pickup_lng,
+      pickup_label: scheduleBookingsTable.pickup_label,
+      dropoff_lat: scheduleBookingsTable.dropoff_lat,
+      dropoff_lng: scheduleBookingsTable.dropoff_lng,
+      dropoff_label: scheduleBookingsTable.dropoff_label,
+      kursi: scheduleBookingsTable.kursi,
+      status: scheduleBookingsTable.status,
+    },
+    penumpang: { id: usersTable.id, nama: usersTable.nama },
+  })
+    .from(scheduleBookingsTable)
+    .leftJoin(usersTable, eq(scheduleBookingsTable.penumpang_id, usersTable.id))
+    .where(
+      and(
+        drizzleSql`${scheduleBookingsTable.schedule_id} = ANY(${scheduleIds})`,
+        or(
+          eq(scheduleBookingsTable.status, "confirmed"),
+          eq(scheduleBookingsTable.status, "paid"),
+        ),
+      ),
+    );
+
+  const bookingsBySchedule: Record<number, typeof bookingRows> = {};
+  for (const row of bookingRows) {
+    const sid = row.b.schedule_id;
+    if (!bookingsBySchedule[sid]) bookingsBySchedule[sid] = [];
+    bookingsBySchedule[sid].push(row);
+  }
+
+  const result = activeSchedules.map(r => ({
+    id: r.s.id,
+    driver: r.driver,
+    driver_lat: r.s.driver_lat,
+    driver_lng: r.s.driver_lng,
+    driver_location_updated_at: r.s.driver_location_updated_at,
+    origin_city: r.s.origin_city,
+    destination_city: r.s.destination_city,
+    departure_date: r.s.departure_date,
+    departure_time: r.s.departure_time,
+    trip_progress: r.s.trip_progress,
+    penumpang: (bookingsBySchedule[r.s.id] ?? []).map(row => ({
+      booking_id: row.b.id,
+      nama: row.penumpang?.nama ?? "Penumpang",
+      kursi: row.b.kursi,
+      status: row.b.status,
+      pickup_lat: row.b.pickup_lat,
+      pickup_lng: row.b.pickup_lng,
+      pickup_label: row.b.pickup_label,
+      dropoff_lat: row.b.dropoff_lat,
+      dropoff_lng: row.b.dropoff_lng,
+      dropoff_label: row.b.dropoff_label,
+    })),
+  }));
+
+  res.json(result);
+}));
+
 // ===================== LOG AKTIVITAS =====================
 router.get("/admin/logs", adminGuard(async (_req: any, res: any) => {
   const rows = await db.select().from(adminLogsTable).orderBy(desc(adminLogsTable.created_at)).limit(200);
