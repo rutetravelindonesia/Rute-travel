@@ -4,13 +4,34 @@ import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
 import { rm } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(artifactDir, "../..");
+
+async function buildFrontend() {
+  console.log("Building frontend (rute-travel)...");
+  const result = spawnSync(
+    "pnpm",
+    ["--filter", "@workspace/rute-travel", "run", "build"],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: { ...process.env, NODE_ENV: "production" },
+    }
+  );
+  if (result.status !== 0) {
+    throw new Error(`Frontend build failed with exit code ${result.status}`);
+  }
+  console.log("Frontend build complete.");
+}
 
 async function buildAll() {
+  await buildFrontend();
+
   const distDir = path.resolve(artifactDir, "dist");
   await rm(distDir, { recursive: true, force: true });
 
