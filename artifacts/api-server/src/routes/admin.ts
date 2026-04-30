@@ -271,7 +271,7 @@ router.get("/admin/bookings", adminGuard(async (_req: any, res: any) => {
     driver: { id: driverAlias.id, nama: driverAlias.nama },
   })
     .from(scheduleBookingsTable)
-    .leftJoin(usersTable, eq(scheduleBookingsTable.user_id, usersTable.id))
+    .leftJoin(usersTable, eq(scheduleBookingsTable.penumpang_id, usersTable.id))
     .leftJoin(schedulesTable, eq(scheduleBookingsTable.schedule_id, schedulesTable.id))
     .leftJoin(driverAlias, eq(schedulesTable.driver_id, driverAlias.id))
     .orderBy(desc(scheduleBookingsTable.created_at))
@@ -307,7 +307,7 @@ router.get("/admin/carter-bookings", adminGuard(async (req: any, res: any) => {
     user: { id: usersTable.id, nama: usersTable.nama },
   })
     .from(carterBookingsTable)
-    .leftJoin(usersTable, eq(carterBookingsTable.user_id, usersTable.id))
+    .leftJoin(usersTable, eq(carterBookingsTable.penumpang_id, usersTable.id))
     .$dynamic();
   if (status) q = q.where(eq(carterBookingsTable.status, status));
   const rows = await q.orderBy(desc(carterBookingsTable.created_at)).limit(200);
@@ -341,7 +341,7 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
     user: { id: usersTable.id, nama: usersTable.nama },
   })
     .from(scheduleBookingsTable)
-    .leftJoin(usersTable, eq(scheduleBookingsTable.user_id, usersTable.id))
+    .leftJoin(usersTable, eq(scheduleBookingsTable.penumpang_id, usersTable.id))
     .where(eq(scheduleBookingsTable.status, "paid"))
     .orderBy(desc(scheduleBookingsTable.created_at)).limit(100);
 
@@ -350,7 +350,7 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
     user: { id: usersTable.id, nama: usersTable.nama },
   })
     .from(carterBookingsTable)
-    .leftJoin(usersTable, eq(carterBookingsTable.user_id, usersTable.id))
+    .leftJoin(usersTable, eq(carterBookingsTable.penumpang_id, usersTable.id))
     .where(eq(carterBookingsTable.status, "paid"))
     .orderBy(desc(carterBookingsTable.created_at)).limit(100);
 
@@ -469,7 +469,7 @@ router.get("/admin/laporan", adminGuard(async (req: any, res: any) => {
     schedule: { origin_city: schedulesTable.origin_city, destination_city: schedulesTable.destination_city },
   })
     .from(scheduleBookingsTable)
-    .leftJoin(usersTable, eq(scheduleBookingsTable.user_id, usersTable.id))
+    .leftJoin(usersTable, eq(scheduleBookingsTable.penumpang_id, usersTable.id))
     .leftJoin(schedulesTable, eq(scheduleBookingsTable.schedule_id, schedulesTable.id))
     .where(and(
       gte(scheduleBookingsTable.created_at, start),
@@ -483,7 +483,7 @@ router.get("/admin/laporan", adminGuard(async (req: any, res: any) => {
     user: { nama: usersTable.nama },
   })
     .from(carterBookingsTable)
-    .leftJoin(usersTable, eq(carterBookingsTable.user_id, usersTable.id))
+    .leftJoin(usersTable, eq(carterBookingsTable.penumpang_id, usersTable.id))
     .where(and(
       gte(carterBookingsTable.created_at, start),
       lte(carterBookingsTable.created_at, end),
