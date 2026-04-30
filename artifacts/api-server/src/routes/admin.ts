@@ -359,6 +359,14 @@ router.patch("/admin/payments/booking/:id/reject", adminGuard(async (req: any, r
     .set({ status: "pending", payment_proof_url: null })
     .where(eq(scheduleBookingsTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "REJECT_PAYMENT", `Booking #${id} pembayaran ditolak`);
+  if (b?.penumpang_id) {
+    createNotification(
+      b.penumpang_id, "booking_rejected",
+      "Bukti Pembayaran Ditolak",
+      "Bukti pembayaran Anda tidak dapat diverifikasi. Silakan upload ulang bukti pembayaran yang valid.",
+      "schedule_booking", id,
+    ).catch(() => {});
+  }
   res.json(b);
 }));
 
@@ -387,6 +395,14 @@ router.patch("/admin/payments/carter/:id/reject", adminGuard(async (req: any, re
     .set({ status: "pending", payment_proof_url: null })
     .where(eq(carterBookingsTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "REJECT_CARTER_PAYMENT", `Carter #${id} pembayaran ditolak`);
+  if (b?.penumpang_id) {
+    createNotification(
+      b.penumpang_id, "booking_rejected",
+      "Bukti Pembayaran Carter Ditolak",
+      "Bukti pembayaran carter Anda tidak dapat diverifikasi. Silakan upload ulang bukti pembayaran yang valid.",
+      "carter_booking", id,
+    ).catch(() => {});
+  }
   res.json(b);
 }));
 
