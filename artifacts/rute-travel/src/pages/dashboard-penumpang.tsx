@@ -78,6 +78,7 @@ interface MyBooking {
 function activeStage(b: MyBooking): { label: string; tone: string; Icon: any } {
   if (b.status === "batal") return { label: "Dibatalkan", tone: "bg-red-100 text-red-800", Icon: XCircle };
   if (b.status === "pending") return { label: "Menunggu pembayaran", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
+  if (b.status === "paid") return { label: "Sedang diverifikasi admin", tone: "bg-blue-100 text-blue-800", Icon: Clock4 };
   const tp = b.schedule?.trip_progress ?? "belum_jemput";
   if (b.status === "selesai" || tp === "selesai") return { label: "Trip selesai", tone: "bg-green-100 text-green-800", Icon: CheckCircle2 };
   if (tp === "dalam_perjalanan") return { label: "Dalam perjalanan", tone: "bg-indigo-100 text-indigo-800", Icon: Navigation };
@@ -193,7 +194,7 @@ export default function DashboardPenumpang() {
     const active = list
       .filter(
         (b) =>
-          ["pending", "paid", "aktif"].includes(b.status) &&
+          ["pending", "paid", "confirmed", "aktif"].includes(b.status) &&
           !!b.schedule &&
           b.schedule.trip_progress !== "selesai",
       )
@@ -246,7 +247,7 @@ export default function DashboardPenumpang() {
         const active = list
           .filter(
             (b) =>
-              ["pending", "paid", "aktif"].includes(b.status) &&
+              ["pending", "paid", "confirmed", "aktif"].includes(b.status) &&
               !!b.schedule &&
               b.schedule.trip_progress !== "selesai",
           )
