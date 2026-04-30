@@ -1211,6 +1211,69 @@ router.get("/bookings/:id", async (req, res): Promise<void> => {
   });
 });
 
+// ===== E-TIKET endpoint (owner OR admin) =====
+router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+
+  const [row] = await db
+    .select({
+      b: scheduleBookingsTable,
+      s: schedulesTable,
+      driver: usersTable,
+      kendaraan: kendaraanTable,
+    })
+    .from(scheduleBookingsTable)
+    .leftJoin(schedulesTable, eq(schedulesTable.id, scheduleBookingsTable.schedule_id))
+    .leftJoin(usersTable, eq(usersTable.id, schedulesTable.driver_id))
+    .leftJoin(kendaraanTable, eq(kendaraanTable.id, schedulesTable.kendaraan_id))
+    .where(eq(scheduleBookingsTable.id, id));
+
+  if (!row) { res.status(404).json({ error: "E-tiket tidak ditemukan." }); return; }
+
+  const isOwner = user.id === row.b.penumpang_id;
+  const isMitra = !!row.s && user.id === row.s.driver_id;
+  const isAdmin = user.role === "admin";
+  if (!isOwner && !isMitra && !isAdmin) {
+    res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
+  }
+
+  const bookingCode = `RUTE-${String(id).padStart(6, "0")}`;
+  res.json({
+    booking_code: bookingCode,
+    id: row.b.id,
+    status: row.b.status,
+    kursi: row.b.kursi,
+    total_amount: row.b.total_amount,
+    payment_method: row.b.payment_method,
+    pickup_label: row.b.pickup_label,
+    dropoff_label: row.b.dropoff_label,
+    created_at: row.b.created_at,
+    penumpang_id: row.b.penumpang_id,
+    schedule: row.s ? {
+      id: row.s.id,
+      origin_city: row.s.origin_city,
+      destination_city: row.s.destination_city,
+      departure_date: row.s.departure_date,
+      departure_time: row.s.departure_time,
+      trip_progress: row.s.trip_progress,
+    } : null,
+    driver: row.driver ? {
+      id: row.driver.id,
+      nama: row.driver.nama,
+      no_whatsapp: row.driver.no_whatsapp,
+    } : null,
+    kendaraan: row.kendaraan ? {
+      merek: row.kendaraan.merek,
+      model: row.kendaraan.model,
+      plat_nomor: row.kendaraan.plat_nomor,
+      warna: row.kendaraan.warna,
+    } : null,
+  });
+});
+
 // ---------- Penumpang side actions ----------
 
 const RatingBody = z.object({

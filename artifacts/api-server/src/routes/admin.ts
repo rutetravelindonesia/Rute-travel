@@ -198,9 +198,25 @@ router.patch("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
   const { departure_date, departure_time, price_per_seat } = req.body as Record<string, any>;
   const updates: Record<string, any> = {};
-  if (departure_date !== undefined) updates.departure_date = departure_date;
-  if (departure_time !== undefined) updates.departure_time = departure_time;
-  if (price_per_seat !== undefined) updates.price_per_seat = Number(price_per_seat);
+  if (departure_date !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(departure_date))) {
+      res.status(400).json({ error: "Format tanggal tidak valid (YYYY-MM-DD)." }); return;
+    }
+    updates.departure_date = departure_date;
+  }
+  if (departure_time !== undefined) {
+    if (!/^\d{2}:\d{2}$/.test(String(departure_time))) {
+      res.status(400).json({ error: "Format waktu tidak valid (HH:MM)." }); return;
+    }
+    updates.departure_time = departure_time;
+  }
+  if (price_per_seat !== undefined) {
+    const parsed = Number(price_per_seat);
+    if (isNaN(parsed) || parsed <= 0) {
+      res.status(400).json({ error: "Harga per kursi harus angka positif." }); return;
+    }
+    updates.price_per_seat = parsed;
+  }
   if (!Object.keys(updates).length) { res.status(400).json({ error: "Tidak ada perubahan." }); return; }
   const [s] = await db.update(schedulesTable).set(updates).where(eq(schedulesTable.id, id)).returning();
   if (!s) { res.status(404).json({ error: "Jadwal tidak ditemukan." }); return; }
@@ -217,19 +233,23 @@ router.delete("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
 }));
 
 // ===================== BOOKINGS REGULER =====================
-router.get("/admin/bookings", adminGuard(async (req: any, res: any) => {
-  const { status } = req.query as Record<string, string>;
-  let q = db.select({
+router.get("/admin/bookings", adminGuard(async (_req: any, res: any) => {
+  const rows = await db.select({
     b: scheduleBookingsTable,
     user: { id: usersTable.id, nama: usersTable.nama },
-    schedule: { id: schedulesTable.id, origin_city: schedulesTable.origin_city, destination_city: schedulesTable.destination_city, departure_date: schedulesTable.departure_date },
+    schedule: {
+      id: schedulesTable.id,
+      origin_city: schedulesTable.origin_city,
+      destination_city: schedulesTable.destination_city,
+      departure_date: schedulesTable.departure_date,
+      trip_progress: schedulesTable.trip_progress,
+    },
   })
     .from(scheduleBookingsTable)
     .leftJoin(usersTable, eq(scheduleBookingsTable.user_id, usersTable.id))
     .leftJoin(schedulesTable, eq(scheduleBookingsTable.schedule_id, schedulesTable.id))
-    .$dynamic();
-  if (status) q = q.where(eq(scheduleBookingsTable.status, status));
-  const rows = await q.orderBy(desc(scheduleBookingsTable.created_at)).limit(200);
+    .orderBy(desc(scheduleBookingsTable.created_at))
+    .limit(200);
   res.json(rows.map(r => ({ ...r.b, user: r.user, schedule: r.schedule })));
 }));
 

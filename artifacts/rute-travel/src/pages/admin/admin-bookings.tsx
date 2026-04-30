@@ -8,30 +8,57 @@ interface Booking {
   id: number; status: string; total_amount: number; created_at: string;
   kursi: string[]; pickup_label: string; payment_method: string;
   user: { id: number; nama: string } | null;
-  schedule: { id: number; origin_city: string; destination_city: string; departure_date: string } | null;
+  schedule: {
+    id: number;
+    origin_city: string;
+    destination_city: string;
+    departure_date: string;
+    trip_progress: string | null;
+  } | null;
 }
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
   paid: "bg-blue-100 text-blue-700",
   confirmed: "bg-green-100 text-green-700",
+  aktif: "bg-green-100 text-green-700",
+  selesai: "bg-gray-100 text-gray-600",
   cancelled: "bg-red-100 text-red-700",
+  batal: "bg-red-100 text-red-700",
 };
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Pending",
   paid: "Sudah Bayar",
   confirmed: "Dikonfirmasi",
+  aktif: "Aktif",
+  selesai: "Selesai",
   cancelled: "Dibatalkan",
+  batal: "Dibatalkan",
 };
 
-const TRIP_STATUS_FILTERS = [
+type SemanticFilter = "" | "berjalan" | "selesai" | "dibatalkan";
+
+const TRIP_STATUS_FILTERS: { value: SemanticFilter; label: string }[] = [
   { value: "", label: "Semua" },
-  { value: "pending", label: "Pending" },
-  { value: "paid", label: "Sudah Bayar" },
-  { value: "confirmed", label: "Sedang Berjalan" },
-  { value: "cancelled", label: "Dibatalkan" },
+  { value: "berjalan", label: "Sedang Berjalan" },
+  { value: "selesai", label: "Selesai" },
+  { value: "dibatalkan", label: "Dibatalkan" },
 ];
+
+function applySemanticFilter(rows: Booking[], filter: SemanticFilter): Booking[] {
+  if (!filter) return rows;
+  return rows.filter(b => {
+    const tripProgress = b.schedule?.trip_progress ?? null;
+    const isDibatalkan = b.status === "cancelled" || b.status === "batal";
+    const isSelesai = b.status === "selesai" || tripProgress === "selesai";
+    const isBerjalan = !isDibatalkan && !isSelesai;
+    if (filter === "dibatalkan") return isDibatalkan;
+    if (filter === "selesai") return isSelesai;
+    if (filter === "berjalan") return isBerjalan;
+    return true;
+  });
+}
 
 interface ConfirmDelete { id: number; nama: string }
 
@@ -39,27 +66,27 @@ export default function AdminBookings() {
   const { token, user } = useAuth();
   const [, setLocation] = useLocation();
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
-  const [rows, setRows] = useState<Booking[]>([]);
+  const [allRows, setAllRows] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [semanticFilter, setSemanticFilter] = useState<SemanticFilter>("");
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    const params = new URLSearchParams();
-    if (statusFilter) params.set("status", statusFilter);
-    const r = await fetch(`${apiBase}/admin/bookings?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(`${apiBase}/admin/bookings`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
-    setRows(Array.isArray(d) ? d : []);
+    setAllRows(Array.isArray(d) ? d : []);
     setLoading(false);
-  }, [token, apiBase, statusFilter]);
+  }, [token, apiBase]);
 
   useEffect(() => {
     if (!token || user?.role !== "admin") { setLocation("/admin/login"); return; }
     load();
   }, [token, user, load]);
+
+  const rows = applySemanticFilter(allRows, semanticFilter);
 
   async function handleCancel(id: number) {
     if (!confirm("Batalkan booking ini?")) return;
@@ -109,8 +136,8 @@ export default function AdminBookings() {
           <h1 className="text-2xl font-bold text-[#1a1208]">Booking Reguler</h1>
           <div className="flex gap-1.5 flex-wrap">
             {TRIP_STATUS_FILTERS.map(f => (
-              <button key={f.value} onClick={() => setStatusFilter(f.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${statusFilter === f.value ? "bg-[#a85e28] text-white" : "bg-white border border-border text-muted-foreground hover:bg-[#f5f0e8]"}`}>
+              <button key={f.value} onClick={() => setSemanticFilter(f.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${semanticFilter === f.value ? "bg-[#a85e28] text-white" : "bg-white border border-border text-muted-foreground hover:bg-[#f5f0e8]"}`}>
                 {f.label}
               </button>
             ))}
@@ -151,7 +178,7 @@ export default function AdminBookings() {
                       <td className="px-4 py-3 text-muted-foreground">{new Date(b.created_at).toLocaleDateString("id-ID")}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          {b.status !== "cancelled" && (
+                          {b.status !== "cancelled" && b.status !== "batal" && b.status !== "selesai" && (
                             <button onClick={() => handleCancel(b.id)} disabled={!!busy}
                               title="Batalkan booking"
                               className="p-1.5 rounded-lg hover:bg-orange-100 text-orange-500 disabled:opacity-50">

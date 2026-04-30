@@ -732,6 +732,28 @@ router.get("/carter-bookings/:id", async (req, res): Promise<void> => {
   res.json({ ...detail, is_mitra: isOwnerMitra });
 });
 
+// ===== E-TIKET carter (owner OR admin) =====
+router.get("/carter-bookings/:id/etiket", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+
+  const detail = await loadCarterBookingDetail(id);
+  if (!detail) { res.status(404).json({ error: "E-tiket tidak ditemukan." }); return; }
+
+  const isOwner = detail.penumpang_id === user.id;
+  const isMitra = detail.settings?.driver_id === user.id;
+  const isAdmin = user.role === "admin";
+  if (!isOwner && !isMitra && !isAdmin) {
+    res.status(403).json({ error: "Tidak boleh melihat e-tiket ini." }); return;
+  }
+
+  const bookingCode = `RUTE-C${String(id).padStart(5, "0")}`;
+  const { my_rating, ...rest } = detail as typeof detail & { my_rating?: unknown };
+  res.json({ ...rest, booking_code: bookingCode, is_mitra: isMitra });
+});
+
 router.post("/carter-bookings/:id/confirm-pickup", async (req, res): Promise<void> => {
   const user = await getUserFromToken(req.headers.authorization);
   if (!user) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }

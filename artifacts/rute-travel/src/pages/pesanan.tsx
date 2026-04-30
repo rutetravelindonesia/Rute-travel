@@ -17,6 +17,7 @@ import {
   Phone,
   Map as MapIcon,
   CheckCircle2,
+  Ticket,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 
@@ -960,10 +961,18 @@ export default function PesananPage() {
                       <p className="text-[11px] text-muted-foreground">{o.kursi_count} kursi</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm font-bold text-foreground">{formatRupiah(o.total_amount)}</p>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
+                  {o.status === "confirmed" ? (
+                    <div className="flex items-center gap-1 text-amber-700 font-semibold text-xs">
+                      <Ticket className="w-3.5 h-3.5" />
+                      Lihat E-Tiket
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-bold text-foreground">{formatRupiah(o.total_amount)}</p>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
               </button>
             );
