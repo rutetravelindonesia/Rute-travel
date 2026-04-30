@@ -568,8 +568,14 @@ export default function CarterEtiket() {
         {showLiveMap && (
           <div className="rounded-xl overflow-hidden border border-border">
             <div className="px-3 py-2 bg-muted/50 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5" />
-              Lokasi mitra
+              {tp === "dalam_perjalanan" ? (
+                <Navigation2 className="w-3.5 h-3.5 text-indigo-600" />
+              ) : (
+                <MapPin className="w-3.5 h-3.5" />
+              )}
+              {tp === "dalam_perjalanan"
+                ? `Mitra dalam perjalanan ke ${booking.destination_city}`
+                : "Lokasi mitra"}
               {booking.driver_location_updated_at && (
                 <span className="ml-auto font-normal">
                   {new Date(booking.driver_location_updated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
@@ -590,13 +596,13 @@ export default function CarterEtiket() {
                 <MapAutoFit
                   driverLat={booking.driver_lat}
                   driverLng={booking.driver_lng}
-                  pickupLat={booking.pickup_lat}
-                  pickupLng={booking.pickup_lng}
+                  pickupLat={tp === "dalam_perjalanan" ? null : booking.pickup_lat}
+                  pickupLng={tp === "dalam_perjalanan" ? null : booking.pickup_lng}
                 />
                 <Marker position={[booking.driver_lat, booking.driver_lng]} icon={driverIcon}>
                   <Popup>Mitra Driver</Popup>
                 </Marker>
-                {booking.pickup_lat && booking.pickup_lng && (
+                {tp !== "dalam_perjalanan" && booking.pickup_lat && booking.pickup_lng && (
                   <Marker position={[booking.pickup_lat, booking.pickup_lng]} icon={pickupIcon}>
                     <Popup>Titik Jemput Anda</Popup>
                   </Marker>
@@ -610,8 +616,8 @@ export default function CarterEtiket() {
           </div>
         )}
 
-        {/* MITRA: Navigasi ke titik jemput */}
-        {showMitraMap && (
+        {/* MITRA: Navigasi — ke titik jemput atau ke kota tujuan */}
+        {showMitraMap && tp !== "dalam_perjalanan" && (
           <a
             href={`https://www.google.com/maps/dir/?api=1&destination=${booking.pickup_lat},${booking.pickup_lng}&travelmode=driving`}
             target="_blank"
@@ -619,6 +625,16 @@ export default function CarterEtiket() {
             className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2"
           >
             <Car className="w-4 h-4" /> Navigasi ke Titik Jemput
+          </a>
+        )}
+        {booking.is_mitra && isActiveStatus && tp === "dalam_perjalanan" && (
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.destination_city + ", Kalimantan Timur, Indonesia")}&travelmode=driving`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold flex items-center justify-center gap-2"
+          >
+            <Navigation2 className="w-4 h-4" /> Navigasi ke {booking.destination_city}
           </a>
         )}
 
