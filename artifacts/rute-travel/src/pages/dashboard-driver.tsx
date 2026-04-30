@@ -6,6 +6,7 @@ import {
   Navigation, Users, MapPin, Lock
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
+import { useNotifications } from "@/contexts/notifications";
 import { useLogout } from "@workspace/api-client-react";
 import OfflineSeatPicker from "@/components/offline-seat-picker";
 
@@ -156,6 +157,7 @@ function progressLabel(p: string) {
 export default function DashboardDriver() {
   const [, setLocation] = useLocation();
   const { user, token, clearAuth } = useAuth();
+  const { unreadCount } = useNotifications();
   const logoutMutation = useLogout();
 
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
@@ -276,9 +278,15 @@ export default function DashboardDriver() {
           </div>
           <button
             data-testid="notif-btn"
-            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
+            onClick={() => setLocation("/notifikasi")}
+            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm flex-shrink-0 relative"
           >
             <Bell className="w-5 h-5 text-white" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </button>
         </div>
 

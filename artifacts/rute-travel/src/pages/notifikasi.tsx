@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Bell, CheckCheck, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useNotifications } from "@/contexts/notifications";
-import { BottomNav } from "@/components/bottom-nav";
 
 interface Notif {
   id: number;
@@ -106,7 +105,7 @@ export default function NotifikasiPage() {
   const unread = notifs.filter((n) => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-8">
       <div
         className="sticky top-0 z-20 px-4 pt-10 pb-4"
         style={{ background: "hsl(var(--card))", borderBottom: "1px solid hsl(var(--border))" }}
@@ -181,8 +180,6 @@ export default function NotifikasiPage() {
           ))
         )}
       </div>
-
-      <BottomNav active="notifikasi" />
     </div>
   );
 }
