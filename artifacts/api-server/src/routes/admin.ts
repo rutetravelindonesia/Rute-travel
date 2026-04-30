@@ -17,6 +17,7 @@ import {
   tebenganPulangTable,
   pushSubscriptionsTable,
 } from "@workspace/db";
+import { createNotification } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -224,6 +225,14 @@ router.patch("/admin/payments/booking/:id/confirm", adminGuard(async (req: any, 
     .set({ status: "confirmed" })
     .where(eq(scheduleBookingsTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "CONFIRM_PAYMENT", `Booking #${id} pembayaran dikonfirmasi`);
+  if (b?.penumpang_id) {
+    createNotification(
+      b.penumpang_id, "booking_verified",
+      "E-Tiket Berhasil!",
+      "Pembayaran Anda telah dikonfirmasi oleh admin. Selamat, e-tiket Anda sudah aktif!",
+      "schedule_booking", id,
+    ).catch(() => {});
+  }
   res.json(b);
 }));
 
@@ -244,6 +253,14 @@ router.patch("/admin/payments/carter/:id/confirm", adminGuard(async (req: any, r
     .set({ status: "confirmed" })
     .where(eq(carterBookingsTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "CONFIRM_CARTER_PAYMENT", `Carter #${id} pembayaran dikonfirmasi`);
+  if (b?.penumpang_id) {
+    createNotification(
+      b.penumpang_id, "booking_verified",
+      "E-Tiket Carter Berhasil!",
+      "Pembayaran carter Anda telah dikonfirmasi oleh admin. E-tiket Anda sudah aktif!",
+      "carter_booking", id,
+    ).catch(() => {});
+  }
   res.json(b);
 }));
 

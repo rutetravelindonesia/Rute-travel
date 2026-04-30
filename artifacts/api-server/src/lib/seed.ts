@@ -19,6 +19,18 @@ export async function runMigrations(): Promise<void> {
     `ALTER TABLE ratings ALTER COLUMN schedule_id DROP NOT NULL`,
     `DROP INDEX IF EXISTS ratings_rater_booking_unique`,
     `CREATE UNIQUE INDEX IF NOT EXISTS ratings_rater_booking_unique ON ratings (rater_id, booking_id, booking_type)`,
+    `CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      ref_type TEXT,
+      ref_id INTEGER,
+      is_read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS notifications_user_id_idx ON notifications (user_id, created_at DESC)`,
   ];
   for (const sql of migrations) {
     try {

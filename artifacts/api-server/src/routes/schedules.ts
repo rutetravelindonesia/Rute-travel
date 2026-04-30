@@ -13,6 +13,7 @@ import {
 } from "@workspace/db";
 import { CreateScheduleBody } from "@workspace/api-zod";
 import { sendPushToUser } from "../lib/push";
+import { createNotification } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -724,6 +725,12 @@ router.post("/schedules/:id/book", async (req, res): Promise<void> => {
     tag: `booking-new-${result.booking.id}`,
     url: "/pesanan",
   }).catch(() => {});
+  createNotification(
+    result.driver_id, "new_booking",
+    "Pesanan Baru Masuk",
+    `${user.nama} memesan ${result.booking.kursi.length} kursi untuk jadwal Anda.`,
+    "schedule_booking", result.booking.id,
+  ).catch(() => {});
   res.status(201).json(result.booking);
 });
 
@@ -1070,8 +1077,9 @@ router.patch("/schedules/:id/trip-progress", async (req, res): Promise<void> => 
   }
 
   const progressMessages: Record<string, { title: string; body: string }> = {
-    sudah_jemput: { title: "Sopir Sedang Menjemput", body: "Sopir Anda sedang dalam perjalanan menjemput. Bersiap-siaplah!" },
-    dalam_perjalanan: { title: "Perjalanan Dimulai", body: "Perjalanan Anda telah dimulai. Selamat menikmati perjalanan!" },
+    sudah_jemput: { title: "Mitra Sedang Menuju Lokasi Jemput", body: "Mitra Anda sedang dalam perjalanan menuju lokasi jemput. Bersiap-siaplah!" },
+    semua_naik: { title: "Semua Penumpang Sudah Naik", body: "Mitra telah mengkonfirmasi semua penumpang sudah naik. Bersiap-siaplah berangkat!" },
+    dalam_perjalanan: { title: "Perjalanan Dimulai", body: "Mitra sudah berangkat menuju kota tujuan. Selamat menikmati perjalanan!" },
     selesai: { title: "Perjalanan Selesai", body: "Perjalanan Anda telah selesai. Terima kasih telah menggunakan RUTE!" },
   };
   const msg = progressMessages[nextProgress];
@@ -1091,7 +1099,11 @@ router.patch("/schedules/:id/trip-progress", async (req, res): Promise<void> => 
         tag: `trip-${id}-${nextProgress}`,
         url: "/pesanan",
       }).catch(() => {});
+      createNotification(p.penumpang_id, "trip_progress", msg.title, msg.body, "schedule", id).catch(() => {});
     }
+  }
+  if (nextProgress === "selesai") {
+    createNotification(user.id, "trip_completed", "Trip Selesai", "Trip telah berhasil diselesaikan. Terima kasih!", "schedule", id).catch(() => {});
   }
 
   res.json({ id, trip_progress: nextProgress });
@@ -1254,6 +1266,14 @@ router.post("/bookings/:id/confirm-pickup", async (req, res): Promise<void> => {
     .set({ pickup_confirmed_at: new Date(), updated_at: new Date() })
     .where(eq(scheduleBookingsTable.id, id))
     .returning();
+  if (row.s?.driver_id) {
+    createNotification(
+      row.s.driver_id, "pickup_confirmed",
+      "Penumpang Konfirmasi Dijemput",
+      `${user.nama} mengkonfirmasi sudah dijemput.`,
+      "schedule_booking", id,
+    ).catch(() => {});
+  }
   res.json({ ok: true, pickup_confirmed_at: updated.pickup_confirmed_at });
 });
 
@@ -1336,7 +1356,19 @@ router.post("/bookings/:id/cancel", async (req, res): Promise<void> => {
       tag: `booking-cancel-${id}`,
       url: "/pesanan",
     }).catch(() => {});
+    createNotification(
+      row.s.driver_id, "cancel_booking",
+      "Pesanan Dibatalkan",
+      `${user.nama} membatalkan pesanan untuk jadwal Anda.`,
+      "schedule_booking", id,
+    ).catch(() => {});
   }
+  createNotification(
+    user.id, "booking_cancelled",
+    "Pesanan Berhasil Dibatalkan",
+    "Pesanan Anda telah berhasil dibatalkan.",
+    "schedule_booking", id,
+  ).catch(() => {});
   res.json({ ok: true });
 });
 

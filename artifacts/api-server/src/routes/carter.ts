@@ -1,5 +1,6 @@
 // carter routes
 import { Router, type IRouter } from "express";
+import { createNotification } from "../lib/notifications";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import {
@@ -551,7 +552,7 @@ router.post("/carter/:settings_id/book", async (req, res): Promise<void> => {
       })
       .returning();
 
-    return { ok: true as const, booking: created };
+    return { ok: true as const, booking: created, driver_id: s.driver_id };
   });
 
   if ("error" in result) {
@@ -563,6 +564,12 @@ router.post("/carter/:settings_id/book", async (req, res): Promise<void> => {
     { bookingId: result.booking.id, settingsId, userId: user.id },
     "Carter booked"
   );
+  createNotification(
+    result.driver_id, "new_booking",
+    "Pesanan Carter Baru",
+    `${user.nama} memesan carter dari ${result.booking.pickup_label} ke ${result.booking.dropoff_label}.`,
+    "carter_booking", result.booking.id,
+  ).catch(() => {});
   res.status(201).json(result.booking);
 });
 
@@ -740,6 +747,15 @@ router.post("/carter-bookings/:id/confirm-pickup", async (req, res): Promise<voi
     res.json({ ok: true }); return;
   }
   await db.update(carterBookingsTable).set({ pickup_confirmed_at: new Date(), updated_at: new Date() }).where(eq(carterBookingsTable.id, id));
+  const [cs] = await db.select({ driver_id: carterSettingsTable.driver_id }).from(carterSettingsTable).where(eq(carterSettingsTable.id, booking.settings_id));
+  if (cs?.driver_id) {
+    createNotification(
+      cs.driver_id, "pickup_confirmed",
+      "Penumpang Konfirmasi Dijemput",
+      `${user.nama} mengkonfirmasi sudah dijemput.`,
+      "carter_booking", id,
+    ).catch(() => {});
+  }
   res.json({ ok: true });
 });
 
@@ -776,6 +792,21 @@ router.post("/carter-bookings/:id/cancel", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Pembatalan hanya bisa dilakukan minimal 24 jam sebelum keberangkatan." }); return;
   }
   await db.update(carterBookingsTable).set({ status: "batal" }).where(eq(carterBookingsTable.id, id));
+  const [csc] = await db.select({ driver_id: carterSettingsTable.driver_id }).from(carterSettingsTable).where(eq(carterSettingsTable.id, booking.settings_id));
+  if (csc?.driver_id) {
+    createNotification(
+      csc.driver_id, "cancel_booking",
+      "Pesanan Carter Dibatalkan",
+      `${user.nama} membatalkan pesanan carter Anda.`,
+      "carter_booking", id,
+    ).catch(() => {});
+  }
+  createNotification(
+    user.id, "booking_cancelled",
+    "Pesanan Carter Berhasil Dibatalkan",
+    "Pesanan carter Anda telah berhasil dibatalkan.",
+    "carter_booking", id,
+  ).catch(() => {});
   res.json({ ok: true });
 });
 
@@ -867,7 +898,7 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
     return;
   }
   const [b] = await db
-    .select({ settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status, trip_progress: carterBookingsTable.trip_progress })
+    .select({ settings_id: carterBookingsTable.settings_id, status: carterBookingsTable.status, trip_progress: carterBookingsTable.trip_progress, penumpang_id: carterBookingsTable.penumpang_id })
     .from(carterBookingsTable)
     .where(eq(carterBookingsTable.id, id));
   if (!b) {
@@ -904,6 +935,21 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
     updates.status = "aktif";
   }
   await db.update(carterBookingsTable).set(updates).where(eq(carterBookingsTable.id, id));
+
+  const carterProgressMessages: Record<string, { title: string; body: string }> = {
+    menuju_jemput: { title: "Mitra Sedang Menuju Lokasi Jemput", body: "Mitra Anda sedang dalam perjalanan menuju lokasi jemput." },
+    sudah_jemput: { title: "Mitra Sudah Menjemput Anda", body: "Mitra telah mengkonfirmasi Anda sudah dijemput. Perjalanan segera dimulai!" },
+    dalam_perjalanan: { title: "Perjalanan Dimulai", body: "Mitra sudah berangkat menuju tujuan Anda. Selamat menikmati perjalanan!" },
+    selesai: { title: "Perjalanan Carter Selesai", body: "Perjalanan carter Anda telah selesai. Terima kasih telah menggunakan RUTE!" },
+  };
+  const pmsg = carterProgressMessages[next_progress];
+  if (pmsg && b.penumpang_id) {
+    createNotification(b.penumpang_id, "trip_progress", pmsg.title, pmsg.body, "carter_booking", id).catch(() => {});
+  }
+  if (next_progress === "selesai") {
+    createNotification(user.id, "trip_completed", "Trip Carter Selesai", "Trip carter telah berhasil diselesaikan.", "carter_booking", id).catch(() => {});
+  }
+
   req.log.info({ bookingId: id, trip_progress: next_progress }, "Carter trip progress updated");
   res.json({ ok: true, trip_progress: next_progress });
 });

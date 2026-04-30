@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/auth";
+import { NotificationProvider } from "@/contexts/notifications";
 import { MitraGpsGuard } from "@/components/MitraGpsGuard";
 import { MitraGpsSync } from "@/components/MitraGpsSync";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -47,6 +48,7 @@ import AdminPengumuman from "@/pages/admin/admin-pengumuman";
 import AdminLogs from "@/pages/admin/admin-logs";
 import TripDetailPage from "@/pages/trip-detail";
 import CarterDetailDriverPage from "@/pages/carter-detail-driver";
+import NotifikasiPage from "@/pages/notifikasi";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +83,7 @@ function Router() {
       <Route path="/trip/:scheduleId/detail" component={TripDetailPage} />
       <Route path="/carter-booking/:id/driver-detail" component={CarterDetailDriverPage} />
       <Route path="/jadwal" component={JadwalMitraPage} />
+      <Route path="/notifikasi" component={NotifikasiPage} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsers} />
@@ -111,14 +114,16 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <PushInit />
-          <MitraGpsSync />
-          <MitraGpsGuard>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-          </MitraGpsGuard>
-          <Toaster />
+          <NotificationProvider>
+            <PushInit />
+            <MitraGpsSync />
+            <MitraGpsGuard>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+            </MitraGpsGuard>
+            <Toaster />
+          </NotificationProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
