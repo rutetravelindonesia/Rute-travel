@@ -238,25 +238,6 @@ export default function TripDetailPage() {
           </div>
         )}
 
-        {data.kendaraan && (
-          <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
-            <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-2">Kendaraan</p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <Car className="w-5 h-5 text-amber-700" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-sm">
-                  {data.kendaraan.merek} {data.kendaraan.model}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  {data.kendaraan.warna} · {data.kendaraan.plat_nomor}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
@@ -341,6 +322,25 @@ export default function TripDetailPage() {
             <p className="text-sm font-bold text-foreground">{formatRupiah(data.total_pendapatan)}</p>
           </div>
         </div>
+
+        {data.kendaraan && (
+          <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+            <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-2">Kendaraan</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Car className="w-5 h-5 text-amber-700" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">
+                  {data.kendaraan.merek} {data.kendaraan.model}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {data.kendaraan.warna} · {data.kendaraan.plat_nomor}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
           <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-3">Status Perjalanan</p>
