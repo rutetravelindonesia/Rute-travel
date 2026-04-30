@@ -103,6 +103,7 @@ export default function CarterEtiket() {
   const [booking, setBooking] = useState<CarterBooking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVerification, setPendingVerification] = useState<{ booking_status: string } | null>(null);
   const [busyProgress, setBusyProgress] = useState(false);
   const [gpsPermission, setGpsPermission] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown");
   const [gpsActive, setGpsActive] = useState(false);
@@ -126,6 +127,32 @@ export default function CarterEtiket() {
     if (!token || isNaN(id)) return;
     if (!silent) setLoading(true);
     try {
+      // 1. Gate check via the guarded etiket endpoint
+      const gateRes = await fetch(`${apiBase}/carter-bookings/${id}/etiket`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (gateRes.status === 403) {
+        const body = await gateRes.json().catch(() => ({}));
+        if (body?.status === "pending_verification") {
+          setBooking(null);
+          setPendingVerification({ booking_status: body.booking_status ?? "paid" });
+          setError(null);
+          return;
+        }
+        // Non-pending_verification 403 (e.g. mitra driver access) — fall through to full fetch
+      } else if (gateRes.status === 401) {
+        setLocation("/login");
+        return;
+      } else if (gateRes.status === 404) {
+        setError("E-tiket tidak ditemukan.");
+        return;
+      } else if (!gateRes.ok) {
+        setError("Gagal memuat e-tiket.");
+        return;
+      }
+
+      // 2. Full data fetch for page rendering
       const res = await fetch(`${apiBase}/carter-bookings/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -133,6 +160,7 @@ export default function CarterEtiket() {
       if (res.ok) {
         const data: CarterBooking = await res.json();
         setBooking(data);
+        setPendingVerification(null);
         setError(null);
       } else if (res.status === 401) {
         setLocation("/login");
@@ -295,19 +323,8 @@ export default function CarterEtiket() {
     );
   }
 
-  if (!booking) {
-    return (
-      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
-        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
-        <button onClick={() => setLocation(backPath)} className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold">
-          Ke beranda
-        </button>
-      </div>
-    );
-  }
-
-  if (!booking.is_mitra && (booking.status === "pending" || booking.status === "paid")) {
-    const isPending = booking.status === "pending";
+  if (pendingVerification) {
+    const isPending = pendingVerification.booking_status === "pending";
     return (
       <div className="min-h-screen bg-background max-w-md mx-auto flex flex-col">
         <div className="bg-card border-b border-border px-5 pt-10 pb-4 flex items-center gap-3">
@@ -353,6 +370,17 @@ export default function CarterEtiket() {
             </>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-background max-w-md mx-auto p-6 text-center">
+        <p className="text-sm font-bold text-foreground mt-12">E-tiket tidak ditemukan.</p>
+        <button onClick={() => setLocation(backPath)} className="mt-4 px-4 py-2 rounded-xl bg-accent text-white text-sm font-bold">
+          Ke beranda
+        </button>
       </div>
     );
   }
