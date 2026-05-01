@@ -260,29 +260,35 @@ export default function TripDetailPage() {
 
           {(() => {
             const tp = data.trip_progress;
-            const mapPoints: { pos: [number, number]; label: string; isDropoff: boolean }[] = [];
+            const allCoords: [number, number][] = [];
+            const visibleMarkers: { pos: [number, number]; label: string; isDropoff: boolean }[] = [];
             for (const p of data.passengers) {
               if (tp === "dalam_perjalanan") {
-                if (p.dropoff_lat && p.dropoff_lng)
-                  mapPoints.push({ pos: [p.dropoff_lat, p.dropoff_lng], label: p.dropoff_label ?? p.penumpang?.nama ?? "Titik Turun", isDropoff: true });
+                if (p.dropoff_lat && p.dropoff_lng) {
+                  allCoords.push([p.dropoff_lat, p.dropoff_lng]);
+                  visibleMarkers.push({ pos: [p.dropoff_lat, p.dropoff_lng], label: p.dropoff_label ?? p.penumpang?.nama ?? "Titik Turun", isDropoff: true });
+                }
               } else {
-                if (p.pickup_lat && p.pickup_lng && p.status !== "paid")
-                  mapPoints.push({ pos: [p.pickup_lat, p.pickup_lng], label: p.pickup_label ?? p.penumpang?.nama ?? "Titik Jemput", isDropoff: false });
+                if (p.pickup_lat && p.pickup_lng) {
+                  allCoords.push([p.pickup_lat, p.pickup_lng]);
+                  if (p.status !== "paid")
+                    visibleMarkers.push({ pos: [p.pickup_lat, p.pickup_lng], label: p.pickup_label ?? p.penumpang?.nama ?? "Titik Jemput", isDropoff: false });
+                }
               }
             }
-            if (mapPoints.length === 0) return null;
+            if (allCoords.length === 0) return null;
             return (
               <div className="mb-3 rounded-xl overflow-hidden border border-border" style={{ height: 200 }}>
                 <MapContainer
-                  center={mapPoints[0].pos}
+                  center={allCoords[0]}
                   zoom={14}
                   style={{ height: "100%", width: "100%" }}
                   zoomControl={false}
                   scrollWheelZoom={false}
                 >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <MapFitAll points={mapPoints.map((m) => m.pos)} />
-                  {mapPoints.map((m, i) => (
+                  <MapFitAll points={allCoords} />
+                  {visibleMarkers.map((m, i) => (
                     <Marker key={i} position={m.pos} icon={m.isDropoff ? dropoffIcon : pickupIcon}>
                       <Popup>{m.label}</Popup>
                     </Marker>
