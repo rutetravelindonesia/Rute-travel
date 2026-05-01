@@ -795,7 +795,9 @@ export default function PesananPage() {
                           onClick={(e) => { e.stopPropagation(); openMap(p); }}
                           aria-label="Lokasi jemput"
                           data-testid={`pax-${p.booking_id}-map`}
-                          className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                          disabled={p.status === "paid"}
+                          title={p.status === "paid" ? "Lokasi tersedia setelah pembayaran dikonfirmasi admin" : "Buka lokasi jemput"}
+                          className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <MapIcon className="w-4 h-4 text-blue-700" />
                         </button>
