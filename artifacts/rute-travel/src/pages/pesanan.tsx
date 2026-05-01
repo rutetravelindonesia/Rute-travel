@@ -963,7 +963,9 @@ export default function PesananPage() {
                           onClick={(e) => { e.stopPropagation(); openCarterMap(o); }}
                           aria-label="Lokasi jemput"
                           data-testid={`carter-${o.id}-map`}
-                          className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                          disabled={carterBlockedByPayment}
+                          title={carterBlockedByPayment ? "Lokasi tersedia setelah pembayaran dikonfirmasi admin" : "Buka lokasi jemput"}
+                          className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <MapIcon className="w-4 h-4 text-blue-700" />
                         </button>
