@@ -5,6 +5,9 @@ import {
   Search, ChevronRight, ChevronDown, Home, MessageCircle,
   ShoppingBag, User, Ticket, MapPin, Phone, Clock4, CheckCircle2, Navigation, XCircle, Loader2
 } from "lucide-react";
+import { useAuth } from "@/contexts/auth";
+import { useNotifications } from "@/contexts/notifications";
+import { DESTINASI_BERANDA, type Destinasi } from "@/data/destinasi";
 
 const RUTE_POPULER = [
   { from: "Samarinda", to: "Balikpapan", duration: "~3 jam" },
@@ -12,51 +15,6 @@ const RUTE_POPULER = [
   { from: "Samarinda", to: "Sangatta", duration: "~5 jam" },
   { from: "Bontang", to: "Wahau", duration: "~3 jam" },
 ];
-
-const DESTINASI_WISATA = [
-  {
-    nama: "Pulau Derawan",
-    kota: "Berau",
-    tagline: "Surga bawah laut",
-    jarak: "~12 jam dari Samarinda",
-    emoji: "🏝️",
-    grad: "linear-gradient(135deg, #0f7b8c 0%, #155e75 60%, #1e3a5f 100%)",
-  },
-  {
-    nama: "Danau Labuan Cermin",
-    kota: "Berau",
-    tagline: "Air dua lapis unik",
-    jarak: "~14 jam dari Samarinda",
-    emoji: "💎",
-    grad: "linear-gradient(135deg, #0d9488 0%, #0f766e 60%, #134e4a 100%)",
-  },
-  {
-    nama: "Pantai Pasir Panjang",
-    kota: "Berau",
-    tagline: "Pantai eksotis tersembunyi",
-    jarak: "~13 jam dari Samarinda",
-    emoji: "🌊",
-    grad: "linear-gradient(135deg, #b45309 0%, #92400e 60%, #78350f 100%)",
-  },
-  {
-    nama: "Air Terjun Tanah Merah",
-    kota: "Kutai Barat",
-    tagline: "Keindahan alam pedalaman",
-    jarak: "~8 jam dari Samarinda",
-    emoji: "💧",
-    grad: "linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 60%, #1e293b 100%)",
-  },
-  {
-    nama: "Kebun Raya Samarinda",
-    kota: "Samarinda",
-    tagline: "Hijau di jantung kota",
-    jarak: "Di Samarinda",
-    emoji: "🌿",
-    grad: "linear-gradient(135deg, #16a34a 0%, #15803d 60%, #14532d 100%)",
-  },
-];
-import { useAuth } from "@/contexts/auth";
-import { useNotifications } from "@/contexts/notifications";
 
 interface MyBooking {
   id: number;
@@ -174,6 +132,41 @@ const BOTTOM_NAV = [
   { id: "pesanan", icon: ShoppingBag, label: "Pesanan", active: false },
   { id: "akun", icon: User, label: "Akun", active: false },
 ];
+
+function DestinasiCard({ d, onClick }: { d: Destinasi; onClick: () => void }) {
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      className="flex-shrink-0 rounded-2xl overflow-hidden text-left relative"
+      style={{ width: 200, height: 240, scrollSnapAlign: "start" }}
+    >
+      {!imgErr ? (
+        <img
+          src={d.photo}
+          alt={d.nama}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        <div className="absolute inset-0" style={{ background: d.grad }} />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+      <div className="relative p-4 flex flex-col h-full">
+        <span className="self-start bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full">
+          {d.kota}
+        </span>
+        <div className="mt-auto">
+          <h3 className="text-white font-bold text-lg leading-snug">{d.nama}</h3>
+          <p className="text-white/80 text-xs mt-0.5">{d.tagline}</p>
+          <p className="flex items-center gap-1 text-white/60 text-[11px] mt-2">
+            <MapPin className="w-3 h-3" /> {d.jarak}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
 
 export default function DashboardPenumpang() {
   const [, setLocation] = useLocation();
@@ -594,10 +587,10 @@ export default function DashboardPenumpang() {
           <div className="px-5 flex items-end justify-between mb-3">
             <div>
               <h2 className="text-xl font-bold text-foreground">Destinasi Wisata</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Tempat favorit di Kalimantan Timur</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Tempat favorit di Kalimantan Timur & Utara</p>
             </div>
             <button
-              onClick={() => setLocation("/carter/cari")}
+              onClick={() => setLocation("/destinasi")}
               className="text-xs font-bold text-accent"
             >
               Lihat Semua
@@ -605,41 +598,12 @@ export default function DashboardPenumpang() {
           </div>
 
           <div className="flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
-            {DESTINASI_WISATA.map((d) => (
-              <button
+            {DESTINASI_BERANDA.map((d) => (
+              <DestinasiCard
                 key={d.nama}
-                onClick={() => setLocation("/carter/cari")}
-                className="flex-shrink-0 rounded-2xl overflow-hidden text-left relative"
-                style={{
-                  width: 200,
-                  height: 240,
-                  background: d.grad,
-                  scrollSnapAlign: "start",
-                }}
-              >
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage: "radial-gradient(circle at 60% 40%, rgba(255,255,255,0.05) 1px, transparent 1px)",
-                    backgroundSize: "20px 20px",
-                  }}
-                />
-                <div className="relative p-4 flex flex-col h-full">
-                  <div className="flex items-start justify-between">
-                    <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full">
-                      {d.kota}
-                    </span>
-                    <span className="text-3xl leading-none">{d.emoji}</span>
-                  </div>
-                  <div className="mt-auto">
-                    <h3 className="text-white font-bold text-lg leading-snug">{d.nama}</h3>
-                    <p className="text-white/75 text-xs mt-0.5">{d.tagline}</p>
-                    <p className="flex items-center gap-1 text-white/60 text-[11px] mt-2">
-                      <MapPin className="w-3 h-3" /> {d.jarak}
-                    </p>
-                  </div>
-                </div>
-              </button>
+                d={d}
+                onClick={() => setLocation("/destinasi")}
+              />
             ))}
           </div>
         </section>
