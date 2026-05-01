@@ -204,6 +204,9 @@ router.get("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
         nama: usersTable.nama,
         no_whatsapp: usersTable.no_whatsapp,
         foto_profil: usersTable.foto_profil,
+        nama_bank: usersTable.nama_bank,
+        no_rekening: usersTable.no_rekening,
+        nama_pemilik_rekening: usersTable.nama_pemilik_rekening,
       },
       kendaraan: {
         merek: kendaraanTable.merek,
@@ -435,6 +438,9 @@ router.get("/admin/carter-bookings/:id", adminGuard(async (req: any, res: any) =
         nama: driverAlias.nama,
         no_whatsapp: driverAlias.no_whatsapp,
         foto_profil: driverAlias.foto_profil,
+        nama_bank: driverAlias.nama_bank,
+        no_rekening: driverAlias.no_rekening,
+        nama_pemilik_rekening: driverAlias.nama_pemilik_rekening,
       },
       kendaraan: {
         merek: kendaraanTable.merek,
