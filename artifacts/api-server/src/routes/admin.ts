@@ -264,10 +264,15 @@ router.get("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
 }));
 
 router.get("/admin/schedules", adminGuard(async (req: any, res: any) => {
+  const { date } = req.query as Record<string, string>;
+  const schedConds: any[] = [];
+  if (date) schedConds.push(eq(schedulesTable.departure_date, date));
+
   const [schedRows, aggRows] = await Promise.all([
     db.select({ s: schedulesTable, driver: { id: usersTable.id, nama: usersTable.nama } })
       .from(schedulesTable)
       .leftJoin(usersTable, eq(schedulesTable.driver_id, usersTable.id))
+      .where(schedConds.length ? and(...schedConds) : undefined)
       .orderBy(desc(schedulesTable.created_at)).limit(200),
     db.select({
       schedule_id: scheduleBookingsTable.schedule_id,
