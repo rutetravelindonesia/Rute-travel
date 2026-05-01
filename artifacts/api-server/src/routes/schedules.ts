@@ -281,6 +281,7 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
         kursi_tersisa: s.capacity - kursi_terisi,
         kursi_booked: activeBookings.flatMap((b) => b.kursi),
         pendapatan,
+        paid_count: paidBookings.length,
         penumpang: activeBookings.filter((b) => ["confirmed", "aktif", "selesai"].includes(b.status)).map((b) => ({
           id: b.id,
           nama: b.nama,
@@ -1050,6 +1051,24 @@ router.patch("/schedules/:id/trip-progress", async (req, res): Promise<void> => 
   if (!nextProgress) {
     res.status(400).json({ error: "Trip sudah selesai." });
     return;
+  }
+
+  if (sched.trip_progress === "belum_jemput") {
+    const paidBookings = await db
+      .select({ id: scheduleBookingsTable.id })
+      .from(scheduleBookingsTable)
+      .where(
+        and(
+          eq(scheduleBookingsTable.schedule_id, id),
+          eq(scheduleBookingsTable.status, "paid"),
+        ),
+      );
+    if (paidBookings.length > 0) {
+      res.status(400).json({
+        error: `Ada ${paidBookings.length} penumpang yang pembayarannya belum dikonfirmasi admin. Harap tunggu konfirmasi admin sebelum memulai penjemputan.`,
+      });
+      return;
+    }
   }
 
   await db
