@@ -33,6 +33,29 @@ interface MyBooking {
   driver: { id: number; nama: string; no_whatsapp: string | null } | null;
 }
 
+interface MyCarterBooking {
+  id: number;
+  status: string;
+  origin_city: string;
+  destination_city: string;
+  travel_date: string;
+  travel_time: string;
+  total_amount: number;
+  trip_progress: string | null;
+  driver: { id: number; nama: string; no_whatsapp: string | null } | null;
+  kendaraan: { id: number; merek: string; model: string; plat_nomor: string } | null;
+}
+
+function carterStage(b: MyCarterBooking): { label: string; tone: string; Icon: any } {
+  if (b.status === "pending") return { label: "Menunggu pembayaran", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
+  if (b.status === "paid") return { label: "Sedang diverifikasi admin", tone: "bg-blue-100 text-blue-800", Icon: Clock4 };
+  const tp = b.trip_progress;
+  if (b.status === "selesai" || tp === "selesai") return { label: "Trip selesai", tone: "bg-green-100 text-green-800", Icon: CheckCircle2 };
+  if (tp === "dalam_perjalanan") return { label: "Dalam perjalanan", tone: "bg-indigo-100 text-indigo-800", Icon: Navigation };
+  if (tp === "menjemput") return { label: "Mitra menuju lokasi Anda", tone: "bg-blue-100 text-blue-800", Icon: CheckCircle2 };
+  return { label: "Menunggu mitra menjemput", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
+}
+
 function activeStage(b: MyBooking): { label: string; tone: string; Icon: any } {
   if (b.status === "batal") return { label: "Dibatalkan", tone: "bg-red-100 text-red-800", Icon: XCircle };
   if (b.status === "pending") return { label: "Menunggu pembayaran", tone: "bg-amber-100 text-amber-800", Icon: Clock4 };
@@ -174,6 +197,7 @@ export default function DashboardPenumpang() {
   const { unreadCount } = useNotifications();
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
   const [activeTrip, setActiveTrip] = useState<MyBooking | null>(null);
+  const [activeCarter, setActiveCarter] = useState<MyCarterBooking | null>(null);
   const [tripsLoading, setTripsLoading] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState<"pickup" | "dropoff" | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -232,25 +256,37 @@ export default function DashboardPenumpang() {
     async function load() {
       setTripsLoading(true);
       try {
-        const res = await fetch(`${apiBase}/bookings/mine`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const list: MyBooking[] = await res.json();
-        // Pick still-active booking with earliest upcoming travel date
-        const active = list
-          .filter(
-            (b) =>
+        const [schedRes, carterRes] = await Promise.all([
+          fetch(`${apiBase}/bookings/mine`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${apiBase}/carter-bookings/mine`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (schedRes.ok) {
+          const list: MyBooking[] = await schedRes.json();
+          const active = list
+            .filter(
+              (b) =>
+                ["pending", "paid", "confirmed", "aktif"].includes(b.status) &&
+                !!b.schedule &&
+                b.schedule.trip_progress !== "selesai",
+            )
+            .sort((a, b) => {
+              const da = `${a.schedule?.departure_date}T${a.schedule?.departure_time}`;
+              const db = `${b.schedule?.departure_date}T${b.schedule?.departure_time}`;
+              return da.localeCompare(db);
+            })[0];
+          if (!cancelled) setActiveTrip(active ?? null);
+        }
+        if (carterRes.ok) {
+          const carterList: MyCarterBooking[] = await carterRes.json();
+          const activeCar = carterList
+            .filter((b) =>
               ["pending", "paid", "confirmed", "aktif"].includes(b.status) &&
-              !!b.schedule &&
-              b.schedule.trip_progress !== "selesai",
-          )
-          .sort((a, b) => {
-            const da = `${a.schedule?.departure_date}T${a.schedule?.departure_time}`;
-            const db = `${b.schedule?.departure_date}T${b.schedule?.departure_time}`;
-            return da.localeCompare(db);
-          })[0];
-        if (!cancelled) setActiveTrip(active ?? null);
+              b.trip_progress !== "selesai" &&
+              b.status !== "batal",
+            )
+            .sort((a, b) => `${a.travel_date}T${a.travel_time}`.localeCompare(`${b.travel_date}T${b.travel_time}`))[0];
+          if (!cancelled) setActiveCarter(activeCar ?? null);
+        }
       } finally {
         if (!cancelled) setTripsLoading(false);
       }
@@ -477,6 +513,87 @@ export default function DashboardPenumpang() {
                       {confirmError}
                     </p>
                   )}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* ── ACTIVE CARTER CARD ── */}
+        {activeCarter && (() => {
+          const stage = carterStage(activeCarter);
+          const StageIcon = stage.Icon;
+          return (
+            <section className="px-5 mb-4 mt-1" data-testid="active-carter-section">
+              <div
+                className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm cursor-pointer active:opacity-80 transition-opacity"
+                onClick={() => setLocation(`/carter-booking/${activeCarter.id}/etiket`)}
+              >
+                <div className="px-4 py-2 bg-foreground text-card flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold tracking-widest uppercase">Carter Aktif</span>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${stage.tone}`}>
+                    <StageIcon className="w-3 h-3 inline mr-1" />
+                    {stage.label}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MapPin className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                    <p className="text-sm font-bold text-foreground">
+                      {activeCarter.origin_city} <span className="text-muted-foreground font-normal">→</span> {activeCarter.destination_city}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground ml-6">
+                    <span>{shortDate(activeCarter.travel_date)}</span>
+                    <span>·</span>
+                    <span>{activeCarter.travel_time}</span>
+                    {activeCarter.kendaraan && (
+                      <>
+                        <span>·</span>
+                        <span>{activeCarter.kendaraan.merek} {activeCarter.kendaraan.model}</span>
+                      </>
+                    )}
+                  </div>
+                  {activeCarter.driver && (
+                    <p className="text-[11px] text-muted-foreground ml-6 mt-1">
+                      Mitra: <span className="font-semibold text-foreground">{activeCarter.driver.nama}</span>
+                    </p>
+                  )}
+                  <div className="grid grid-cols-3 gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setLocation(`/carter-booking/${activeCarter.id}/etiket`)}
+                      className="py-2.5 rounded-xl bg-[#a85e28] text-white text-xs font-bold flex items-center justify-center gap-1"
+                    >
+                      <Ticket className="w-3.5 h-3.5" /> Tiket
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!token) return;
+                        const r = await fetch(`${apiBase}/chat/threads`, {
+                          method: "POST",
+                          headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ booking_type: "carter", booking_id: activeCarter.id }),
+                        });
+                        const j = await r.json();
+                        if (r.ok && j.id) setLocation(`/chat/${j.id}`);
+                      }}
+                      className="py-2.5 rounded-xl bg-amber-50 text-amber-700 text-xs font-bold flex items-center justify-center gap-1"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> Chat
+                    </button>
+                    <a
+                      href={activeCarter.driver?.no_whatsapp ? `tel:${activeCarter.driver.no_whatsapp}` : "#"}
+                      onClick={(e) => { e.stopPropagation(); if (!activeCarter.driver?.no_whatsapp) e.preventDefault(); }}
+                      className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 ${
+                        activeCarter.driver?.no_whatsapp ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground cursor-not-allowed"
+                      }`}
+                    >
+                      <Phone className="w-3.5 h-3.5" /> Telp
+                    </a>
+                  </div>
                 </div>
               </div>
             </section>
