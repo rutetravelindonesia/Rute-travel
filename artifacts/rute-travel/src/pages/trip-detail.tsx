@@ -96,8 +96,9 @@ function buttonLabel(p: TripProgress): string | null {
 }
 
 function statusBadge(s: string) {
-  if (s === "paid") return { cls: "bg-green-100 text-green-800", label: "Lunas" };
+  if (s === "paid") return { cls: "bg-amber-100 text-amber-800", label: "Menunggu konfirmasi admin" };
   if (s === "pending") return { cls: "bg-yellow-100 text-yellow-800", label: "Menunggu Bayar" };
+  if (s === "confirmed" || s === "aktif") return { cls: "bg-green-100 text-green-800", label: "Lunas" };
   return { cls: "bg-muted text-muted-foreground", label: s };
 }
 
@@ -217,6 +218,7 @@ export default function TripDetailPage() {
 
   const curStageIdx = stageIndex(data.trip_progress);
   const btn = buttonLabel(data.trip_progress);
+  const hasPaidPassengers = data.trip_progress === "belum_jemput" && data.passengers.some((p) => p.status === "paid");
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -365,7 +367,7 @@ export default function TripDetailPage() {
                         >
                           <Navigation className="w-3.5 h-3.5" /> Titik Turun
                         </a>
-                      ) : p.pickup_lat && p.pickup_lng ? (
+                      ) : p.pickup_lat && p.pickup_lng && p.status !== "paid" ? (
                         <a
                           href={`https://www.google.com/maps/dir/?api=1&destination=${p.pickup_lat},${p.pickup_lng}&travelmode=driving`}
                           target="_blank"
@@ -437,10 +439,18 @@ export default function TripDetailPage() {
           </div>
         </div>
 
+        {hasPaidPassengers && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+            <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
+            <p className="text-[11px] text-amber-800 leading-snug">
+              Ada penumpang yang belum dikonfirmasi pembayarannya oleh admin. Tombol "Mulai Jemput" akan aktif setelah semua pembayaran dikonfirmasi.
+            </p>
+          </div>
+        )}
         {btn ? (
           <button
             onClick={advanceProgress}
-            disabled={busyTrip}
+            disabled={busyTrip || hasPaidPassengers}
             className="w-full py-4 rounded-2xl bg-[#a85e28] text-white font-bold text-base flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-60 transition-colors shadow-sm"
           >
             {busyTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
