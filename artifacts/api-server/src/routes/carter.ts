@@ -952,6 +952,13 @@ router.patch("/carter-bookings/:id/trip-progress", async (req, res): Promise<voi
   const requestedProgress = (req.body as Record<string, unknown> | undefined)?.trip_progress as string | undefined;
   const currentProgress = b.trip_progress ?? "menunggu";
   const next_progress = requestedProgress ?? NEXT[currentProgress];
+
+  if (currentProgress === "menunggu" && next_progress === "menuju_jemput" && b.status === "paid") {
+    res.status(400).json({
+      error: "Pembayaran penumpang belum dikonfirmasi admin. Harap tunggu konfirmasi admin sebelum memulai penjemputan.",
+    });
+    return;
+  }
   const allowed = ["menunggu", "menuju_jemput", "sudah_jemput", "dalam_perjalanan", "selesai"];
   if (!next_progress || !allowed.includes(next_progress)) {
     res.status(400).json({ error: "trip_progress tidak valid." });
