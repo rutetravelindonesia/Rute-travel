@@ -527,7 +527,7 @@ export default function DashboardDriver() {
                               <div className="grid grid-cols-2 gap-2">
                                 <button
                                   data-testid={`btn-detail-jadwal-${j.id}`}
-                                  onClick={() => setLocation("/jadwal")}
+                                  onClick={() => setLocation(`/trip/${j.id}/detail`)}
                                   className="py-3 rounded-xl border border-border text-sm font-semibold text-foreground"
                                 >
                                   Detail
