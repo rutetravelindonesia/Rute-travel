@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
-import { Loader2, Trash2, Pencil, X, User, Car, MapPin, CheckCircle2, XCircle, Clock, ChevronRight, Phone, CreditCard, Eye } from "lucide-react";
+import { Loader2, Trash2, Pencil, X, User, Car, MapPin, CheckCircle2, XCircle, Clock, ChevronRight, Phone, CreditCard, Eye, Banknote } from "lucide-react";
 
 interface Schedule {
   id: number; origin_city: string; destination_city: string; departure_date: string;
@@ -33,6 +33,7 @@ interface ScheduleDetail extends Schedule {
   driver: {
     id: number; nama: string;
     no_whatsapp: string | null; foto_profil: string | null;
+    nama_bank: string | null; no_rekening: string | null; nama_pemilik_rekening: string | null;
   } | null;
   kendaraan: {
     merek: string; model: string;
@@ -391,6 +392,38 @@ export default function AdminSchedules() {
                         <p className="font-mono text-muted-foreground">{detail.kendaraan.plat_nomor}</p>
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Info Transfer */}
+                <div className="bg-white rounded-2xl border border-border p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-[#a85e28]" />
+                    <h3 className="text-xs font-bold text-[#1a1208] uppercase tracking-wide">Info Transfer ke Mitra</h3>
+                  </div>
+                  {detail.driver?.no_rekening ? (
+                    <>
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="bg-[#fdf8f0] rounded-xl px-3 py-2">
+                          <p className="text-[10px] text-muted-foreground">Bank</p>
+                          <p className="text-sm font-bold text-[#1a1208] mt-0.5">{detail.driver.nama_bank}</p>
+                        </div>
+                        <div className="bg-[#fdf8f0] rounded-xl px-3 py-2">
+                          <p className="text-[10px] text-muted-foreground">Nomor Rekening</p>
+                          <p className="text-sm font-bold text-[#1a1208] mt-0.5 font-mono tracking-wider">{detail.driver.no_rekening}</p>
+                        </div>
+                        <div className="bg-[#fdf8f0] rounded-xl px-3 py-2">
+                          <p className="text-[10px] text-muted-foreground">Atas Nama</p>
+                          <p className="text-sm font-bold text-[#1a1208] mt-0.5">{detail.driver.nama_pemilik_rekening}</p>
+                        </div>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                        <p className="text-xs text-amber-700 font-medium">Nominal transfer (nett 90%)</p>
+                        <p className="text-sm font-extrabold text-amber-700">{fmtRp(Math.round(detail.total_pendapatan * 0.9))}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Mitra belum mengisi informasi rekening.</p>
                   )}
                 </div>
 
