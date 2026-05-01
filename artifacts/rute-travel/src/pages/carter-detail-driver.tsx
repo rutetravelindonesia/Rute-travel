@@ -250,10 +250,11 @@ export default function CarterDetailDriverPage() {
 
   const tp = data.trip_progress ?? "menunggu";
   const curStageIdx = stageIndex(tp);
-  const btn = ["paid", "aktif"].includes(data.status) ? buttonLabel(tp) : null;
+  const btn = ["paid", "aktif", "confirmed"].includes(data.status) ? buttonLabel(tp) : null;
   const isDone = data.status === "selesai" || tp === "selesai";
   const nama = data.penumpang?.nama ?? "—";
   const hasMap = data.pickup_lat != null && data.pickup_lng != null;
+  const carterBlockedByPayment = data.status === "paid" && (tp === "menunggu" || !tp);
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -369,7 +370,9 @@ export default function CarterDetailDriverPage() {
           {hasMap && tp !== "dalam_perjalanan" && (
             <button
               onClick={() => window.open(`https://www.google.com/maps?q=${data.pickup_lat},${data.pickup_lng}`, "_blank", "noopener,noreferrer")}
-              className="w-full mt-2.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
+              disabled={carterBlockedByPayment}
+              title={carterBlockedByPayment ? "Lokasi tersedia setelah pembayaran dikonfirmasi admin" : "Buka di Google Maps"}
+              className="w-full mt-2.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <MapPin className="w-4 h-4" /> Buka di Google Maps
             </button>
@@ -425,10 +428,11 @@ export default function CarterDetailDriverPage() {
           <div className="flex items-center justify-between mt-1">
             <p className="text-sm text-muted-foreground">Status</p>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-              data.status === "paid" || data.status === "selesai" ? "bg-green-100 text-green-800" :
+              data.status === "paid" ? "bg-amber-100 text-amber-800" :
+              data.status === "confirmed" || data.status === "aktif" || data.status === "selesai" ? "bg-green-100 text-green-800" :
               data.status === "batal" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"
             }`}>
-              {data.status === "paid" ? "Lunas" : data.status === "selesai" ? "Selesai" : data.status === "batal" ? "Dibatalkan" : "Menunggu"}
+              {data.status === "paid" ? "Menunggu konfirmasi admin" : data.status === "confirmed" || data.status === "aktif" ? "Lunas" : data.status === "selesai" ? "Selesai" : data.status === "batal" ? "Dibatalkan" : "Menunggu"}
             </span>
           </div>
         </div>
@@ -463,10 +467,18 @@ export default function CarterDetailDriverPage() {
           </div>
         </div>
 
+        {carterBlockedByPayment && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+            <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
+            <p className="text-[11px] text-amber-800 leading-snug">
+              Pembayaran penumpang belum dikonfirmasi admin. Tombol "Mulai Jemput" akan aktif setelah pembayaran dikonfirmasi.
+            </p>
+          </div>
+        )}
         {btn ? (
           <button
             onClick={advanceProgress}
-            disabled={busyTrip}
+            disabled={busyTrip || carterBlockedByPayment}
             className="w-full py-4 rounded-2xl bg-[#a85e28] text-white font-bold text-base flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-60 transition-colors shadow-sm"
           >
             {busyTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
