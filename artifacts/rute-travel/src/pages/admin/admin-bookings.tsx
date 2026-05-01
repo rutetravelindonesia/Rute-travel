@@ -16,6 +16,7 @@ interface Booking {
   pickup_detail: string | null;
   dropoff_label: string;
   dropoff_detail: string | null;
+  alighting_city: string | null;
   total_amount: number;
   payment_method: string;
   payment_proof_url: string | null;
@@ -374,7 +375,12 @@ export default function AdminBookings() {
                       {b.dropoff_label && (
                         <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                           <MapPin className="w-3 h-3 text-red-500 flex-shrink-0 mt-0.5" />
-                          <span className="truncate">{b.dropoff_label}</span>
+                          <span className="truncate">
+                            {b.dropoff_label}
+                            {b.alighting_city && b.alighting_city !== b.schedule?.destination_city && (
+                              <span className="ml-1 text-amber-600 font-semibold">(Turun di {b.alighting_city})</span>
+                            )}
+                          </span>
                         </div>
                       )}
 
