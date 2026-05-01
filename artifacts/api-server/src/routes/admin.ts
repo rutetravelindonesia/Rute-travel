@@ -777,30 +777,4 @@ router.post("/admin/clear-orders-chat", adminGuard(async (_req: any, res: any) =
   res.json({ ok: true, message: "Semua order, jadwal, dan chat berhasil dihapus." });
 }));
 
-// ===================== TEMP ONE-TIME CLEANUP (hapus setelah dipakai) =====================
-router.post("/admin/temp-reset-7xK9mP3q", async (req: any, res: any): Promise<void> => {
-  const { secret } = req.query as { secret?: string };
-  if (secret !== "rute-bersih-2026-xK9mP3qR") {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-  try {
-    await db.execute(drizzleSql`DELETE FROM ratings`);
-    await db.execute(drizzleSql`DELETE FROM chat_messages`);
-    await db.execute(drizzleSql`DELETE FROM chat_threads`);
-    await db.execute(drizzleSql`DELETE FROM tebengan_bookings`);
-    await db.execute(drizzleSql`DELETE FROM tebengan_waypoints`);
-    await db.execute(drizzleSql`DELETE FROM carter_bookings`);
-    await db.execute(drizzleSql`DELETE FROM schedule_bookings`);
-    await db.execute(drizzleSql`DELETE FROM schedule_waypoints`);
-    await db.execute(drizzleSql`DELETE FROM schedules`);
-    await db.execute(drizzleSql`DELETE FROM tebengan_pulang`);
-    await db.execute(drizzleSql`DELETE FROM otp_codes`);
-    await db.execute(drizzleSql`DELETE FROM admin_logs`);
-    res.json({ ok: true, message: "Data berhasil dibersihkan." });
-  } catch (e: any) {
-    res.status(500).json({ error: e?.message ?? "Gagal." });
-  }
-});
-
 export default router;
