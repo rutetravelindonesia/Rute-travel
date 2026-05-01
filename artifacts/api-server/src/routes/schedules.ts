@@ -236,7 +236,7 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
   const ids = rows.map((r) => r.s.id);
   const bookingsByScheduleId = new Map<
     number,
-    { id: number; nama: string; jumlah_kursi: number; status: string; kursi: string[] }[]
+    { id: number; nama: string; jumlah_kursi: number; status: string; kursi: string[]; no_whatsapp: string | null }[]
   >();
   if (ids.length > 0) {
     const bookings = await db
@@ -246,6 +246,7 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
         kursi: scheduleBookingsTable.kursi,
         status: scheduleBookingsTable.status,
         nama: usersTable.nama,
+        no_whatsapp: usersTable.no_whatsapp,
       })
       .from(scheduleBookingsTable)
       .leftJoin(usersTable, eq(usersTable.id, scheduleBookingsTable.penumpang_id))
@@ -258,6 +259,7 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
         jumlah_kursi: b.kursi.length,
         status: b.status,
         kursi: b.kursi,
+        no_whatsapp: b.no_whatsapp ?? null,
       });
       bookingsByScheduleId.set(b.schedule_id, arr);
     }
@@ -282,11 +284,15 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
         kursi_booked: activeBookings.flatMap((b) => b.kursi),
         pendapatan,
         paid_count: paidBookings.length,
-        penumpang: activeBookings.filter((b) => ["confirmed", "aktif", "selesai"].includes(b.status)).map((b) => ({
-          id: b.id,
-          nama: b.nama,
-          jumlah_kursi: b.jumlah_kursi,
-        })),
+        penumpang: activeBookings
+          .filter((b) => ["paid", "confirmed", "aktif", "selesai"].includes(b.status))
+          .map((b) => ({
+            id: b.id,
+            nama: b.nama,
+            jumlah_kursi: b.jumlah_kursi,
+            status: b.status,
+            no_whatsapp: b.no_whatsapp,
+          })),
         kendaraan: kendaraan
           ? {
               id: kendaraan.id,
@@ -1288,7 +1294,14 @@ router.get("/bookings/:id/etiket", async (req, res): Promise<void> => {
     total_amount: row.b.total_amount,
     payment_method: row.b.payment_method,
     pickup_label: row.b.pickup_label,
+    pickup_detail: row.b.pickup_detail,
+    pickup_lat: row.b.pickup_lat,
+    pickup_lng: row.b.pickup_lng,
     dropoff_label: row.b.dropoff_label,
+    dropoff_detail: row.b.dropoff_detail,
+    dropoff_lat: row.b.dropoff_lat,
+    dropoff_lng: row.b.dropoff_lng,
+    alighting_city: row.b.alighting_city,
     created_at: row.b.created_at,
     penumpang: penumpangRow ? { id: penumpangRow.id, nama: penumpangRow.nama } : null,
     schedule: row.s ? {
