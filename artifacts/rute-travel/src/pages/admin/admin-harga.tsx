@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
-import { PLATFORM_FEE_RATE, toPassengerPrice, toNettPrice, platformFeeAmount } from "@/lib/constants";
 
 interface RoutePrice { id: number; origin_city: string; destination_city: string; harga: string; updated_at: string; }
 
@@ -34,11 +33,10 @@ export default function AdminHarga() {
   async function handleAdd() {
     if (!origin || !dest || !harga) return;
     setBusy(true); setError(null);
-    const passengerPrice = toPassengerPrice(Number(harga));
     const r = await fetch(`${apiBase}/admin/harga`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ origin_city: origin, destination_city: dest, harga: passengerPrice }),
+      body: JSON.stringify({ origin_city: origin, destination_city: dest, harga: Number(harga) }),
     });
     const d = await r.json();
     if (!r.ok) { setError(d.error ?? "Gagal."); setBusy(false); return; }
@@ -65,11 +63,6 @@ export default function AdminHarga() {
           </button>
         </div>
 
-        {/* Info biaya platform */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800">
-          <span className="font-semibold">Biaya platform 10%</span> — harga yang ditampilkan ke penumpang sudah termasuk biaya platform. Masukkan harga <span className="font-semibold">nett</span> yang ingin diterima mitra/driver.
-        </div>
-
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-[#a85e28]" /></div>
         ) : rows.length === 0 ? (
@@ -81,10 +74,8 @@ export default function AdminHarga() {
                 <thead className="bg-[#f5f0e8]">
                   <tr>
                     <th className="text-left px-4 py-3 font-semibold text-xs">Rute</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs">Harga Penumpang</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs">Nett Driver</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs">Platform (10%)</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs">Diupdate</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs">Harga</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs">Terakhir Diupdate</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -92,9 +83,7 @@ export default function AdminHarga() {
                   {rows.map(rp => (
                     <tr key={rp.id} className="hover:bg-[#f5f0e8]/50">
                       <td className="px-4 py-3 font-medium">{rp.origin_city} → {rp.destination_city}</td>
-                      <td className="px-4 py-3 font-semibold text-[#1a1208]">{fmtRp(rp.harga)}</td>
-                      <td className="px-4 py-3 font-semibold text-green-700">{fmtRp(toNettPrice(Number(rp.harga)))}</td>
-                      <td className="px-4 py-3 font-semibold text-[#a85e28]">{fmtRp(platformFeeAmount(Number(rp.harga)))}</td>
+                      <td className="px-4 py-3 font-semibold text-[#a85e28]">{fmtRp(rp.harga)}</td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(rp.updated_at).toLocaleDateString("id-ID")}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => handleDelete(rp.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500">
@@ -119,26 +108,17 @@ export default function AdminHarga() {
             </div>
             {error && <div className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</div>}
             {[
-              { label: "Kota Asal", val: origin, set: setOrigin, ph: "cth: Samarinda", type: "text" },
-              { label: "Kota Tujuan", val: dest, set: setDest, ph: "cth: Balikpapan", type: "text" },
-            ].map(({ label, val, set, ph, type }) => (
+              { label: "Kota Asal", val: origin, set: setOrigin, ph: "cth: Samarinda" },
+              { label: "Kota Tujuan", val: dest, set: setDest, ph: "cth: Balikpapan" },
+              { label: "Harga (Rp)", val: harga, set: setHarga, ph: "cth: 150000" },
+            ].map(({ label, val, set, ph }) => (
               <div key={label} className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground uppercase">{label}</label>
-                <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={ph}
+                <input value={val} onChange={e => set(e.target.value)} placeholder={ph}
                   className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-[#f5f0e8] focus:outline-none" />
               </div>
             ))}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">Harga Nett Driver (Rp)</label>
-              <input type="number" value={harga} onChange={e => setHarga(e.target.value)} placeholder="cth: 136500"
-                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-[#f5f0e8] focus:outline-none" />
-              {harga && Number(harga) > 0 && (
-                <p className="text-xs text-[#a85e28] mt-1 font-medium">
-                  Harga penumpang: {fmtRp(toPassengerPrice(Number(harga)))}
-                  <span className="text-muted-foreground font-normal"> (termasuk biaya platform {Math.round(PLATFORM_FEE_RATE * 100)}%)</span>
-                </p>
-              )}
-            </div>
+            <p className="text-xs text-red-500">Aplikasi mengambil biaya 10% dari harga yang anda input.</p>
             <div className="flex gap-2">
               <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-semibold">Batal</button>
               <button onClick={handleAdd} disabled={busy || !origin || !dest || !harga}
