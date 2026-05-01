@@ -35,7 +35,7 @@ interface CarterBookingDetail {
   dropoff_confirmed_at: string | null;
   created_at: string;
   penumpang: { id: number; nama: string; no_whatsapp: string | null } | null;
-  driver: { id: number; nama: string; no_whatsapp: string | null; foto_profil: string | null } | null;
+  driver: { id: number; nama: string; no_whatsapp: string | null; foto_profil: string | null; nama_bank: string | null; no_rekening: string | null; nama_pemilik_rekening: string | null } | null;
   kendaraan: { merek: string; model: string; plat_nomor: string; warna: string | null; foto_url: string | null } | null;
 }
 
@@ -484,6 +484,38 @@ export default function AdminCarter() {
                     )}
                   </div>
                 )}
+
+                {/* Info Transfer */}
+                <div className="bg-white rounded-2xl border border-border p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-[#a85e28]" />
+                    <h3 className="text-xs font-bold text-[#1a1208] uppercase tracking-wide">Info Transfer ke Mitra</h3>
+                  </div>
+                  {detail.driver?.no_rekening ? (
+                    <>
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="bg-[#fdf8f0] rounded-xl px-3 py-2">
+                          <p className="text-[10px] text-muted-foreground">Bank</p>
+                          <p className="text-sm font-bold text-[#1a1208] mt-0.5">{detail.driver.nama_bank}</p>
+                        </div>
+                        <div className="bg-[#fdf8f0] rounded-xl px-3 py-2">
+                          <p className="text-[10px] text-muted-foreground">Nomor Rekening</p>
+                          <p className="text-sm font-bold text-[#1a1208] mt-0.5 font-mono tracking-wider">{detail.driver.no_rekening}</p>
+                        </div>
+                        <div className="bg-[#fdf8f0] rounded-xl px-3 py-2">
+                          <p className="text-[10px] text-muted-foreground">Atas Nama</p>
+                          <p className="text-sm font-bold text-[#1a1208] mt-0.5">{detail.driver.nama_pemilik_rekening}</p>
+                        </div>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                        <p className="text-xs text-amber-700 font-medium">Nominal transfer (nett 90%)</p>
+                        <p className="text-sm font-extrabold text-amber-700">{fmtRp(Math.round(detail.total_amount * 0.9))}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Mitra belum mengisi informasi rekening.</p>
+                  )}
+                </div>
 
                 {/* Status Konfirmasi Perjalanan */}
                 <div className="bg-white rounded-2xl border border-border overflow-hidden">
