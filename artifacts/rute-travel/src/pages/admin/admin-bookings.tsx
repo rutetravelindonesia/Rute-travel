@@ -553,36 +553,45 @@ export default function AdminBookings() {
             {rows.map(b => (
               <div
                 key={b.id}
-                className="bg-white rounded-xl border border-border shadow-sm p-4 space-y-3 cursor-pointer hover:bg-[#f5f0e8]/60 active:bg-[#e8ddd0] transition-colors select-none"
-                onClick={() => { if (!loadingId) openDetail(b.id); }}
+                className="bg-white rounded-xl border border-border shadow-sm overflow-hidden"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground font-medium">#{b.id}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${STATUS_COLOR[b.status] ?? "bg-gray-100 text-gray-600"}`}>
-                      {STATUS_LABEL[b.status] ?? b.status}
-                    </span>
-                    {loadingId === b.id
-                      ? <Loader2 className="w-4 h-4 animate-spin text-[#a85e28]" />
-                      : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    }
+                {/* Tappable detail area */}
+                <button
+                  type="button"
+                  className="w-full text-left p-4 space-y-3 active:bg-[#e8ddd0] transition-colors"
+                  style={{ touchAction: "manipulation" }}
+                  disabled={loadingId === b.id}
+                  onClick={() => openDetail(b.id)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground font-medium">#{b.id}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${STATUS_COLOR[b.status] ?? "bg-gray-100 text-gray-600"}`}>
+                        {STATUS_LABEL[b.status] ?? b.status}
+                      </span>
+                      {loadingId === b.id
+                        ? <Loader2 className="w-4 h-4 animate-spin text-[#a85e28]" />
+                        : <ChevronRight className="w-4 h-4 text-[#a85e28]" />
+                      }
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="font-semibold text-sm text-[#1a1208]">{b.user?.nama ?? "–"}</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="font-semibold text-sm text-[#1a1208]">{b.user?.nama ?? "–"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm text-[#1a1208]">
+                        {b.schedule ? `${b.schedule.origin_city} → ${b.schedule.destination_city}` : "–"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-[#1a1208]">
-                      {b.schedule ? `${b.schedule.origin_city} → ${b.schedule.destination_city}` : "–"}
-                    </span>
-                  </div>
-                </div>
+                </button>
 
-                <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-2">
+                {/* Footer with meta info + action buttons */}
+                <div className="border-t border-border/60 px-4 py-2.5 flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <User className="w-3 h-3" />
@@ -598,10 +607,11 @@ export default function AdminBookings() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {b.status !== "cancelled" && b.status !== "batal" && b.status !== "selesai" && (
                       <button onClick={() => handleCancel(b.id)} disabled={!!busy}
                         title="Batalkan booking"
+                        style={{ touchAction: "manipulation" }}
                         className="p-1.5 rounded-lg hover:bg-orange-100 text-orange-500 disabled:opacity-50 transition-colors">
                         <XCircle className="w-4 h-4" />
                       </button>
@@ -610,6 +620,7 @@ export default function AdminBookings() {
                       onClick={() => setConfirmDelete({ id: b.id, nama: b.user?.nama ?? `Booking #${b.id}` })}
                       disabled={!!busy}
                       title="Hapus permanen"
+                      style={{ touchAction: "manipulation" }}
                       className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 disabled:opacity-50 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
