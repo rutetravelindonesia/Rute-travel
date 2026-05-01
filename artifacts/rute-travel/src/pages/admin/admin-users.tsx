@@ -8,6 +8,7 @@ interface User {
   id: number; nama: string; no_whatsapp: string; role: string;
   kota: string | null; nik: string | null; created_at: string;
   is_verified: boolean; is_suspended: boolean;
+  foto_diri: string | null;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -161,8 +162,20 @@ export default function AdminUsers() {
                 <tbody className="divide-y divide-border">
                   {users.map(u => (
                     <tr key={u.id} className={`hover:bg-[#f5f0e8]/50 ${u.is_suspended ? "opacity-60" : ""}`}>
-                      <td className="px-4 py-3 font-medium">{u.nama}</td>
-                      <td className="px-4 py-3 text-muted-foreground">•••• {u.no_whatsapp.slice(-4)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          {u.foto_diri ? (
+                            <img src={u.foto_diri} alt={u.nama}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-border" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#e8dcc8] flex items-center justify-center flex-shrink-0 text-[#a85e28] font-bold text-xs">
+                              {u.nama.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-medium">{u.nama}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{u.no_whatsapp}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ROLE_COLOR[u.role] ?? "bg-gray-100 text-gray-600"}`}>
                           {ROLE_LABEL[u.role] ?? u.role}
