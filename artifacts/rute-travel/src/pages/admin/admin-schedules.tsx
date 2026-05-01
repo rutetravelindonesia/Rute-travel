@@ -23,6 +23,7 @@ interface BookingDetail {
   pickup_detail: string | null;
   dropoff_label: string;
   dropoff_detail: string | null;
+  alighting_city: string | null;
   status: string;
   pickup_confirmed_at: string | null;
   dropoff_confirmed_at: string | null;
@@ -521,7 +522,12 @@ export default function AdminSchedules() {
                             <div className="flex items-start gap-1.5">
                               <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                               <div>
-                                <p className="text-[10px] text-muted-foreground">Titik Turun</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Titik Turun
+                                  {b.alighting_city && b.alighting_city !== detail.destination_city && (
+                                    <span className="ml-1 text-amber-600 font-semibold">· Turun di {b.alighting_city}</span>
+                                  )}
+                                </p>
                                 <p className="text-xs text-[#1a1208]">{b.dropoff_label}</p>
                                 {b.dropoff_detail && <p className="text-[10px] text-muted-foreground">{b.dropoff_detail}</p>}
                               </div>
