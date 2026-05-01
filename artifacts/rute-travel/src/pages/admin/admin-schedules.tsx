@@ -99,6 +99,7 @@ export default function AdminSchedules() {
   const [rows, setRows] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [editState, setEditState] = useState<EditState | null>(null);
+  const [dateFilter, setDateFilter] = useState("");
 
   const [detail, setDetail] = useState<ScheduleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -108,11 +109,13 @@ export default function AdminSchedules() {
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    const r = await fetch(`${apiBase}/admin/schedules`, { headers: { Authorization: `Bearer ${token}` } });
+    const params = new URLSearchParams();
+    if (dateFilter) params.set("date", dateFilter);
+    const r = await fetch(`${apiBase}/admin/schedules?${params}`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
     setRows(Array.isArray(d) ? d : []);
     setLoading(false);
-  }, [token, apiBase]);
+  }, [token, apiBase, dateFilter]);
 
   useEffect(() => {
     if (!token || user?.role !== "admin") { setLocation("/admin/login"); return; }
@@ -596,6 +599,23 @@ export default function AdminSchedules() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-[#1a1208]">Manajemen Jadwal</h1>
           <span className="text-sm text-muted-foreground">{rows.length} jadwal</span>
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+            className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#a85e28]"
+          />
+          {dateFilter && (
+            <button
+              onClick={() => setDateFilter("")}
+              className="px-3 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-[#f5f0e8]"
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         {loading ? (
