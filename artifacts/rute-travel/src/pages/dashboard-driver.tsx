@@ -77,6 +77,7 @@ interface JadwalMine {
   kursi_offline: string[];
   kursi_booked: string[];
   pendapatan: number;
+  paid_count: number;
   penumpang: { id: number; nama: string; jumlah_kursi: number }[];
   kendaraan: { id: number; merek: string; model: string; plat_nomor: string } | null;
   trip_kind: "jadwal";
@@ -493,6 +494,7 @@ export default function DashboardDriver() {
                         {isJadwal ? (() => {
                           const j = trip as JadwalMine;
                           const tp = j.trip_progress;
+                          const hasPaidBookings = tp === "belum_jemput" && (j.paid_count ?? 0) > 0;
                           const advanceLabel: Record<string, string | null> = {
                             belum_jemput: "Mulai Jemput",
                             sudah_jemput: "Penumpang Sudah Naik",
@@ -504,6 +506,14 @@ export default function DashboardDriver() {
                           const offlineCount = (j.kursi_offline ?? []).length;
                           return (
                             <div className="space-y-2">
+                              {hasPaidBookings && (
+                                <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+                                  <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
+                                  <p className="text-[11px] text-amber-800 leading-snug">
+                                    <span className="font-bold">{j.paid_count} penumpang</span> menunggu konfirmasi pembayaran admin. Tombol akan aktif setelah semua pembayaran dikonfirmasi.
+                                  </p>
+                                </div>
+                              )}
                               <button
                                 data-testid={`btn-offline-jadwal-${j.id}`}
                                 onClick={() => setOfflineModal(j)}
@@ -526,7 +536,8 @@ export default function DashboardDriver() {
                                   <button
                                     data-testid={`btn-advance-jadwal-${j.id}`}
                                     onClick={() => advanceJadwal(j.id)}
-                                    className="py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
+                                    disabled={hasPaidBookings}
+                                    className="py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                                     style={{ backgroundColor: "hsl(var(--accent))" }}
                                   >
                                     <Navigation className="w-4 h-4" />
