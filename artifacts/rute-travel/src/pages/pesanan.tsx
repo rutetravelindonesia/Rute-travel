@@ -683,6 +683,7 @@ export default function PesananPage() {
 
         {isDriverView &&
           driverScheduleGroups?.map((g) => {
+            const hasPaidPassengers = g.trip_progress === "belum_jemput" && g.passengers.some((p) => p.status === "paid");
             const btnLabel = tripButtonLabel(g.trip_progress);
             const stage = tripStageLabel(g.trip_progress);
             return (
@@ -752,6 +753,11 @@ export default function PesananPage() {
                           <p className="text-sm font-semibold text-foreground truncate">
                             {p.nama}
                           </p>
+                          {p.status === "paid" && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 flex-shrink-0 whitespace-nowrap">
+                              Menunggu konfirmasi admin
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 ml-7 mt-0.5">
                           <span className="text-[10px] text-muted-foreground">
@@ -845,12 +851,20 @@ export default function PesananPage() {
                   </div>
                 )}
 
+                {hasPaidPassengers && (
+                  <div className="flex items-start gap-2 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+                    <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
+                    <p className="text-[11px] text-amber-800 leading-snug">
+                      Ada penumpang yang belum dikonfirmasi pembayarannya oleh admin. Tombol "Mulai Jemput" akan aktif setelah semua pembayaran dikonfirmasi.
+                    </p>
+                  </div>
+                )}
                 {btnLabel ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); advanceTripProgress(g.schedule_id); }}
-                    disabled={busyTrip === g.schedule_id}
+                    disabled={busyTrip === g.schedule_id || hasPaidPassengers}
                     data-testid={`trip-${g.schedule_id}-action`}
-                    className="w-full mt-3 py-3 rounded-xl bg-[#a85e28] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-60 transition-colors"
+                    className="w-full mt-3 py-3 rounded-xl bg-[#a85e28] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {busyTrip === g.schedule_id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
