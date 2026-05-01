@@ -384,8 +384,10 @@ export default function AdminBookings() {
                     <div className="flex items-center gap-2 pt-1 border-t border-border/60">
                       <Armchair className="w-3.5 h-3.5 text-[#a85e28] flex-shrink-0" />
                       <div>
-                        <p className="text-[10px] text-muted-foreground">Kursi</p>
-                        <p className="text-xs font-semibold text-[#1a1208]">{detail.kursi.join(", ")}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Kursi · {detail.kursi.length} penumpang
+                        </p>
+                        <p className="text-xs font-semibold text-[#1a1208]">No. {detail.kursi.join(", ")}</p>
                       </div>
                     </div>
                   )}
