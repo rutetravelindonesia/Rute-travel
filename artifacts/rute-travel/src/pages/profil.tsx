@@ -5,7 +5,7 @@ import {
   ArrowLeft, Car, User as UserIcon, LogOut, ChevronRight, Phone,
   Bell, BellOff, Lock, HelpCircle, FileText, Shield, Info,
   Star, TrendingUp, Users, MapPin, MessageCircle, ChevronDown,
-  ChevronUp, CheckCircle, AlertCircle, X, Eye, EyeOff, Mail, Camera, Loader2,
+  ChevronUp, CheckCircle, AlertCircle, X, Eye, EyeOff, Mail, Camera, Loader2, Landmark,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { BottomNav } from "@/components/bottom-nav";
@@ -16,7 +16,7 @@ const APP_VERSION = "1.0.0";
 const CS_WA = "6287868215823";
 const CS_EMAIL = "support@ruteindonesia.com";
 
-type Modal = null | "editProfil" | "gantiPassword" | "ratingList" | "faq" | "syarat" | "privasi";
+type Modal = null | "editProfil" | "gantiPassword" | "ratingList" | "faq" | "syarat" | "privasi" | "rekening";
 
 interface IncomeSummary {
   bulan_ini: number;
@@ -360,6 +360,11 @@ export default function ProfilPage() {
   const [pwLoading, setPwLoading] = useState(false);
   const [showPw, setShowPw] = useState({ lama: false, baru: false, konfirm: false });
 
+  const [rekeningForm, setRekeningForm] = useState({ nama_bank: "", no_rekening: "", nama_pemilik_rekening: "" });
+  const [rekeningError, setRekeningError] = useState<string | null>(null);
+  const [rekeningOk, setRekeningOk] = useState(false);
+  const [rekeningLoading, setRekeningLoading] = useState(false);
+
   const [income, setIncome] = useState<IncomeSummary | null>(null);
   const [ratings, setRatings] = useState<RatingItem[] | null>(null);
   const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
@@ -421,7 +426,10 @@ export default function ProfilPage() {
     if (!user || !token) return;
     fetch(`${apiBase}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((data) => { if (data?.foto_profil) setFotoProfil(data.foto_profil); })
+      .then((data) => {
+        if (data?.foto_profil) setFotoProfil(data.foto_profil);
+        if (data?.nama_bank) setRekeningForm({ nama_bank: data.nama_bank ?? "", no_rekening: data.no_rekening ?? "", nama_pemilik_rekening: data.nama_pemilik_rekening ?? "" });
+      })
       .catch(() => {});
     if (isDriver) {
       fetch(`${apiBase}/users/me/income-summary`, { headers: { Authorization: `Bearer ${token}` } })
@@ -486,6 +494,26 @@ export default function ProfilPage() {
       setPwForm({ password_lama: "", password_baru: "", konfirmasi: "" });
     } finally {
       setPwLoading(false);
+    }
+  }
+
+  async function handleSaveRekening(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setRekeningLoading(true);
+    setRekeningError(null);
+    setRekeningOk(false);
+    try {
+      const res = await fetch(`${apiBase}/users/me/rekening`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(rekeningForm),
+      });
+      const data = await res.json();
+      if (!res.ok) { setRekeningError(data.error ?? "Gagal menyimpan."); return; }
+      setRekeningOk(true);
+    } finally {
+      setRekeningLoading(false);
     }
   }
 
@@ -633,28 +661,32 @@ export default function ProfilPage() {
               <p className="text-xl font-bold text-foreground">{income.total_penumpang}</p>
               <p className="text-xs text-muted-foreground">dilayani</p>
             </div>
-            {ratingSummary && (
-              <div className="bg-card rounded-2xl border border-border p-4 col-span-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-1">Rating Saya</p>
-                    <div className="flex items-center gap-2">
-                      <Stars value={ratingSummary.avg} />
-                      <span className="text-lg font-bold text-foreground">
-                        {ratingSummary.avg > 0 ? ratingSummary.avg.toFixed(1) : "-"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">({ratingSummary.count} ulasan)</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { loadRatings(); setModal("ratingList"); }}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
-                  >
-                    Lihat semua
-                  </button>
+          </div>
+        )}
+
+        {/* MITRA RATING */}
+        {isDriver && ratingSummary && (
+          <div className="bg-card rounded-2xl border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-1">Rating Saya</p>
+                <div className="flex items-center gap-2">
+                  <Stars value={ratingSummary.avg} />
+                  <span className="text-lg font-bold text-foreground">
+                    {ratingSummary.avg > 0 ? ratingSummary.avg.toFixed(1) : "-"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {ratingSummary.count > 0 ? `dari ${ratingSummary.count} ulasan` : "Belum ada ulasan"}
+                  </span>
                 </div>
               </div>
-            )}
+              <button
+                onClick={() => { loadRatings(); setModal("ratingList"); }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-muted transition-colors"
+              >
+                Lihat semua
+              </button>
+            </div>
           </div>
         )}
 
@@ -690,6 +722,21 @@ export default function ProfilPage() {
               iconColor="text-amber-500"
               last
               onClick={() => setLocation("/profil/kendaraan")}
+            />
+          </MenuGroup>
+        )}
+
+        {/* MITRA: REKENING */}
+        {isDriver && (
+          <MenuGroup title="Informasi Rekening">
+            <MenuItem
+              icon={<Landmark className="w-5 h-5" />}
+              label="Rekening Bank"
+              sub={rekeningForm.no_rekening ? `${rekeningForm.nama_bank} · ${rekeningForm.no_rekening}` : "Belum diisi — isi agar admin bisa transfer"}
+              iconBg="bg-green-50"
+              iconColor="text-green-600"
+              last
+              onClick={() => { setRekeningOk(false); setRekeningError(null); setModal("rekening"); }}
             />
           </MenuGroup>
         )}
@@ -919,6 +966,62 @@ export default function ProfilPage() {
             style={{ backgroundColor: "hsl(var(--accent))" }}
           >
             {pwLoading ? "Menyimpan..." : "Ganti Password"}
+          </button>
+        </form>
+      </ModalSheet>
+
+      {/* ── MODAL: REKENING ── */}
+      <ModalSheet open={modal === "rekening"} onClose={() => setModal(null)} title="Informasi Rekening">
+        <form onSubmit={handleSaveRekening} className="p-5 space-y-4">
+          <p className="text-xs text-muted-foreground">Isi data rekening bank kamu. Admin akan menggunakan info ini untuk mentransfer pendapatan setelah trip selesai.</p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-foreground block mb-1">Nama Bank</label>
+              <input
+                type="text"
+                placeholder="Contoh: BCA, BRI, Mandiri, BNI"
+                value={rekeningForm.nama_bank}
+                onChange={e => setRekeningForm(f => ({ ...f, nama_bank: e.target.value }))}
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-foreground block mb-1">Nomor Rekening</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Masukkan nomor rekening"
+                value={rekeningForm.no_rekening}
+                onChange={e => setRekeningForm(f => ({ ...f, no_rekening: e.target.value }))}
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-foreground block mb-1">Nama Pemilik Rekening</label>
+              <input
+                type="text"
+                placeholder="Sesuai buku tabungan"
+                value={rekeningForm.nama_pemilik_rekening}
+                onChange={e => setRekeningForm(f => ({ ...f, nama_pemilik_rekening: e.target.value }))}
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40"
+              />
+            </div>
+          </div>
+          {rekeningError && (
+            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{rekeningError}</p>
+          )}
+          {rekeningOk && (
+            <p className="text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" /> Informasi rekening berhasil disimpan.
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={rekeningLoading}
+            className="w-full py-3 rounded-2xl bg-[#a85e28] text-white font-bold text-sm disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {rekeningLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Simpan Rekening
           </button>
         </form>
       </ModalSheet>
