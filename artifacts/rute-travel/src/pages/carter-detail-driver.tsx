@@ -340,7 +340,7 @@ export default function CarterDetailDriverPage() {
           ) : (
             <p className="text-sm text-muted-foreground mb-3">Belum diisi penumpang.</p>
           )}
-          {hasMap && !carterBlockedByPayment && (() => {
+          {hasMap && (() => {
             const hasDropoff = tp === "dalam_perjalanan" && data.dropoff_lat != null && data.dropoff_lng != null;
             const fitPoints: [number, number][] = [[data.pickup_lat!, data.pickup_lng!]];
             if (hasDropoff) fitPoints.push([data.dropoff_lat!, data.dropoff_lng!]);
@@ -355,9 +355,11 @@ export default function CarterDetailDriverPage() {
                 >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <MapFitBounds points={fitPoints} />
-                  <Marker position={[data.pickup_lat!, data.pickup_lng!]} icon={pickupIcon}>
-                    <Popup>Titik Jemput</Popup>
-                  </Marker>
+                  {!carterBlockedByPayment && (
+                    <Marker position={[data.pickup_lat!, data.pickup_lng!]} icon={pickupIcon}>
+                      <Popup>Titik Jemput</Popup>
+                    </Marker>
+                  )}
                   {hasDropoff && (
                     <Marker position={[data.dropoff_lat!, data.dropoff_lng!]} icon={dropoffIcon}>
                       <Popup>{data.dropoff_label ?? "Tujuan Pengantaran"}</Popup>
