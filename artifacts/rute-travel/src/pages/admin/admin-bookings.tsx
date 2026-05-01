@@ -178,6 +178,7 @@ export default function AdminBookings() {
   const [allRows, setAllRows] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [semanticFilter, setSemanticFilter] = useState<SemanticFilter>("");
+  const [dateFilter, setDateFilter] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -200,7 +201,12 @@ export default function AdminBookings() {
     load();
   }, [token, user, load]);
 
-  const groups = applyFilter(groupBookings(allRows), semanticFilter);
+  const allGroups = applyFilter(groupBookings(allRows), semanticFilter);
+  const groups = dateFilter
+    ? allGroups.filter(g => g.departure_date === dateFilter)
+    : allGroups;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   async function handleCancel(id: number, groupScheduleId: number) {
     setBusy(`cancel-${id}`);
@@ -449,8 +455,37 @@ export default function AdminBookings() {
       )}
 
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="space-y-3">
           <h1 className="text-2xl font-bold text-[#1a1208]">Booking Reguler</h1>
+
+          {/* Filter tanggal */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={e => setDateFilter(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-white text-sm text-[#1a1208] focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40"
+              />
+            </div>
+            <button
+              onClick={() => setDateFilter(todayStr)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${dateFilter === todayStr ? "bg-[#a85e28] text-white border-[#a85e28]" : "bg-white border-border text-muted-foreground hover:bg-[#f5f0e8]"}`}
+            >
+              Hari Ini
+            </button>
+            {dateFilter && (
+              <button
+                onClick={() => setDateFilter("")}
+                className="px-3 py-2 rounded-xl text-xs font-semibold border border-border bg-white text-muted-foreground hover:bg-[#f5f0e8] flex items-center gap-1"
+              >
+                <X className="w-3 h-3" /> Reset
+              </button>
+            )}
+          </div>
+
+          {/* Filter status */}
           <div className="flex gap-1.5 flex-wrap">
             {TRIP_STATUS_FILTERS.map(f => (
               <button key={f.value} onClick={() => setSemanticFilter(f.value)}
@@ -458,13 +493,20 @@ export default function AdminBookings() {
                 {f.label}
               </button>
             ))}
+            {dateFilter && (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-700">
+                {groups.length} trip · {groups.reduce((s, g) => s + g.bookings.length, 0)} penumpang
+              </span>
+            )}
           </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-[#a85e28]" /></div>
         ) : groups.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">Tidak ada booking ditemukan.</div>
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            {dateFilter ? `Tidak ada booking pada tanggal ${fmtDate(dateFilter)}.` : "Tidak ada booking ditemukan."}
+          </div>
         ) : (
           <div className="space-y-2.5">
             {groups.map(g => {
