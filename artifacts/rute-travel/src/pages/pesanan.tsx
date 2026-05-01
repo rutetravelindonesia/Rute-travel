@@ -228,7 +228,7 @@ export default function PesananPage() {
             id: b.id,
             type: "schedule",
             origin_city: b.schedule?.origin_city ?? "-",
-            destination_city: b.alighting_city || b.schedule?.destination_city ?? "-",
+            destination_city: b.alighting_city || (b.schedule?.destination_city ?? "-"),
             travel_date: b.schedule?.departure_date ?? "",
             travel_time: b.schedule?.departure_time ?? "",
             total_amount: b.total_amount,
