@@ -329,9 +329,9 @@ export default function AdminBookings() {
             ) : detail && (
               <div className="p-4 space-y-4">
 
-                {/* Info Pemesan */}
+                {/* Info Penumpang */}
                 <div className="bg-white rounded-2xl border border-border p-4 space-y-3">
-                  <h3 className="text-xs font-bold text-[#1a1208] uppercase tracking-wide">Pemesan</h3>
+                  <h3 className="text-xs font-bold text-[#1a1208] uppercase tracking-wide">Penumpang</h3>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#e8ddd0] flex items-center justify-center flex-shrink-0">
                       <User className="w-5 h-5 text-[#a85e28]" />
