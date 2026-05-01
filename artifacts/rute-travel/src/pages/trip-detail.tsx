@@ -266,7 +266,7 @@ export default function TripDetailPage() {
                 if (p.dropoff_lat && p.dropoff_lng)
                   mapPoints.push({ pos: [p.dropoff_lat, p.dropoff_lng], label: p.dropoff_label ?? p.penumpang?.nama ?? "Titik Turun", isDropoff: true });
               } else {
-                if (p.pickup_lat && p.pickup_lng)
+                if (p.pickup_lat && p.pickup_lng && p.status !== "paid")
                   mapPoints.push({ pos: [p.pickup_lat, p.pickup_lng], label: p.pickup_label ?? p.penumpang?.nama ?? "Titik Jemput", isDropoff: false });
               }
             }
