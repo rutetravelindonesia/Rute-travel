@@ -302,7 +302,7 @@ export default function JadwalBook() {
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Turun di</label>
               <select
                 value={alightingCity}
-                onChange={(e) => setAlightingCity(e.target.value)}
+                onChange={(e) => { setAlightingCity(e.target.value); setDropoff(null); }}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="">Tujuan akhir ({detail.destination_city})</option>
