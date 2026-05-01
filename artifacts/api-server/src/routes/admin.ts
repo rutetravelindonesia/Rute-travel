@@ -353,6 +353,46 @@ router.get("/admin/bookings", adminGuard(async (_req: any, res: any) => {
   res.json(rows.map(r => ({ ...r.b, user: r.user, schedule: r.schedule, driver: r.driver })));
 }));
 
+router.get("/admin/bookings/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+
+  const bPenumpang = alias(usersTable, "b_penumpang");
+  const bDriver = alias(usersTable, "b_driver");
+
+  const [row] = await db
+    .select({
+      b: scheduleBookingsTable,
+      penumpang: { id: bPenumpang.id, nama: bPenumpang.nama, no_whatsapp: bPenumpang.no_whatsapp },
+      schedule: {
+        id: schedulesTable.id,
+        origin_city: schedulesTable.origin_city,
+        destination_city: schedulesTable.destination_city,
+        departure_date: schedulesTable.departure_date,
+        departure_time: schedulesTable.departure_time,
+        trip_progress: schedulesTable.trip_progress,
+      },
+      driver: { id: bDriver.id, nama: bDriver.nama, no_whatsapp: bDriver.no_whatsapp, foto_profil: bDriver.foto_profil },
+      kendaraan: { merek: kendaraanTable.merek, model: kendaraanTable.model, plat_nomor: kendaraanTable.plat_nomor, warna: kendaraanTable.warna, foto_url: kendaraanTable.foto_url },
+    })
+    .from(scheduleBookingsTable)
+    .leftJoin(bPenumpang, eq(scheduleBookingsTable.penumpang_id, bPenumpang.id))
+    .leftJoin(schedulesTable, eq(scheduleBookingsTable.schedule_id, schedulesTable.id))
+    .leftJoin(bDriver, eq(schedulesTable.driver_id, bDriver.id))
+    .leftJoin(kendaraanTable, and(eq(kendaraanTable.driver_id, schedulesTable.driver_id), eq(kendaraanTable.is_default, true)))
+    .where(eq(scheduleBookingsTable.id, id));
+
+  if (!row) { res.status(404).json({ error: "Booking tidak ditemukan." }); return; }
+
+  res.json({
+    ...row.b,
+    penumpang: row.penumpang?.id ? row.penumpang : null,
+    schedule: row.schedule?.id ? row.schedule : null,
+    driver: row.driver?.id ? row.driver : null,
+    kendaraan: row.kendaraan?.plat_nomor ? row.kendaraan : null,
+  });
+}));
+
 router.patch("/admin/bookings/:id/cancel", adminGuard(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
