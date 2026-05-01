@@ -9,6 +9,7 @@ interface User {
   kota: string | null; nik: string | null; created_at: string;
   is_verified: boolean; is_suspended: boolean;
   foto_profil: string | null;
+  foto_diri: string | null;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -165,10 +166,10 @@ export default function AdminUsers() {
                     <tr key={u.id} className={`hover:bg-[#f5f0e8]/50 ${u.is_suspended ? "opacity-60" : ""}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          {u.foto_profil ? (
-                            <button onClick={() => setPreviewPhoto({ url: u.foto_profil!, nama: u.nama })}
+                          {(u.foto_profil || u.foto_diri) ? (
+                            <button onClick={() => setPreviewPhoto({ url: (u.foto_profil || u.foto_diri)!, nama: u.nama })}
                               className="relative group flex-shrink-0">
-                              <img src={u.foto_profil} alt={u.nama}
+                              <img src={(u.foto_profil || u.foto_diri)!} alt={u.nama}
                                 className="w-8 h-8 rounded-full object-cover border border-border" />
                               <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                 <ZoomIn className="w-3.5 h-3.5 text-white" />
