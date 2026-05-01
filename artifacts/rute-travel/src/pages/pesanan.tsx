@@ -892,6 +892,7 @@ export default function PesananPage() {
             const stageCls = carterStageCls(o.status, tp, o.carter_pickup_confirmed);
             const btnLabel = ["paid", "aktif", "confirmed"].includes(o.status) ? carterButtonLabel(tp) : null;
             const isDone = o.status === "selesai" || tp === "selesai";
+            const carterBlockedByPayment = o.status === "paid" && (!tp || tp === "menunggu");
             return (
               <div
                 key={o.key}
@@ -969,12 +970,20 @@ export default function PesananPage() {
                   </div>
                 )}
 
+                {carterBlockedByPayment && (
+                  <div className="flex items-start gap-2 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+                    <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
+                    <p className="text-[11px] text-amber-800 leading-snug">
+                      Pembayaran penumpang belum dikonfirmasi admin. Tombol "Mulai Jemput" akan aktif setelah pembayaran dikonfirmasi.
+                    </p>
+                  </div>
+                )}
                 {btnLabel ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); advanceCarterTripProgress(o.id); }}
-                    disabled={busyCarterTrip === o.id}
+                    disabled={busyCarterTrip === o.id || carterBlockedByPayment}
                     data-testid={`carter-${o.id}-action`}
-                    className="w-full mt-3 py-3 rounded-xl bg-[#a85e28] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-60 transition-colors"
+                    className="w-full mt-3 py-3 rounded-xl bg-[#a85e28] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {busyCarterTrip === o.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
