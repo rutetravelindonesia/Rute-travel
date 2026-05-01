@@ -8,6 +8,7 @@ import {
   schedulesTable,
   scheduleBookingsTable,
   carterBookingsTable,
+  carterSettingsTable,
   kendaraanTable,
   ratingsTable,
   kotaListTable,
@@ -41,11 +42,15 @@ async function logAdmin(adminId: number, adminNama: string, aksi: string, detail
 }
 
 function adminGuard(handler: Parameters<typeof router.get>[1]) {
-  return (async (req: any, res: any): Promise<void> => {
-    const admin = await getAdminFromToken(req.headers.authorization);
-    if (!admin) { res.status(401).json({ error: "Akses ditolak. Hanya admin." }); return; }
-    (req as any).admin = admin;
-    return (handler as any)(req, res);
+  return (async (req: any, res: any, next: any): Promise<void> => {
+    try {
+      const admin = await getAdminFromToken(req.headers.authorization);
+      if (!admin) { res.status(401).json({ error: "Akses ditolak. Hanya admin." }); return; }
+      (req as any).admin = admin;
+      await (handler as any)(req, res, next);
+    } catch (err) {
+      next(err);
+    }
   }) as any;
 }
 
@@ -369,6 +374,58 @@ router.delete("/admin/bookings/:id", adminGuard(async (req: any, res: any) => {
 }));
 
 // ===================== CARTER BOOKINGS =====================
+router.get("/admin/carter-bookings/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+
+  const penumpangAlias = alias(usersTable, "penumpang_alias");
+  const driverAlias = alias(usersTable, "driver_alias");
+
+  const [row] = await db
+    .select({
+      b: carterBookingsTable,
+      penumpang: {
+        id: penumpangAlias.id,
+        nama: penumpangAlias.nama,
+        no_whatsapp: penumpangAlias.no_whatsapp,
+      },
+      driver: {
+        id: driverAlias.id,
+        nama: driverAlias.nama,
+        no_whatsapp: driverAlias.no_whatsapp,
+        foto_profil: driverAlias.foto_profil,
+      },
+      kendaraan: {
+        merek: kendaraanTable.merek,
+        model: kendaraanTable.model,
+        plat_nomor: kendaraanTable.plat_nomor,
+        warna: kendaraanTable.warna,
+        foto_url: kendaraanTable.foto_url,
+      },
+    })
+    .from(carterBookingsTable)
+    .leftJoin(penumpangAlias, eq(carterBookingsTable.penumpang_id, penumpangAlias.id))
+    .leftJoin(carterSettingsTable, eq(carterBookingsTable.settings_id, carterSettingsTable.id))
+    .leftJoin(driverAlias, eq(carterSettingsTable.driver_id, driverAlias.id))
+    .leftJoin(
+      kendaraanTable,
+      and(
+        eq(kendaraanTable.driver_id, carterSettingsTable.driver_id),
+        eq(kendaraanTable.is_default, true),
+      ),
+    )
+    .where(eq(carterBookingsTable.id, id));
+
+  if (!row) { res.status(404).json({ error: "Booking carter tidak ditemukan." }); return; }
+
+  res.json({
+    ...row.b,
+    penumpang: row.penumpang?.id ? row.penumpang : null,
+    driver: row.driver?.id ? row.driver : null,
+    kendaraan: row.kendaraan?.plat_nomor ? row.kendaraan : null,
+  });
+}));
+
 router.get("/admin/carter-bookings", adminGuard(async (req: any, res: any) => {
   const { status } = req.query as Record<string, string>;
   let q = db.select({
@@ -390,6 +447,48 @@ router.patch("/admin/carter-bookings/:id/cancel", adminGuard(async (req: any, re
     .set({ status: "cancelled", cancelled_at: new Date() })
     .where(eq(carterBookingsTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "CANCEL_CARTER", `Carter booking #${id} dibatalkan`);
+  res.json(b);
+}));
+
+router.patch("/admin/carter-bookings/:id/confirm", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking carter tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat dikonfirmasi." }); return; }
+  const [b] = await db.update(carterBookingsTable)
+    .set({ status: "confirmed" })
+    .where(eq(carterBookingsTable.id, id)).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "CONFIRM_CARTER_PAYMENT", `Carter #${id} pembayaran dikonfirmasi`);
+  if (b?.penumpang_id) {
+    createNotification(
+      b.penumpang_id, "booking_verified",
+      "E-Tiket Carter Berhasil!",
+      "Pembayaran carter Anda telah dikonfirmasi oleh admin. E-tiket Anda sudah aktif!",
+      "carter_booking", id,
+    ).catch(() => {});
+  }
+  res.json(b);
+}));
+
+router.patch("/admin/carter-bookings/:id/reject", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(carterBookingsTable).where(eq(carterBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking carter tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat ditolak." }); return; }
+  const [b] = await db.update(carterBookingsTable)
+    .set({ status: "pending", payment_proof_url: null })
+    .where(eq(carterBookingsTable.id, id)).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "REJECT_CARTER_PAYMENT", `Carter #${id} pembayaran ditolak`);
+  if (b?.penumpang_id) {
+    createNotification(
+      b.penumpang_id, "booking_rejected",
+      "Bukti Pembayaran Carter Ditolak",
+      "Bukti pembayaran carter Anda tidak dapat diverifikasi. Silakan upload ulang bukti pembayaran yang valid.",
+      "carter_booking", id,
+    ).catch(() => {});
+  }
   res.json(b);
 }));
 
@@ -432,6 +531,9 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
 router.patch("/admin/payments/booking/:id/confirm", adminGuard(async (req: any, res: any) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(scheduleBookingsTable).where(eq(scheduleBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat dikonfirmasi." }); return; }
   const [b] = await db.update(scheduleBookingsTable)
     .set({ status: "confirmed" })
     .where(eq(scheduleBookingsTable.id, id)).returning();
@@ -443,6 +545,36 @@ router.patch("/admin/payments/booking/:id/confirm", adminGuard(async (req: any, 
       "Pembayaran Anda telah dikonfirmasi oleh admin. Selamat, e-tiket Anda sudah aktif!",
       "schedule_booking", id,
     ).catch(() => {});
+  }
+  if (b?.schedule_id) {
+    (async () => {
+      const [[schedule], [penumpang], remainingPaid] = await Promise.all([
+        db.select().from(schedulesTable).where(eq(schedulesTable.id, b.schedule_id)),
+        db.select({ nama: usersTable.nama }).from(usersTable).where(eq(usersTable.id, b.penumpang_id)),
+        db.select({ cnt: count() }).from(scheduleBookingsTable).where(and(
+          eq(scheduleBookingsTable.schedule_id, b.schedule_id),
+          eq(scheduleBookingsTable.status, "paid"),
+        )),
+      ]);
+      if (!schedule?.driver_id) return;
+      const rute = `${schedule.origin_city} → ${schedule.destination_city}`;
+      const penumpangNama = penumpang?.nama ?? "Penumpang";
+      await createNotification(
+        schedule.driver_id, "payment_confirmed",
+        "Pembayaran Penumpang Dikonfirmasi",
+        `Pembayaran ${penumpangNama} untuk rute ${rute} sudah dikonfirmasi oleh admin.`,
+        "schedule", b.schedule_id,
+      );
+      const stillPaid = Number(remainingPaid[0]?.cnt ?? 0);
+      if (stillPaid === 0) {
+        await createNotification(
+          schedule.driver_id, "all_payments_confirmed",
+          "Semua Pembayaran Dikonfirmasi",
+          `Semua pembayaran sudah dikonfirmasi. Anda sudah bisa mulai menjemput penumpang untuk rute ${rute}.`,
+          "schedule", b.schedule_id,
+        );
+      }
+    })().catch(() => {});
   }
   res.json(b);
 }));
