@@ -318,7 +318,14 @@ export default function PesananPage() {
   const filtered = useMemo(() => {
     if (!orders) return null;
     const set = tab === "aktif" ? ACTIVE : ARCHIVED;
-    return orders.filter((o) => set.includes(o.status));
+    return orders.filter((o) => {
+      // Kalau jadwal/carter sudah selesai di sisi mitra, selalu masuk Riwayat
+      // terlepas dari booking.status (untuk menangani data lama sebelum fix status sinkronisasi)
+      if (o.trip_progress === "selesai" || o.carter_trip_progress === "selesai") {
+        return tab === "riwayat";
+      }
+      return set.includes(o.status);
+    });
   }, [orders, tab]);
 
   const isDriverView = user?.role === "driver";
@@ -869,7 +876,7 @@ export default function PesananPage() {
             const tp = o.carter_trip_progress;
             const stageLabel = carterStageLabel(o.status, tp, o.carter_pickup_confirmed);
             const stageCls = carterStageCls(o.status, tp, o.carter_pickup_confirmed);
-            const btnLabel = ["paid", "aktif"].includes(o.status) ? carterButtonLabel(tp) : null;
+            const btnLabel = ["paid", "aktif", "confirmed"].includes(o.status) ? carterButtonLabel(tp) : null;
             const isDone = o.status === "selesai" || tp === "selesai";
             return (
               <div
