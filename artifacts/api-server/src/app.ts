@@ -49,4 +49,10 @@ if (process.env.NODE_ENV === "production" && process.env.SERVE_FRONTEND !== "fal
   }
 }
 
+app.use((err: any, _req: any, res: any, _next: any) => {
+  logger.error({ err }, "Unhandled server error");
+  const status = typeof err?.status === "number" ? err.status : typeof err?.statusCode === "number" ? err.statusCode : 500;
+  res.status(status).json({ error: err?.message ?? "Terjadi kesalahan server." });
+});
+
 export default app;
