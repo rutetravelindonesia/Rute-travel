@@ -334,12 +334,13 @@ const driverAlias = alias(usersTable, "driver_alias");
 router.get("/admin/bookings", adminGuard(async (_req: any, res: any) => {
   const rows = await db.select({
     b: scheduleBookingsTable,
-    user: { id: usersTable.id, nama: usersTable.nama },
+    user: { id: usersTable.id, nama: usersTable.nama, no_whatsapp: usersTable.no_whatsapp },
     schedule: {
       id: schedulesTable.id,
       origin_city: schedulesTable.origin_city,
       destination_city: schedulesTable.destination_city,
       departure_date: schedulesTable.departure_date,
+      departure_time: schedulesTable.departure_time,
       trip_progress: schedulesTable.trip_progress,
     },
     driver: { id: driverAlias.id, nama: driverAlias.nama },
