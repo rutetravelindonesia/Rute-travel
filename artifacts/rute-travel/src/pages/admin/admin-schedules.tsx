@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
 import { Loader2, Trash2, Pencil, X, User, Car, MapPin, CheckCircle2, XCircle, Clock, ChevronRight, Phone, CreditCard, Eye } from "lucide-react";
+import { PLATFORM_FEE_RATE, toPassengerPrice, toNettPrice, platformFeeAmount } from "@/lib/constants";
 
 interface Schedule {
   id: number; origin_city: string; destination_city: string; departure_date: string;
@@ -164,15 +165,13 @@ export default function AdminSchedules() {
     await load();
   }
 
-  const PLATFORM_FEE = 0.10;
-
   function openEdit(e: React.MouseEvent, s: Schedule) {
     e.stopPropagation();
     setEditState({
       schedule: s,
       departure_date: s.departure_date,
       departure_time: s.departure_time,
-      price_per_seat: String(Math.round(s.price_per_seat / (1 + PLATFORM_FEE))),
+      price_per_seat: String(toNettPrice(s.price_per_seat)),
       error: null,
       loading: false,
     });
@@ -184,7 +183,7 @@ export default function AdminSchedules() {
     const body: Record<string, any> = {};
     if (editState.departure_date !== editState.schedule.departure_date) body.departure_date = editState.departure_date;
     if (editState.departure_time !== editState.schedule.departure_time) body.departure_time = editState.departure_time;
-    const passengerPrice = Math.round(Number(editState.price_per_seat) * (1 + PLATFORM_FEE));
+    const passengerPrice = toPassengerPrice(Number(editState.price_per_seat));
     if (passengerPrice !== editState.schedule.price_per_seat) body.price_per_seat = passengerPrice;
     if (!Object.keys(body).length) {
       setEditState(prev => prev ? { ...prev, loading: false, error: "Tidak ada perubahan." } : null);
@@ -276,8 +275,8 @@ export default function AdminSchedules() {
                   className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40" />
                 {editState.price_per_seat && Number(editState.price_per_seat) > 0 && (
                   <p className="text-xs text-[#a85e28] mt-1.5 font-medium">
-                    Harga penumpang: {fmtRp(Math.round(Number(editState.price_per_seat) * (1 + PLATFORM_FEE)))}
-                    <span className="text-muted-foreground font-normal"> (termasuk biaya platform 10%)</span>
+                    Harga penumpang: {fmtRp(toPassengerPrice(Number(editState.price_per_seat)))}
+                    <span className="text-muted-foreground font-normal"> (termasuk biaya platform {Math.round(PLATFORM_FEE_RATE * 100)}%)</span>
                   </p>
                 )}
               </div>
@@ -362,9 +361,8 @@ export default function AdminSchedules() {
                   <div>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Harga/Kursi</p>
                     <p className="text-sm font-bold text-[#1a1208] mt-0.5">{fmtRp(detail.price_per_seat)}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      nett: {fmtRp(Math.round(detail.price_per_seat / (1 + PLATFORM_FEE)))}
-                    </p>
+                    <p className="text-[10px] text-green-700 mt-0.5">nett: {fmtRp(toNettPrice(detail.price_per_seat))}</p>
+                    <p className="text-[10px] text-[#a85e28] mt-0.5">platform: {fmtRp(platformFeeAmount(detail.price_per_seat))}</p>
                   </div>
                 </div>
 
