@@ -480,6 +480,7 @@ export default function JadwalTetapBuat() {
                 <Wallet className="w-4 h-4 text-accent" />
                 <h2 className="text-sm font-bold text-foreground">Harga per Kursi</h2>
               </div>
+              <p className="text-xs text-red-500 -mt-2">Aplikasi mengambil biaya 10% dari harga yang anda input.</p>
 
               {!hasWaypoints && (
                 <div>
