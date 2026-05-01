@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
-import { Loader2, Search, Pencil, Trash2, X, Check, ShieldOff, ShieldCheck } from "lucide-react";
+import { Loader2, Search, Pencil, Trash2, X, Check, ShieldOff, ShieldCheck, ZoomIn } from "lucide-react";
 
 interface User {
   id: number; nama: string; no_whatsapp: string; role: string;
@@ -56,6 +56,7 @@ export default function AdminUsers() {
   const [editRole, setEditRole] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; nama: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -165,8 +166,14 @@ export default function AdminUsers() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           {u.foto_diri ? (
-                            <img src={u.foto_diri} alt={u.nama}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-border" />
+                            <button onClick={() => setPreviewPhoto({ url: u.foto_diri!, nama: u.nama })}
+                              className="relative group flex-shrink-0">
+                              <img src={u.foto_diri} alt={u.nama}
+                                className="w-8 h-8 rounded-full object-cover border border-border" />
+                              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <ZoomIn className="w-3.5 h-3.5 text-white" />
+                              </div>
+                            </button>
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-[#e8dcc8] flex items-center justify-center flex-shrink-0 text-[#a85e28] font-bold text-xs">
                               {u.nama.charAt(0).toUpperCase()}
@@ -227,6 +234,21 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      {previewPhoto && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setPreviewPhoto(null)}>
+          <div className="relative max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setPreviewPhoto(null)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+            <img src={previewPhoto.url} alt={previewPhoto.nama}
+              className="w-full rounded-2xl object-cover shadow-2xl" />
+            <p className="text-center text-white font-semibold mt-3">{previewPhoto.nama}</p>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
