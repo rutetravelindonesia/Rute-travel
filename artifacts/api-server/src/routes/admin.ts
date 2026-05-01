@@ -185,6 +185,75 @@ router.delete("/admin/users/:id", adminGuard(async (req: any, res: any) => {
 }));
 
 // ===================== SCHEDULES =====================
+router.get("/admin/schedules/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+
+  const penumpangAlias = alias(usersTable, "penumpang_alias");
+
+  const [schedRow] = await db
+    .select({
+      s: schedulesTable,
+      driver: {
+        id: usersTable.id,
+        nama: usersTable.nama,
+        no_whatsapp: usersTable.no_whatsapp,
+        foto_profil: usersTable.foto_profil,
+      },
+      kendaraan: {
+        merek: kendaraanTable.merek,
+        model: kendaraanTable.model,
+        plat_nomor: kendaraanTable.plat_nomor,
+        warna: kendaraanTable.warna,
+        foto_url: kendaraanTable.foto_url,
+      },
+    })
+    .from(schedulesTable)
+    .leftJoin(usersTable, eq(schedulesTable.driver_id, usersTable.id))
+    .leftJoin(
+      kendaraanTable,
+      and(
+        eq(kendaraanTable.driver_id, schedulesTable.driver_id),
+        eq(kendaraanTable.is_default, true),
+      ),
+    )
+    .where(eq(schedulesTable.id, id));
+
+  if (!schedRow) { res.status(404).json({ error: "Jadwal tidak ditemukan." }); return; }
+
+  const bookingRows = await db
+    .select({
+      b: scheduleBookingsTable,
+      penumpang: {
+        id: penumpangAlias.id,
+        nama: penumpangAlias.nama,
+        no_whatsapp: penumpangAlias.no_whatsapp,
+      },
+    })
+    .from(scheduleBookingsTable)
+    .leftJoin(penumpangAlias, eq(scheduleBookingsTable.penumpang_id, penumpangAlias.id))
+    .where(eq(scheduleBookingsTable.schedule_id, id))
+    .orderBy(scheduleBookingsTable.created_at);
+
+  const bookings = bookingRows.map(r => ({
+    ...r.b,
+    penumpang_nama: r.penumpang?.nama ?? "–",
+    penumpang_no_wa: r.penumpang?.no_whatsapp ?? null,
+  }));
+
+  const totalPendapatan = bookings
+    .filter(b => ["confirmed", "aktif", "selesai"].includes(b.status))
+    .reduce((acc, b) => acc + b.total_amount, 0);
+
+  res.json({
+    ...schedRow.s,
+    driver: schedRow.driver?.id ? schedRow.driver : null,
+    kendaraan: schedRow.kendaraan?.plat_nomor ? schedRow.kendaraan : null,
+    total_pendapatan: totalPendapatan,
+    bookings,
+  });
+}));
+
 router.get("/admin/schedules", adminGuard(async (req: any, res: any) => {
   const [schedRows, aggRows] = await Promise.all([
     db.select({ s: schedulesTable, driver: { id: usersTable.id, nama: usersTable.nama } })
