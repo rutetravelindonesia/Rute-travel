@@ -506,6 +506,7 @@ export default function CarterAtur() {
               <h2 className="text-sm font-bold text-foreground">Harga per Rute</h2>
             </div>
             <p className="text-xs text-muted-foreground">Tentukan tarif Carter untuk setiap rute.</p>
+            <p className="text-xs text-red-500">Aplikasi mengambil biaya 10% dari harga yang anda input.</p>
 
             <div className="space-y-3">
               {Object.entries(routes).map(([dest, price]) => (
