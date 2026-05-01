@@ -60,6 +60,7 @@ interface Booking {
   dropoff_detail: string | null;
   dropoff_lat: number | null;
   dropoff_lng: number | null;
+  alighting_city: string | null;
   total_amount: number;
   payment_method: "qris" | "transfer" | "ewallet";
   payment_proof_url: string | null;
@@ -580,7 +581,7 @@ export default function BookingEtiket() {
                     className="text-lg font-extrabold text-foreground"
                     data-testid="etiket-tujuan"
                   >
-                    {booking.schedule.destination_city}
+                    {booking.alighting_city || booking.schedule.destination_city}
                   </p>
                 </div>
               </div>
