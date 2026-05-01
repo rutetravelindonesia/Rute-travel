@@ -340,7 +340,7 @@ export default function CarterDetailDriverPage() {
           ) : (
             <p className="text-sm text-muted-foreground mb-3">Belum diisi penumpang.</p>
           )}
-          {hasMap && (() => {
+          {hasMap && !carterBlockedByPayment && (() => {
             const hasDropoff = tp === "dalam_perjalanan" && data.dropoff_lat != null && data.dropoff_lng != null;
             const fitPoints: [number, number][] = [[data.pickup_lat!, data.pickup_lng!]];
             if (hasDropoff) fitPoints.push([data.dropoff_lat!, data.dropoff_lng!]);
