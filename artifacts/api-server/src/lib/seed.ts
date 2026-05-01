@@ -58,6 +58,26 @@ export async function runMigrations(): Promise<void> {
   logger.info("DB migrations checked.");
 }
 
+const KOTA_KALTIM = [
+  "Balikpapan","Bengalon","Berau","Biduk Biduk","Bontang","Kaliorang","Karangan",
+  "Kembang Janggut","Kota Bangun","Kutai Lama","Melak","Muara Badak","Muara Kaman",
+  "Penajam","Rantau Pulung","Samarinda","Sanga Sanga","Sangatta","Sangkulirang",
+  "Sebulu","Sendawar","Separi","Tali Sayan","Tanah Kuning","Tanjung Batu",
+  "Tanjung Redeb","Tanjung Selor","Tarakan","Tenggarong","Wahau",
+];
+
+export async function seedKota(): Promise<void> {
+  try {
+    const values = KOTA_KALTIM.map(k => `('${k}')`).join(",");
+    await pool.query(
+      `INSERT INTO kota_list (nama_kota) VALUES ${values} ON CONFLICT (nama_kota) DO NOTHING`
+    );
+    logger.info("Kota list seeded.");
+  } catch (err) {
+    logger.error({ err }, "Failed to seed kota list.");
+  }
+}
+
 export async function seedAdmin(): Promise<void> {
   try {
     const [existing] = await db
