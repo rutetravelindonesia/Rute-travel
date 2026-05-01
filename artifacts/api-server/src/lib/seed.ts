@@ -44,6 +44,9 @@ export async function runMigrations(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS nama_bank TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS no_rekening TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS nama_pemilik_rekening TEXT`,
   ];
   for (const sql of migrations) {
     try {
