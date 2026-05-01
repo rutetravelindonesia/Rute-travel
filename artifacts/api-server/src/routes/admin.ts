@@ -739,16 +739,40 @@ router.get("/admin/laporan", adminGuard(async (req: any, res: any) => {
     ))
     .orderBy(desc(carterBookingsTable.created_at));
 
-  const totalReguler = bookings.reduce((s, r) => s + Number(r.b.total_amount), 0);
-  const totalCarter = carterB.reduce((s, r) => s + Number(r.b.total_amount), 0);
+  const platformRate = 0.10;
+
+  const bookingItems = bookings.map(r => {
+    const bruto = Number(r.b.total_amount);
+    const komisi = Math.round(bruto * platformRate);
+    return { ...r.b, user: r.user, schedule: r.schedule, jenis: "reguler" as const, komisi_platform: komisi, nett_driver: bruto - komisi };
+  });
+  const carterItems = carterB.map(r => {
+    const bruto = Number(r.b.total_amount);
+    const komisi = Math.round(bruto * platformRate);
+    return { ...r.b, user: r.user, jenis: "carter" as const, komisi_platform: komisi, nett_driver: bruto - komisi };
+  });
+
+  const totalReguler = bookingItems.reduce((s, r) => s + Number(r.total_amount), 0);
+  const totalCarter = carterItems.reduce((s, r) => s + Number(r.total_amount), 0);
+  const komisiReguler = bookingItems.reduce((s, r) => s + r.komisi_platform, 0);
+  const komisiCarter = carterItems.reduce((s, r) => s + r.komisi_platform, 0);
+  const nettReguler = bookingItems.reduce((s, r) => s + r.nett_driver, 0);
+  const nettCarter = carterItems.reduce((s, r) => s + r.nett_driver, 0);
 
   res.json({
     periode: { dari: start, sampai: end },
+    platform_rate: platformRate,
     total_reguler: totalReguler,
     total_carter: totalCarter,
     total: totalReguler + totalCarter,
-    bookings: bookings.map(r => ({ ...r.b, user: r.user, schedule: r.schedule, jenis: "reguler" })),
-    carter: carterB.map(r => ({ ...r.b, user: r.user, jenis: "carter" })),
+    komisi_platform_reguler: komisiReguler,
+    nett_driver_reguler: nettReguler,
+    komisi_platform_carter: komisiCarter,
+    nett_driver_carter: nettCarter,
+    komisi_platform: komisiReguler + komisiCarter,
+    nett_driver: nettReguler + nettCarter,
+    bookings: bookingItems,
+    carter: carterItems,
   });
 }));
 
