@@ -102,6 +102,7 @@ export default function AdminSchedules() {
   const [detail, setDetail] = useState<ScheduleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -136,6 +137,25 @@ export default function AdminSchedules() {
     setDetailLoading(false);
   }
 
+  async function handleCancelBooking(bookingId: number) {
+    if (!confirm("Batalkan booking ini? Tindakan ini tidak dapat diundur.")) return;
+    setCancellingId(bookingId);
+    try {
+      const r = await fetch(`${apiBase}/admin/bookings/${bookingId}/cancel`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        alert(j.error ?? "Gagal membatalkan booking. Silakan coba lagi.");
+        return;
+      }
+      if (detail) await openDetail(detail.id);
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
   async function handleDelete(e: React.MouseEvent, id: number) {
     e.stopPropagation();
     if (!confirm("Hapus jadwal ini? Semua booking terkait mungkin terpengaruh.")) return;
@@ -144,13 +164,15 @@ export default function AdminSchedules() {
     await load();
   }
 
+  const PLATFORM_FEE = 0.10;
+
   function openEdit(e: React.MouseEvent, s: Schedule) {
     e.stopPropagation();
     setEditState({
       schedule: s,
       departure_date: s.departure_date,
       departure_time: s.departure_time,
-      price_per_seat: String(s.price_per_seat),
+      price_per_seat: String(Math.round(s.price_per_seat / (1 + PLATFORM_FEE))),
       error: null,
       loading: false,
     });
@@ -162,7 +184,8 @@ export default function AdminSchedules() {
     const body: Record<string, any> = {};
     if (editState.departure_date !== editState.schedule.departure_date) body.departure_date = editState.departure_date;
     if (editState.departure_time !== editState.schedule.departure_time) body.departure_time = editState.departure_time;
-    if (Number(editState.price_per_seat) !== editState.schedule.price_per_seat) body.price_per_seat = Number(editState.price_per_seat);
+    const passengerPrice = Math.round(Number(editState.price_per_seat) * (1 + PLATFORM_FEE));
+    if (passengerPrice !== editState.schedule.price_per_seat) body.price_per_seat = passengerPrice;
     if (!Object.keys(body).length) {
       setEditState(prev => prev ? { ...prev, loading: false, error: "Tidak ada perubahan." } : null);
       return;
@@ -247,10 +270,16 @@ export default function AdminSchedules() {
                   className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#1a1208] block mb-1">Harga per Kursi (Rp)</label>
+                <label className="text-xs font-semibold text-[#1a1208] block mb-1">Harga Nett Driver (Rp)</label>
                 <input type="number" value={editState.price_per_seat} min={0}
                   onChange={e => setEditState(prev => prev ? { ...prev, price_per_seat: e.target.value } : null)}
                   className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#a85e28]/40" />
+                {editState.price_per_seat && Number(editState.price_per_seat) > 0 && (
+                  <p className="text-xs text-[#a85e28] mt-1.5 font-medium">
+                    Harga penumpang: {fmtRp(Math.round(Number(editState.price_per_seat) * (1 + PLATFORM_FEE)))}
+                    <span className="text-muted-foreground font-normal"> (termasuk biaya platform 10%)</span>
+                  </p>
+                )}
               </div>
             </div>
             {editState.error && (
@@ -333,6 +362,9 @@ export default function AdminSchedules() {
                   <div>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Harga/Kursi</p>
                     <p className="text-sm font-bold text-[#1a1208] mt-0.5">{fmtRp(detail.price_per_seat)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      nett: {fmtRp(Math.round(detail.price_per_seat / (1 + PLATFORM_FEE)))}
+                    </p>
                   </div>
                 </div>
 
@@ -505,11 +537,26 @@ export default function AdminSchedules() {
                             </div>
                           </div>
 
-                          {b.status === "batal" && (
+                          {(b.status === "batal" || b.status === "cancelled") && (
                             <div className="flex items-center gap-1.5 bg-red-50 rounded-xl px-3 py-2">
                               <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
                               <p className="text-[11px] text-red-600">Booking dibatalkan</p>
                             </div>
+                          )}
+
+                          {!["batal", "cancelled", "selesai"].includes(b.status) && (
+                            <button
+                              onClick={() => handleCancelBooking(b.id)}
+                              disabled={cancellingId !== null}
+                              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold disabled:opacity-60"
+                            >
+                              {cancellingId === b.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <XCircle className="w-3.5 h-3.5" />
+                              )}
+                              Batalkan Booking
+                            </button>
                           )}
                         </div>
                       </div>
