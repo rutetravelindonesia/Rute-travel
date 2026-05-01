@@ -101,7 +101,8 @@ router.get("/admin/users", adminGuard(async (req: any, res: any) => {
   res.json(users.map(u => ({
     id: u.id, nama: u.nama, no_whatsapp: u.no_whatsapp,
     role: u.role, kota: u.kota, nik: u.nik,
-    foto_profil: u.foto_profil, is_verified: u.is_verified,
+    foto_profil: u.foto_profil, foto_diri: u.foto_diri,
+    is_verified: u.is_verified,
     is_suspended: u.is_suspended, created_at: u.created_at,
   })));
 }));
