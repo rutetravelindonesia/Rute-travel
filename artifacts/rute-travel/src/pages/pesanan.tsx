@@ -58,6 +58,8 @@ interface DriverTripPassenger {
   pickup_lat: number | null;
   pickup_lng: number | null;
   pickup_label: string | null;
+  dropoff_label: string | null;
+  alighting_city: string | null;
 }
 
 type TripProgress = "belum_jemput" | "sudah_jemput" | "dalam_perjalanan" | "selesai" | string;
@@ -370,6 +372,8 @@ export default function PesananPage() {
         pickup_lat: raw?.pickup_lat ?? null,
         pickup_lng: raw?.pickup_lng ?? null,
         pickup_label: raw?.pickup_label ?? null,
+        dropoff_label: raw?.dropoff_label ?? null,
+        alighting_city: raw?.alighting_city ?? null,
       });
       g.total_amount += o.total_amount;
       g.total_kursi += kursi.length;
@@ -768,6 +772,13 @@ export default function PesananPage() {
                             {formatRupiah(p.total_amount)}
                           </span>
                         </div>
+                        {p.alighting_city && (
+                          <div className="ml-7 mt-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                              Turun di {p.alighting_city}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex-shrink-0 flex items-center gap-1">
                         <button
