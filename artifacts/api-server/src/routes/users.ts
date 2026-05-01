@@ -62,6 +62,9 @@ router.get("/users/me", async (req, res): Promise<void> => {
     jenis_kendaraan: user.jenis_kendaraan,
     plat_nomor: user.plat_nomor,
     foto_profil: user.foto_profil ?? null,
+    nama_bank: user.nama_bank ?? null,
+    no_rekening: user.no_rekening ?? null,
+    nama_pemilik_rekening: user.nama_pemilik_rekening ?? null,
     created_at: user.created_at,
   });
 });
@@ -103,6 +106,33 @@ router.patch("/users/me", async (req, res): Promise<void> => {
       plat_nomor: usersTable.plat_nomor,
       foto_profil: usersTable.foto_profil,
       created_at: usersTable.created_at,
+    });
+  res.json(updated);
+});
+
+router.patch("/users/me/rekening", async (req, res): Promise<void> => {
+  const user = await getUserFromToken(req.headers.authorization);
+  if (!user) {
+    res.status(401).json({ error: "Tidak terautentikasi." });
+    return;
+  }
+  const { nama_bank, no_rekening, nama_pemilik_rekening } = req.body as Record<string, string>;
+  if (!nama_bank?.trim() || !no_rekening?.trim() || !nama_pemilik_rekening?.trim()) {
+    res.status(400).json({ error: "Nama bank, nomor rekening, dan nama pemilik rekening wajib diisi." });
+    return;
+  }
+  const [updated] = await db
+    .update(usersTable)
+    .set({
+      nama_bank: nama_bank.trim(),
+      no_rekening: no_rekening.trim(),
+      nama_pemilik_rekening: nama_pemilik_rekening.trim(),
+    })
+    .where(eq(usersTable.id, user.id))
+    .returning({
+      nama_bank: usersTable.nama_bank,
+      no_rekening: usersTable.no_rekening,
+      nama_pemilik_rekening: usersTable.nama_pemilik_rekening,
     });
   res.json(updated);
 });
