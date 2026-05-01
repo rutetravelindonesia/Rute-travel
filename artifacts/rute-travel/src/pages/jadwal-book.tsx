@@ -145,7 +145,7 @@ export default function JadwalBook() {
     if (!detail) return [];
     if (!hasWaypoints) return [detail.origin_city, detail.destination_city];
     const wps = [...detail.waypoints].sort((a, b) => a.order_index - b.order_index);
-    return [detail.origin_city, ...wps.map((w) => w.city)];
+    return [detail.origin_city, ...wps.map((w) => w.city), detail.destination_city];
   }, [detail, hasWaypoints]);
 
   const segmentPrice = useMemo(() => {
@@ -167,7 +167,6 @@ export default function JadwalBook() {
     selectedSeats.length > 0 &&
     !!pickup &&
     !!dropoff &&
-    (!hasWaypoints || !!alightingCity) &&
     !submitting;
 
   const handleSubmit = async () => {
