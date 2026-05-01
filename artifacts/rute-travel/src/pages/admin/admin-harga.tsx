@@ -3,8 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
-
-const PLATFORM_FEE = 0.10;
+import { PLATFORM_FEE_RATE, toPassengerPrice, toNettPrice, platformFeeAmount } from "@/lib/constants";
 
 interface RoutePrice { id: number; origin_city: string; destination_city: string; harga: string; updated_at: string; }
 
@@ -35,7 +34,7 @@ export default function AdminHarga() {
   async function handleAdd() {
     if (!origin || !dest || !harga) return;
     setBusy(true); setError(null);
-    const passengerPrice = Math.round(Number(harga) * (1 + PLATFORM_FEE));
+    const passengerPrice = toPassengerPrice(Number(harga));
     const r = await fetch(`${apiBase}/admin/harga`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -54,8 +53,6 @@ export default function AdminHarga() {
   }
 
   const fmtRp = (n: string | number) => "Rp " + new Intl.NumberFormat("id-ID").format(Number(n));
-  const nett = (passengerPrice: string | number) => Math.round(Number(passengerPrice) / (1 + PLATFORM_FEE));
-  const fee = (passengerPrice: string | number) => Number(passengerPrice) - nett(passengerPrice);
 
   return (
     <AdminLayout>
@@ -96,8 +93,8 @@ export default function AdminHarga() {
                     <tr key={rp.id} className="hover:bg-[#f5f0e8]/50">
                       <td className="px-4 py-3 font-medium">{rp.origin_city} → {rp.destination_city}</td>
                       <td className="px-4 py-3 font-semibold text-[#1a1208]">{fmtRp(rp.harga)}</td>
-                      <td className="px-4 py-3 font-semibold text-green-700">{fmtRp(nett(rp.harga))}</td>
-                      <td className="px-4 py-3 font-semibold text-[#a85e28]">{fmtRp(fee(rp.harga))}</td>
+                      <td className="px-4 py-3 font-semibold text-green-700">{fmtRp(toNettPrice(Number(rp.harga)))}</td>
+                      <td className="px-4 py-3 font-semibold text-[#a85e28]">{fmtRp(platformFeeAmount(Number(rp.harga)))}</td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(rp.updated_at).toLocaleDateString("id-ID")}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => handleDelete(rp.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500">
@@ -137,8 +134,8 @@ export default function AdminHarga() {
                 className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-[#f5f0e8] focus:outline-none" />
               {harga && Number(harga) > 0 && (
                 <p className="text-xs text-[#a85e28] mt-1 font-medium">
-                  Harga penumpang: {fmtRp(Math.round(Number(harga) * (1 + PLATFORM_FEE)))}
-                  <span className="text-muted-foreground font-normal"> (termasuk biaya platform 10%)</span>
+                  Harga penumpang: {fmtRp(toPassengerPrice(Number(harga)))}
+                  <span className="text-muted-foreground font-normal"> (termasuk biaya platform {Math.round(PLATFORM_FEE_RATE * 100)}%)</span>
                 </p>
               )}
             </div>
