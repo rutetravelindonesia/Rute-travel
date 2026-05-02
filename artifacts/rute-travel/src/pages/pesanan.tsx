@@ -349,8 +349,8 @@ export default function PesananPage() {
         g = {
           key: `trip-${sid}`,
           schedule_id: sid,
-          origin_city: o.origin_city,
-          destination_city: o.destination_city,
+          origin_city: raw?.schedule?.origin_city ?? o.origin_city,
+          destination_city: raw?.schedule?.destination_city ?? o.destination_city,
           travel_date: o.travel_date,
           travel_time: o.travel_time,
           passengers: [],
