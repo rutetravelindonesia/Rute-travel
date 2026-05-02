@@ -351,20 +351,15 @@ export default function TripDetailPage() {
                       <div className="flex items-start gap-1.5 mt-1.5 ml-11">
                         <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-[10px] text-muted-foreground font-medium">
-                            Antar
-                            {p.alighting_city && (
-                              <span className="ml-1.5 text-amber-600 font-semibold">· Turun di {p.alighting_city}</span>
-                            )}
-                          </p>
+                          <p className="text-[10px] text-muted-foreground font-medium">Antar</p>
                           <p className="text-[11px] text-foreground leading-snug">{p.dropoff_label}</p>
                         </div>
                       </div>
                     )}
 
-                    {!p.dropoff_label && p.alighting_city && (
+                    {p.alighting_city && (
                       <div className="ml-11 mt-1.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                           Turun di {p.alighting_city}
                         </span>
                       </div>
