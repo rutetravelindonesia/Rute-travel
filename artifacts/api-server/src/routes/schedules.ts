@@ -265,8 +265,7 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
     }
   }
 
-  res.json(
-    rows.map(({ s, kendaraan }) => {
+  const allRows = rows.map(({ s, kendaraan }) => {
       const allBookings = bookingsByScheduleId.get(s.id) ?? [];
       const activeBookings = allBookings.filter((b) => b.status !== "batal");
       const bookedCount = activeBookings.reduce((sum, b) => sum + b.jumlah_kursi, 0);
@@ -302,8 +301,18 @@ router.get("/schedules/mine", async (req, res): Promise<void> => {
             }
           : null,
       };
-    }),
-  );
+    });
+
+  // Auto-sembunyikan jadwal yang belum berangkat, sudah lewat waktu, dan tidak ada penumpang
+  const now = new Date();
+  const filtered = allRows.filter((s) => {
+    if (s.trip_progress !== "belum_jemput") return true;
+    if (s.kursi_terisi > 0) return true;
+    const departure = new Date(`${s.departure_date}T${s.departure_time}:00+08:00`);
+    return departure > now;
+  });
+
+  res.json(filtered);
 });
 
 router.get("/schedules/search", async (req, res): Promise<void> => {
