@@ -876,6 +876,25 @@ router.post("/carter-bookings/:id/payment-proof", async (req, res): Promise<void
     .where(eq(carterBookingsTable.id, id));
 
   req.log.info({ bookingId: id, userId: user.id }, "Carter payment proof uploaded");
+
+  // Notifikasi ke semua admin
+  db.select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.role, "admin"))
+    .then((admins) => {
+      for (const admin of admins) {
+        createNotification(
+          admin.id,
+          "new_payment_proof",
+          "Bukti Transfer Carter Baru Masuk",
+          `${user.nama} telah mengupload bukti transfer untuk booking carter #${id}. Harap segera verifikasi.`,
+          "carter_booking",
+          id,
+        ).catch(() => {});
+      }
+    })
+    .catch(() => {});
+
   res.json({ ok: true });
 });
 
