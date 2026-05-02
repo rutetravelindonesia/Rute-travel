@@ -1608,6 +1608,25 @@ router.post("/bookings/:id/payment-proof", async (req, res): Promise<void> => {
     .returning();
 
   req.log.info({ bookingId: id, userId: user.id }, "Payment proof uploaded");
+
+  // Notifikasi ke semua admin
+  db.select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.role, "admin"))
+    .then((admins) => {
+      for (const admin of admins) {
+        createNotification(
+          admin.id,
+          "new_payment_proof",
+          "Bukti Transfer Baru Masuk",
+          `${user.nama} telah mengupload bukti transfer untuk booking #${id}. Harap segera verifikasi.`,
+          "schedule_booking",
+          id,
+        ).catch(() => {});
+      }
+    })
+    .catch(() => {});
+
   res.json(updated);
 });
 
