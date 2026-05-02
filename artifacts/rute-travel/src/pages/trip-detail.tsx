@@ -220,6 +220,7 @@ export default function TripDetailPage() {
   const curStageIdx = stageIndex(data.trip_progress);
   const btn = buttonLabel(data.trip_progress);
   const hasPaidPassengers = data.trip_progress === "belum_jemput" && data.passengers.some((p) => p.status === "paid");
+  const hasNoPassengers = data.trip_progress === "belum_jemput" && data.passengers.filter((p) => p.status !== "batal").length === 0;
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -468,6 +469,14 @@ export default function TripDetailPage() {
           </div>
         </div>
 
+        {hasNoPassengers && (
+          <div className="flex items-start gap-2 rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+            <span className="text-gray-400 flex-shrink-0 text-sm leading-none mt-0.5">ℹ</span>
+            <p className="text-[11px] text-gray-600 leading-snug">
+              Belum ada penumpang yang memesan. Tombol aktif setelah ada penumpang.
+            </p>
+          </div>
+        )}
         {hasPaidPassengers && (
           <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
             <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
@@ -479,7 +488,7 @@ export default function TripDetailPage() {
         {btn ? (
           <button
             onClick={advanceProgress}
-            disabled={busyTrip || hasPaidPassengers}
+            disabled={busyTrip || hasPaidPassengers || hasNoPassengers}
             className="w-full py-4 rounded-2xl bg-[#a85e28] text-white font-bold text-base flex items-center justify-center gap-2 hover:bg-[#92501f] disabled:opacity-60 transition-colors shadow-sm"
           >
             {busyTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
