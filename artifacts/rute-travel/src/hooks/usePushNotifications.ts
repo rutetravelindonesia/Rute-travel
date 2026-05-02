@@ -22,7 +22,7 @@ async function subscribeToPush(token: string): Promise<void> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return;
 
-  const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
+  const reg = await navigator.serviceWorker.register(SW_URL, { scope: import.meta.env.BASE_URL });
   await navigator.serviceWorker.ready;
 
   const vapidKey = await getVapidKey();
