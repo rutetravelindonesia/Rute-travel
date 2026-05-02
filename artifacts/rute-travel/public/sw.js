@@ -1,4 +1,5 @@
 const ICON_URL = self.registration.scope + "logo.jpg";
+const BADGE_URL = self.registration.scope + "badge.png";
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;
@@ -13,7 +14,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body ?? "",
     icon: ICON_URL,
-    badge: ICON_URL,
+    badge: BADGE_URL,
     tag: payload.tag ?? "rute-notif",
     data: { url: payload.url ?? self.registration.scope },
     requireInteraction: false,
