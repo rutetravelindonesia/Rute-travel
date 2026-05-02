@@ -35,6 +35,11 @@ function notifIcon(type: string) {
     trip_progress: "🚗",
     trip_completed: "🏁",
     booking_verified: "🎉",
+    booking_rejected: "❌",
+    new_payment_proof: "💳",
+    mitra_approved: "✅",
+    payment_confirmed: "💰",
+    all_payments_confirmed: "✅",
   };
   return map[type] ?? "🔔";
 }
@@ -84,7 +89,9 @@ export default function NotifikasiPage() {
 
   function handleClick(n: Notif) {
     markRead(n.id);
-    if (n.ref_type === "schedule_booking" && n.ref_id) {
+    if (n.type === "new_payment_proof") {
+      setLocation("/admin/payments");
+    } else if (n.ref_type === "schedule_booking" && n.ref_id) {
       setLocation(`/booking/${n.ref_id}/etiket`);
     } else if (n.ref_type === "carter_booking" && n.ref_id) {
       setLocation(`/carter-booking/${n.ref_id}/etiket`);
