@@ -555,6 +555,7 @@ router.get("/schedules/:id/trip-detail", async (req, res): Promise<void> => {
     dropoff_lat: b.dropoff_lat ?? null,
     dropoff_lng: b.dropoff_lng ?? null,
     dropoff_label: b.dropoff_label ?? null,
+    alighting_city: b.alighting_city ?? null,
     catatan: b.catatan ?? null,
     penumpang: p
       ? { id: p.id, nama: p.nama, no_whatsapp: p.no_whatsapp ?? null, foto_profil: p.foto_profil ?? null }
