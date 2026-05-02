@@ -495,6 +495,7 @@ export default function DashboardDriver() {
                           const j = trip as JadwalMine;
                           const tp = j.trip_progress;
                           const hasPaidBookings = tp === "belum_jemput" && (j.paid_count ?? 0) > 0;
+                          const hasNoPassengers = tp === "belum_jemput" && (j.kursi_terisi ?? 0) === 0;
                           const advanceLabel: Record<string, string | null> = {
                             belum_jemput: "Mulai Jemput",
                             sudah_jemput: "Penumpang Sudah Naik",
@@ -506,6 +507,14 @@ export default function DashboardDriver() {
                           const offlineCount = (j.kursi_offline ?? []).length;
                           return (
                             <div className="space-y-2">
+                              {hasNoPassengers && (
+                                <div className="flex items-start gap-2 rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+                                  <span className="text-gray-400 flex-shrink-0 text-sm leading-none mt-0.5">ℹ</span>
+                                  <p className="text-[11px] text-gray-600 leading-snug">
+                                    Belum ada penumpang yang memesan. Tombol aktif setelah ada penumpang.
+                                  </p>
+                                </div>
+                              )}
                               {hasPaidBookings && (
                                 <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
                                   <span className="text-amber-500 flex-shrink-0 text-sm leading-none mt-0.5">⚠</span>
@@ -536,7 +545,7 @@ export default function DashboardDriver() {
                                   <button
                                     data-testid={`btn-advance-jadwal-${j.id}`}
                                     onClick={() => advanceJadwal(j.id)}
-                                    disabled={hasPaidBookings}
+                                    disabled={hasPaidBookings || hasNoPassengers}
                                     className="py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                                     style={{ backgroundColor: "hsl(var(--accent))" }}
                                   >
