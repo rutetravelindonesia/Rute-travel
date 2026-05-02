@@ -43,6 +43,7 @@ interface Passenger {
   dropoff_lat: number | null;
   dropoff_lng: number | null;
   dropoff_label: string | null;
+  alighting_city: string | null;
   catatan: string | null;
   penumpang: { id: number; nama: string; no_whatsapp: string | null; foto_profil: string | null } | null;
 }
@@ -338,8 +339,34 @@ export default function TripDetailPage() {
 
                     {p.pickup_label && (
                       <div className="flex items-start gap-1.5 mt-2 ml-11">
-                        <MapPin className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
-                        <p className="text-[11px] text-muted-foreground leading-snug">{p.pickup_label}</p>
+                        <MapPin className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-medium">Jemput</p>
+                          <p className="text-[11px] text-foreground leading-snug">{p.pickup_label}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {p.dropoff_label && (
+                      <div className="flex items-start gap-1.5 mt-1.5 ml-11">
+                        <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-medium">
+                            Antar
+                            {p.alighting_city && (
+                              <span className="ml-1.5 text-amber-600 font-semibold">· Turun di {p.alighting_city}</span>
+                            )}
+                          </p>
+                          <p className="text-[11px] text-foreground leading-snug">{p.dropoff_label}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {!p.dropoff_label && p.alighting_city && (
+                      <div className="ml-11 mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          Turun di {p.alighting_city}
+                        </span>
                       </div>
                     )}
 
