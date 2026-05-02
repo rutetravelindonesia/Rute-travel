@@ -1,4 +1,4 @@
-const ICON_URL = self.registration.scope + "logo.jpg";
+const ICON_URL = self.registration.scope + "logo.png";
 const BADGE_URL = self.registration.scope + "badge.png";
 
 self.addEventListener("push", (event) => {
