@@ -277,6 +277,7 @@ export default function TripDetailPage() {
                 }
               }
             }
+            if (tp === "selesai") return null;
             if (allCoords.length === 0) return null;
             return (
               <div className="mb-3 rounded-xl overflow-hidden border border-border" style={{ height: 200 }}>
