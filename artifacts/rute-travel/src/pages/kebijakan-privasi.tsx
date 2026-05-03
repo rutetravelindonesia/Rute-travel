@@ -144,19 +144,19 @@ export default function KebijakanPrivasi() {
             <li>
               Hubungi Kami Via WhatsApp:{" "}
               <a
-                href="https://wa.me/6285720387773"
+                href="https://wa.me/6287868215823"
                 className="text-blue-600 underline"
               >
-                085720387773
+                087868215823
               </a>
             </li>
             <li>
               Hubungi Kami Via Email:{" "}
               <a
-                href="mailto:admin@rute.app"
+                href="mailto:rideinovasidigital@gmail.com"
                 className="text-blue-600 underline"
               >
-                admin@rute.app
+                rideinovasidigital@gmail.com
               </a>
             </li>
             <li>
@@ -223,10 +223,10 @@ export default function KebijakanPrivasi() {
             <li>
               WhatsApp:{" "}
               <a
-                href="https://wa.me/6285720387773"
+                href="https://wa.me/6287868215823"
                 className="text-blue-600 underline"
               >
-                085720387773
+                087868215823
               </a>
             </li>
           </ul>
