@@ -52,6 +52,7 @@ import TripDetailPage from "@/pages/trip-detail";
 import CarterDetailDriverPage from "@/pages/carter-detail-driver";
 import NotifikasiPage from "@/pages/notifikasi";
 import DestinasiWisataPage from "@/pages/destinasi-wisata";
+import KebijakanPrivasi from "@/pages/kebijakan-privasi";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ function Router() {
       <Route path="/jadwal" component={JadwalMitraPage} />
       <Route path="/notifikasi" component={NotifikasiPage} />
       <Route path="/destinasi" component={DestinasiWisataPage} />
+      <Route path="/kebijakan-privasi" component={KebijakanPrivasi} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/users" component={AdminUsers} />
