@@ -216,8 +216,8 @@ export default function KebijakanPrivasi() {
           <ul className="list-disc ml-5 mt-2 space-y-1">
             <li>
               Email:{" "}
-              <a href="mailto:admin@rute.app" className="text-blue-600 underline">
-                admin@rute.app
+              <a href="mailto:rideinovasidigital@gmail.com" className="text-blue-600 underline">
+                rideinovasidigital@gmail.com
               </a>
             </li>
             <li>
