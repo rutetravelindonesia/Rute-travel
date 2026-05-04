@@ -57,8 +57,8 @@ jobs:
       - name: Build release AAB
         working-directory: twa-android
         env:
-          VERSION_CODE: ${{ github.event.inputs.version_code || '1' }}
-          VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.0' }}
+          VERSION_CODE: ${{ github.event.inputs.version_code || github.run_number }}
+          VERSION_NAME: ${{ github.event.inputs.version_name || format('1.0.{0}', github.run_number) }}
         run: |
           gradle bundleRelease --no-daemon \
             -PVERSION_CODE=$VERSION_CODE \
@@ -70,7 +70,7 @@ jobs:
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rute-travel-aab-v${{ github.event.inputs.version_name || '1.0.0' }}
+          name: rute-travel-aab-v${{ github.event.inputs.version_name || format('1.0.{0}', github.run_number) }}
           path: |
             twa-android/app/build/outputs/bundle/release/*.aab
             rute-release.keystore
