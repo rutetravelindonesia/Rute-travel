@@ -23,6 +23,8 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"
                     android:host="workspaceapi-server-production-7ba1.up.railway.app" />
+                <data android:scheme="https"
+                    android:host="rute.travel" />
             </intent-filter>
         </activity>
     </application>
