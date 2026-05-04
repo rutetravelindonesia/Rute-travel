@@ -95,7 +95,7 @@ jobs:
       - name: Initialize Bubblewrap project
         working-directory: twa-project
         run: |
-          bubblewrap init \
+          echo "n" | bubblewrap init \
             --manifest https://workspaceapi-server-production-7ba1.up.railway.app/manifest.json \
             --directory .
 
@@ -108,7 +108,7 @@ jobs:
       - name: Build release AAB
         working-directory: twa-project
         run: |
-          bubblewrap build \
+          echo "n" | bubblewrap build \
             --skipPwaValidation \
             --keyPath ../rute-release.keystore \
             --keyAlias rute-key \
