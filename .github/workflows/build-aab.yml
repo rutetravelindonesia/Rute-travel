@@ -37,17 +37,8 @@ jobs:
       - name: Install Android platform + build-tools
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Generate signing keystore
-        run: |
-          keytool -genkey -v \
-            -keystore rute-release.keystore \
-            -alias rute-key \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass rutetravel2024 \
-            -keypass rutetravel2024 \
-            -dname "CN=RUTE Travel, OU=Mobile, O=Ride Inovasi Digital, L=Balikpapan, ST=Kalimantan Timur, C=ID"
+      - name: Restore signing keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > rute-release.keystore
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
