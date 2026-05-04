@@ -2,10 +2,10 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdk 34
-    namespace 'com.ruteindonesia.app'
+    namespace 'com.ruteindonesia.travel'
 
     defaultConfig {
-        applicationId "com.ruteindonesia.app"
+        applicationId "com.ruteindonesia.travel"
         minSdk 21
         targetSdk 34
         versionCode VERSION_CODE.toInteger()
