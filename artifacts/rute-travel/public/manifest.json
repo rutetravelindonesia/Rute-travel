@@ -2,8 +2,8 @@
   "name": "RUTE Travel",
   "short_name": "RUTE",
   "description": "Layanan travel antar kota Kalimantan Timur",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#fdf8f0",
@@ -17,11 +17,12 @@
       "purpose": "any maskable"
     },
     {
-      "src": "logo.png",
+      "src": "logo_512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["travel", "transportation"]
+  "categories": ["travel", "transportation"],
+  "prefer_related_applications": false
 }
