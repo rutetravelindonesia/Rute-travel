@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "app.rute.travel"
-        minSdk 19
+        minSdk 21
         targetSdk 34
         versionCode VERSION_CODE.toInteger()
         versionName VERSION_NAME
