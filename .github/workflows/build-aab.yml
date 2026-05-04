@@ -1,0 +1,143 @@
+name: Build Android AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name (e.g. 1.0.0)"
+        required: true
+        default: "1.0.0"
+      version_code:
+        description: "Version code (integer, increment each release)"
+        required: true
+        default: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli@latest
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: sdkmanager "build-tools;34.0.0" "platforms;android-34"
+
+      - name: Create TWA manifest (twa-manifest.json)
+        run: |
+          mkdir -p twa-project
+          cat > twa-project/twa-manifest.json << 'EOF'
+          {
+            "packageId": "app.rute.travel",
+            "host": "workspaceapi-server-production-7ba1.up.railway.app",
+            "name": "RUTE Travel",
+            "launcherName": "RUTE",
+            "display": "standalone",
+            "themeColor": "#a85e28",
+            "navigationColor": "#a85e28",
+            "navigationColorDark": "#1a3a2a",
+            "navigationDividerColor": "#a85e28",
+            "navigationDividerColorDark": "#1a3a2a",
+            "backgroundColor": "#fdf8f0",
+            "enableNotifications": true,
+            "startUrl": "/",
+            "iconUrl": "https://workspaceapi-server-production-7ba1.up.railway.app/logo_512x512.png",
+            "maskableIconUrl": "https://workspaceapi-server-production-7ba1.up.railway.app/logo_512x512.png",
+            "monochromeIconUrl": "https://workspaceapi-server-production-7ba1.up.railway.app/logo_512x512.png",
+            "shortcuts": [],
+            "webManifestUrl": "https://workspaceapi-server-production-7ba1.up.railway.app/manifest.json",
+            "splashScreenFadeOutDuration": 300,
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "https://workspaceapi-server-production-7ba1.up.railway.app/",
+            "minSdkVersion": 19,
+            "orientation": "portrait",
+            "fingerprints": [],
+            "features": {},
+            "alphaDependencies": {},
+            "generatorApp": "bubblewrap-cli",
+            "generatorAppVersion": "1.21.1",
+            "sdkVersion": "34",
+            "useDeprecatedFillBrowserAction": false
+          }
+          EOF
+
+      - name: Generate signing keystore
+        run: |
+          keytool -genkey -v \
+            -keystore rute-release.keystore \
+            -alias rute-key \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass rutetravel2024 \
+            -keypass rutetravel2024 \
+            -dname "CN=RUTE Travel, OU=Mobile, O=PT Ride Inovasi Digital, L=Balikpapan, ST=Kalimantan Timur, C=ID"
+
+      - name: Initialize Bubblewrap project
+        working-directory: twa-project
+        run: |
+          bubblewrap init \
+            --manifest https://workspaceapi-server-production-7ba1.up.railway.app/manifest.json \
+            --directory .
+
+      - name: Update version in build.gradle
+        working-directory: twa-project
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.event.inputs.version_code }}/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ github.event.inputs.version_name }}\"/" app/build.gradle
+
+      - name: Build release AAB
+        working-directory: twa-project
+        run: |
+          bubblewrap build \
+            --skipPwaValidation \
+            --keyPath ../rute-release.keystore \
+            --keyAlias rute-key \
+            --keyPassword rutetravel2024 \
+            --storePassword rutetravel2024
+
+      - name: Rename output files
+        run: |
+          find twa-project -name "*.aab" | head -1 | xargs -I{} cp {} rute-travel-v${{ github.event.inputs.version_name }}.aab || true
+          find twa-project -name "*.apk" | head -1 | xargs -I{} cp {} rute-travel-v${{ github.event.inputs.version_name }}.apk || true
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rute-travel-aab-v${{ github.event.inputs.version_name }}
+          path: |
+            rute-travel-v*.aab
+            rute-travel-v*.apk
+            rute-release.keystore
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          echo "## ✅ Build Selesai!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App:** RUTE Travel v${{ github.event.inputs.version_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Package ID:** app.rute.travel" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Unduh AAB dan APK di tab **Artifacts** di atas." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Simpan file `rute-release.keystore`** — wajib untuk update app di Play Store!" >> $GITHUB_STEP_SUMMARY
+          
