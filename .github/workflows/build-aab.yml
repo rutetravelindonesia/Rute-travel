@@ -49,9 +49,10 @@ jobs:
             -keypass rutetravel2024 \
             -dname "CN=RUTE Travel, OU=Mobile, O=Ride Inovasi Digital, L=Balikpapan, ST=Kalimantan Timur, C=ID"
 
-      - name: Download Gradle wrapper
-        working-directory: twa-android
-        run: gradle wrapper --gradle-version 8.4 --no-daemon
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.4"
 
       - name: Build release AAB
         working-directory: twa-android
@@ -59,8 +60,7 @@ jobs:
           VERSION_CODE: ${{ github.event.inputs.version_code || '1' }}
           VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.0' }}
         run: |
-          chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon \
+          gradle bundleRelease --no-daemon \
             -PVERSION_CODE=$VERSION_CODE \
             -PVERSION_NAME=$VERSION_NAME
 
