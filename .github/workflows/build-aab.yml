@@ -8,7 +8,7 @@ on:
         required: true
         default: "1.0.0"
       version_code:
-        description: "Version code (integer, increment each release)"
+        description: "Version code (integer)"
         required: true
         default: "1"
 
@@ -29,123 +29,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android build tools
-        run: sdkmanager "build-tools;34.0.0" "platforms;android-34"
-
-      - name: Clone TWA template
+      - name: Install Android platform + build-tools
         run: |
-          git clone https://github.com/chromeos/pwa-play-billing.git twa-template || \
-          git clone https://github.com/GoogleChrome/android-browser-helper.git twa-template
-
-      - name: Generate TWA project from scratch
-        run: |
-          mkdir -p twa-project/app/src/main/res/values
-          mkdir -p twa-project/app/src/main/res/xml
-
-          # build.gradle (root)
-          cat > twa-project/build.gradle << 'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
-          }
-          allprojects { repositories { google(); mavenCentral() } }
-          EOF
-
-          # settings.gradle
-          echo "include ':app'" > twa-project/settings.gradle
-
-          # gradle wrapper
-          mkdir -p twa-project/gradle/wrapper
-          cat > twa-project/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-all.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
-
-          cd twa-project
-          gradle wrapper --gradle-version 8.4 2>/dev/null || true
-
-          # app/build.gradle
-          cat > app/build.gradle << EOF
-          apply plugin: 'com.android.application'
-          android {
-              compileSdk 34
-              defaultConfig {
-                  applicationId "app.rute.travel"
-                  minSdk 19
-                  targetSdk 34
-                  versionCode ${{ github.event.inputs.version_code }}
-                  versionName "${{ github.event.inputs.version_name }}"
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      signingConfig signingConfigs.release
-                  }
-              }
-              signingConfigs {
-                  release {
-                      storeFile file("../../rute-release.keystore")
-                      storePassword "rutetravel2024"
-                      keyAlias "rute-key"
-                      keyPassword "rutetravel2024"
-                  }
-              }
-          }
-          dependencies {
-              implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
-          }
-          EOF
-
-          # AndroidManifest
-          mkdir -p app/src/main
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:label="@string/app_name"
-                  android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
-                      android:exported="true">
-                      <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                          android:value="https://workspaceapi-server-production-7ba1.up.railway.app/" />
-                      <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
-                          android:value="@color/colorPrimary" />
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                      <intent-filter android:autoVerify="true">
-                          <action android:name="android.intent.action.VIEW" />
-                          <category android:name="android.intent.category.DEFAULT" />
-                          <category android:name="android.intent.category.BROWSABLE" />
-                          <data android:scheme="https"
-                              android:host="workspaceapi-server-production-7ba1.up.railway.app" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          # strings.xml
-          cat > app/src/main/res/values/strings.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <string name="app_name">RUTE Travel</string>
-          </resources>
-          EOF
-
-          # colors.xml
-          cat > app/src/main/res/values/colors.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <color name="colorPrimary">#a85e28</color>
-          </resources>
-          EOF
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Generate signing keystore
         run: |
@@ -159,11 +45,163 @@ jobs:
             -keypass rutetravel2024 \
             -dname "CN=RUTE Travel, OU=Mobile, O=Ride Inovasi Digital, L=Balikpapan, ST=Kalimantan Timur, C=ID"
 
+      - name: Generate TWA Android project
+        env:
+          VERSION_CODE: ${{ github.event.inputs.version_code }}
+          VERSION_NAME: ${{ github.event.inputs.version_name }}
+        run: |
+          mkdir -p twa-project/app/src/main/res/values
+          mkdir -p twa-project/app/src/main/res/xml
+          mkdir -p twa-project/app/src/main/java/app/rute/travel
+
+          # Root build.gradle
+          cat > twa-project/build.gradle << 'GRADLE_EOF'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0'
+    }
+}
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+GRADLE_EOF
+
+          # settings.gradle
+          cat > twa-project/settings.gradle << 'GRADLE_EOF'
+include ':app'
+GRADLE_EOF
+
+          # gradle-wrapper.properties
+          mkdir -p twa-project/gradle/wrapper
+          cat > twa-project/gradle/wrapper/gradle-wrapper.properties << 'GRADLE_EOF'
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-bin.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+GRADLE_EOF
+
+          # app/build.gradle — signingConfigs MUST come before buildTypes
+          cat > twa-project/app/build.gradle << GRADLE_EOF
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.rute.travel"
+        minSdk 19
+        targetSdk 34
+        versionCode ${VERSION_CODE}
+        versionName "${VERSION_NAME}"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../../rute-release.keystore")
+            storePassword "rutetravel2024"
+            keyAlias "rute-key"
+            keyPassword "rutetravel2024"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
+GRADLE_EOF
+
+          # AndroidManifest.xml
+          cat > twa-project/app/src/main/AndroidManifest.xml << 'MANIFEST_EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.rute.travel">
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.AppCompat.NoActionBar">
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:exported="true">
+            <meta-data
+                android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                android:value="https://workspaceapi-server-production-7ba1.up.railway.app/" />
+            <meta-data
+                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+                android:value="@color/colorPrimary" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                    android:host="workspaceapi-server-production-7ba1.up.railway.app" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+MANIFEST_EOF
+
+          # strings.xml
+          cat > twa-project/app/src/main/res/values/strings.xml << 'RES_EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RUTE Travel</string>
+</resources>
+RES_EOF
+
+          # colors.xml
+          cat > twa-project/app/src/main/res/values/colors.xml << 'RES_EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#a85e28</color>
+</resources>
+RES_EOF
+
+          # themes.xml
+          cat > twa-project/app/src/main/res/values/themes.xml << 'RES_EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+    </style>
+</resources>
+RES_EOF
+
+      - name: Download and setup Gradle wrapper
+        working-directory: twa-project
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.4-bin.zip -o gradle.zip
+          unzip -q gradle.zip
+          mv gradle-8.4/bin/gradle /usr/local/bin/gradle || true
+          gradle wrapper --gradle-version 8.4 --no-daemon 2>/dev/null || true
+          ls -la
+
       - name: Build release AAB
         working-directory: twa-project
         run: |
-          chmod +x gradlew 2>/dev/null || true
-          ./gradlew bundleRelease --no-daemon
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: List build outputs
+        run: find twa-project -name "*.aab" -o -name "*.apk" 2>/dev/null
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
