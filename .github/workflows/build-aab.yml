@@ -1,6 +1,9 @@
 name: Build Android AAB
 
 on:
+  push:
+    branches: [main]
+    paths: ['artifacts/**', '.github/workflows/build-aab.yml']
   workflow_dispatch:
     inputs:
       version_name:
@@ -47,8 +50,8 @@ jobs:
 
       - name: Generate TWA Android project
         env:
-          VERSION_CODE: ${{ github.event.inputs.version_code }}
-          VERSION_NAME: ${{ github.event.inputs.version_name }}
+          VERSION_CODE: ${{ github.event.inputs.version_code || '1' }}
+          VERSION_NAME: ${{ github.event.inputs.version_name || '1.0.0' }}
         run: |
           mkdir -p twa-project/app/src/main/res/values
           mkdir -p twa-project/app/src/main/res/xml
