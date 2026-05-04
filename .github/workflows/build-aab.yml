@@ -38,7 +38,10 @@ jobs:
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Restore signing keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > rute-release.keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > rute-release.keystore
+          echo "=== SHA1 Fingerprint keystore yang dipakai ==="
+          keytool -list -keystore rute-release.keystore -storepass rutetravel2024 -alias rute-key 2>&1 | grep -i sha1
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
