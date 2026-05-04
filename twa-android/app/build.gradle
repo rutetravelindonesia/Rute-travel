@@ -1,0 +1,33 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.rute.travel"
+        minSdk 19
+        targetSdk 34
+        versionCode VERSION_CODE.toInteger()
+        versionName VERSION_NAME
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../../rute-release.keystore")
+            storePassword "rutetravel2024"
+            keyAlias "rute-key"
+            keyPassword "rutetravel2024"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
