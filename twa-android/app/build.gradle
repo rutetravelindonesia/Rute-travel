@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdk 34
+    namespace 'app.rute.travel'
 
     defaultConfig {
         applicationId "app.rute.travel"
