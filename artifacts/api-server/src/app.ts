@@ -33,6 +33,20 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/.well-known/assetlinks.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json([{
+    relation: ["delegate_permission/common.handle_all_urls"],
+    target: {
+      namespace: "android_app",
+      package_name: "com.ruteindonesia.travel",
+      sha256_cert_fingerprints: [
+        "04:13:C0:70:A2:01:48:B7:EA:A2:7A:19:AE:70:EE:B4:30:0C:59:E5:80:B4:D0:C1:AB:63:A6:E2:90:55:5A:1E"
+      ]
+    }
+  }]);
+});
+
 app.use("/api", router);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
