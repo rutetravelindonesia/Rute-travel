@@ -39,10 +39,10 @@ app.get("/.well-known/assetlinks.json", (_req, res) => {
     relation: ["delegate_permission/common.handle_all_urls"],
     target: {
       namespace: "android_app",
-      package_name: "com.ruteindonesia.travel",
-      sha256_cert_fingerprints: [
-        "04:13:C0:70:A2:01:48:B7:EA:A2:7A:19:AE:70:EE:B4:30:0C:59:E5:80:B4:D0:C1:AB:63:A6:E2:90:55:5A:1E"
-      ]
+      package_name: "id.ruteindonesia.travel",
+sha256_cert_fingerprints: [
+  "63:25:6F:7A:2B:A7:B2:2C:8E:A6:28:96:F8:56:A5:41:8C:92:64:70:55:A4:D4:9A:38:1C:33:B0:22:74:51:CC"
+]
     }
   }]);
 });
