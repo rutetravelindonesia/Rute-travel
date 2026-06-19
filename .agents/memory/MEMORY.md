@@ -1,0 +1,1 @@
+- [Codegen vs openapi drift](codegen-openapi-drift.md) — do NOT run api-spec codegen; the stale openapi.yaml wipes schemas the server needs (restore generated files instead).

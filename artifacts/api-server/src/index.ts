@@ -1,5 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startReminderCron } from "./lib/reminders";
+import { runMigrations, seedAdmin, seedKota } from "./lib/seed";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +24,8 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  runMigrations();
+  startReminderCron();
+  seedAdmin();
+  seedKota();
 });
