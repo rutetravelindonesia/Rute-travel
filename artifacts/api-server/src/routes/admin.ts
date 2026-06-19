@@ -103,7 +103,7 @@ router.get("/admin/users", adminGuard(async (req: any, res: any) => {
       provinsi: kotaListTable.provinsi,
     })
     .from(usersTable)
-    .leftJoin(kotaListTable, eq(usersTable.kota, kotaListTable.nama_kota))
+    .leftJoin(kotaListTable, drizzleSql`lower(${usersTable.kota}) = lower(${kotaListTable.nama_kota})`)
     .$dynamic();
   const conds: any[] = [];
   if (role) conds.push(eq(usersTable.role, role));
