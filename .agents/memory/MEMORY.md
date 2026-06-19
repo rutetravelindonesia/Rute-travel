@@ -1,1 +1,2 @@
 - [Codegen vs openapi drift](codegen-openapi-drift.md) — do NOT run api-spec codegen; the stale openapi.yaml wipes schemas the server needs (restore generated files instead).
+- [Railway database connection](railway-database-connection.md) — app reads RAILWAY_DATABASE_URL (Railway public proxy) first; Replit DATABASE_URL unused. Data kept off Replit account on purpose.

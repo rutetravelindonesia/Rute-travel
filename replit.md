@@ -61,17 +61,27 @@ Aplikasi online untuk menghubungkan driver travel dan penumpang di Kalimantan Ti
 - VAPID keys sudah di-generate baru — push subscriptions lama tidak akan bekerja
 - Cloudinary untuk upload foto, Fonnte untuk OTP WhatsApp
 
+## Database (PENTING)
+
+- **Sumber data utama = Railway Postgres** (data produksi asli yang dipakai aplikasi Play Store).
+- Aplikasi membaca `RAILWAY_DATABASE_URL` lebih dulu, baru `DATABASE_URL` (lihat `lib/db/src/index.ts`). `RAILWAY_DATABASE_URL` di-set ke alamat **publik** Railway (`yamabiko.proxy.rlwy.net:47329`), bukan alamat internal `postgres.railway.internal` (yang hanya jalan di dalam Railway).
+- Database Replit (`DATABASE_URL`) ada tapi **tidak dipakai** selama `RAILWAY_DATABASE_URL` terisi.
+- **Alasan pakai Railway:** data tidak terikat ke akun Replit — kalau ganti akun Replit (karena limit usage), cukup clone kode lagi dan sambungkan ke `RAILWAY_DATABASE_URL` yang sama. Data pengguna aman & permanen di Railway.
+- ⚠️ **Dev dan production Replit menulis ke database produksi yang sama.** Hati-hati saat testing (daftar/booking di sini = data asli pengguna).
+- Boot `runMigrations`/`seedAdmin`/`seedKota` aman & idempotent (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`, cek admin dulu) — tidak merusak/menduplikasi data Railway.
+
 ## Secrets yang dibutuhkan
 
-- `DATABASE_URL` ✅ sudah ada (Replit Postgres)
+- `RAILWAY_DATABASE_URL` ✅ di-set (alamat publik Railway — sumber data utama)
+- `DATABASE_URL` ✅ ada (Replit Postgres, tidak dipakai selama RAILWAY_DATABASE_URL terisi)
 - `SESSION_SECRET` ✅ sudah ada
-- `VAPID_PUBLIC_KEY` ✅ sudah di-set (baru, di environment Replit ini)
-- `VAPID_PRIVATE_KEY` ✅ sudah di-set (baru, di environment Replit ini)
-- `VAPID_SUBJECT` ✅ sudah di-set
-- `CLOUDINARY_CLOUD_NAME` ⚠️ belum di-set (upload foto nonaktif sampai diisi)
-- `CLOUDINARY_API_KEY` ⚠️ belum di-set
-- `CLOUDINARY_API_SECRET` ⚠️ belum di-set
-- `FONNTE_TOKEN` ⚠️ belum di-set (OTP WhatsApp jatuh ke log console di dev sampai diisi)
+- `VAPID_PUBLIC_KEY` ✅ di-set (pakai key asli dari setup Railway lama)
+- `VAPID_PRIVATE_KEY` ✅ di-set (pakai key asli dari setup Railway lama)
+- `VAPID_SUBJECT` ✅ di-set (`mailto:admin@rute.app`)
+- `CLOUDINARY_CLOUD_NAME` ✅ di-set
+- `CLOUDINARY_API_KEY` ✅ di-set
+- `CLOUDINARY_API_SECRET` ✅ di-set
+- `FONNTE_TOKEN` ✅ di-set (OTP WhatsApp aktif)
 
 ## Pointers
 
