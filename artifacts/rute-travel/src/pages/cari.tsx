@@ -62,6 +62,17 @@ export default function Cari() {
     [kota, provinsiTujuan],
   );
 
+  // Saat provinsi asal dipilih, provinsi tujuan otomatis ikut sama dulu —
+  // kecuali penumpang sudah memilih tujuan yang berbeda secara sengaja.
+  const handleProvinsiAsalChange = (val: string) => {
+    if (provinsiTujuan === "" || provinsiTujuan === provinsiAsal) {
+      setProvinsiTujuan(val);
+      setDestination("");
+    }
+    setProvinsiAsal(val);
+    setOrigin("");
+  };
+
   // Saat masuk halaman lewat link dengan kota terpilih, turunkan provinsinya dari data kota.
   useEffect(() => {
     if (kota.length === 0) return;
@@ -176,7 +187,7 @@ export default function Cari() {
               <select
                 data-testid="search-provinsi-asal"
                 value={provinsiAsal}
-                onChange={(e) => { setProvinsiAsal(e.target.value); setOrigin(""); }}
+                onChange={(e) => handleProvinsiAsalChange(e.target.value)}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="">Pilih provinsi</option>
