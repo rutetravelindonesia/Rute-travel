@@ -794,11 +794,29 @@ router.get("/admin/wilayah", adminGuard(async (_req: any, res: any) => {
 }));
 
 router.post("/admin/kota", adminGuard(async (req: any, res: any) => {
-  const { nama_kota, wilayah } = req.body as { nama_kota?: string; wilayah?: string };
+  const { nama_kota, provinsi, wilayah } = req.body as { nama_kota?: string; provinsi?: string; wilayah?: string };
   if (!nama_kota?.trim()) { res.status(400).json({ error: "Nama kota wajib diisi." }); return; }
-  if (!wilayah?.trim()) { res.status(400).json({ error: "Wilayah wajib dipilih." }); return; }
-  const [k] = await db.insert(kotaListTable).values({ nama_kota: nama_kota.trim(), wilayah: wilayah.trim() }).returning();
-  await logAdmin(req.admin.id, req.admin.nama, "ADD_KOTA", `Kota "${nama_kota}" (${wilayah}) ditambahkan`);
+  if (!provinsi?.trim()) { res.status(400).json({ error: "Provinsi wajib dipilih." }); return; }
+  const [k] = await db.insert(kotaListTable).values({
+    nama_kota: nama_kota.trim(),
+    provinsi: provinsi.trim(),
+    wilayah: wilayah?.trim() || null,
+  }).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "ADD_KOTA", `Kota "${nama_kota}" (${provinsi}) ditambahkan`);
+  res.json(k);
+}));
+
+router.patch("/admin/kota/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const { provinsi, wilayah } = req.body as { provinsi?: string; wilayah?: string };
+  if (!provinsi?.trim()) { res.status(400).json({ error: "Provinsi wajib dipilih." }); return; }
+  const [k] = await db.update(kotaListTable)
+    .set({ provinsi: provinsi.trim(), wilayah: wilayah?.trim() || null })
+    .where(eq(kotaListTable.id, id))
+    .returning();
+  if (!k) { res.status(404).json({ error: "Kota tidak ditemukan." }); return; }
+  await logAdmin(req.admin.id, req.admin.nama, "EDIT_KOTA", `Kota "${k.nama_kota}" diubah ke provinsi ${provinsi}`);
   res.json(k);
 }));
 
