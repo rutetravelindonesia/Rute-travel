@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, pool, usersTable } from "@workspace/db";
 import { logger } from "./logger";
+import { KOTA_INDONESIA } from "./kota-indonesia";
 
 const SALT_ROUNDS = 10;
 
@@ -70,11 +71,27 @@ const KOTA_KALTIM = [
 
 export async function seedKota(): Promise<void> {
   try {
-    const values = KOTA_KALTIM.map(k => `('${k}')`).join(",");
+    // Existing Kaltim town list (plain names, kept for backward compatibility).
+    const kaltimPlaceholders = KOTA_KALTIM.map((_, i) => `($${i + 1})`).join(",");
     await pool.query(
-      `INSERT INTO kota_list (nama_kota) VALUES ${values} ON CONFLICT (nama_kota) DO NOTHING`
+      `INSERT INTO kota_list (nama_kota) VALUES ${kaltimPlaceholders} ON CONFLICT (nama_kota) DO NOTHING`,
+      KOTA_KALTIM
     );
-    logger.info("Kota list seeded.");
+
+    // Full Indonesia: all provinces + kabupaten/kota, with provinsi populated.
+    const nasionalPlaceholders = KOTA_INDONESIA
+      .map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`)
+      .join(",");
+    const nasionalParams = KOTA_INDONESIA.flatMap((k) => [k.nama_kota, k.provinsi]);
+    await pool.query(
+      `INSERT INTO kota_list (nama_kota, provinsi) VALUES ${nasionalPlaceholders} ON CONFLICT (nama_kota) DO NOTHING`,
+      nasionalParams
+    );
+
+    logger.info(
+      { kaltim: KOTA_KALTIM.length, nasional: KOTA_INDONESIA.length },
+      "Kota list seeded."
+    );
   } catch (err) {
     logger.error({ err }, "Failed to seed kota list.");
   }

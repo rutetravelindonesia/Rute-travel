@@ -5,3 +5,4 @@
 - [Admin transfer-to-mitra (nett 90%)](admin-transfer-to-mitra.md) — platform forwards nett 90% to mitra; show mitra bank info on payment-action surfaces; keep Carter & Reguler in parity.
 - [api-server tsc noise](api-server-typecheck-noise.md) — api-server has ~55 pre-existing tsc errors (adminGuard pattern), runs via esbuild not tsc; gate on frontend typecheck + baseline diff, not raw count.
 - [users.kota casing](users-kota-casing.md) — users.kota stored lowercase, kota_list.nama_kota capitalized; joins must use lower()=lower() or provinsi/wilayah lookups silently return null.
+- [kota_list seeding](kota-list-seeding.md) — kota_list = legacy Kaltim plain names (referenced, never delete) + national 38-prov/514-kab from idn-area-data generator; coexist by prefix, creates duplicate-looking Kalimantan options.

@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "gen-kota": "tsx ./src/gen-kota-indonesia.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "idn-area-data": "^4.0.1",
     "tsx": "catalog:"
   }
 }
