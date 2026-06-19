@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Calendar, Search } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
+import { CitySelect } from "@/components/city-select";
 import { useAuth } from "@/contexts/auth";
 import { useKota, groupKota } from "@/hooks/useKota";
 import { PROVINSI_INDONESIA } from "@/lib/provinsi";
@@ -213,20 +214,15 @@ export default function Cari() {
           <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Dari</label>
-              <select
-                data-testid="search-origin"
+              <CitySelect
+                testId="search-origin"
                 value={origin}
                 disabled={!provinsiAsal}
-                onChange={(e) => { setOrigin(e.target.value); if (destination === e.target.value) setDestination(""); }}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">{provinsiAsal ? "Semua kota" : "Pilih provinsi dulu"}</option>
-                {asalGrouped.map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.kota.map((k) => <option key={k} value={k}>{k}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+                onChange={(v) => { setOrigin(v); if (destination === v) setDestination(""); }}
+                groups={asalGrouped}
+                allowAll
+                placeholder={provinsiAsal ? "Semua kota" : "Pilih provinsi dulu"}
+              />
             </div>
             <div className="flex justify-center -my-1">
               <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center">
@@ -235,24 +231,16 @@ export default function Cari() {
             </div>
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Ke</label>
-              <select
-                data-testid="search-destination"
+              <CitySelect
+                testId="search-destination"
                 value={destination}
                 disabled={!provinsiTujuan}
-                onChange={(e) => setDestination(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">{provinsiTujuan ? "Semua kota" : "Pilih provinsi dulu"}</option>
-                {tujuanGrouped.map((g) => {
-                  const filtered = g.kota.filter((k) => k !== origin);
-                  if (filtered.length === 0) return null;
-                  return (
-                    <optgroup key={g.label} label={g.label}>
-                      {filtered.map((k) => <option key={k} value={k}>{k}</option>)}
-                    </optgroup>
-                  );
-                })}
-              </select>
+                onChange={(v) => setDestination(v)}
+                groups={tujuanGrouped}
+                exclude={origin}
+                allowAll
+                placeholder={provinsiTujuan ? "Semua kota" : "Pilih provinsi dulu"}
+              />
             </div>
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Tanggal</label>

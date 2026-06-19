@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, ArrowRight, Calendar, Clock, MapPin, Search, Sparkles, Loader2 } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
+import { CitySelect } from "@/components/city-select";
 import { useAuth } from "@/contexts/auth";
 import { useKota, groupKota } from "@/hooks/useKota";
 import { PROVINSI_INDONESIA } from "@/lib/provinsi";
@@ -184,43 +185,28 @@ export default function CarterCari() {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> Dari
               </label>
-              <select
+              <CitySelect
+                testId="select-origin"
                 value={origin}
                 disabled={!provinsiAsal}
-                onChange={(e) => { setOrigin(e.target.value); if (dest === e.target.value) setDest(""); }}
-                data-testid="select-origin"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">{provinsiAsal ? "Pilih kota" : "Pilih provinsi dulu"}</option>
-                {asalGrouped.map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.kota.map((k) => <option key={k} value={k}>{k}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+                onChange={(v) => { setOrigin(v); if (dest === v) setDest(""); }}
+                groups={asalGrouped}
+                placeholder={provinsiAsal ? "Pilih kota" : "Pilih provinsi dulu"}
+              />
             </div>
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> Ke
               </label>
-              <select
+              <CitySelect
+                testId="select-dest"
                 value={dest}
                 disabled={!provinsiTujuan}
-                onChange={(e) => setDest(e.target.value)}
-                data-testid="select-dest"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">{provinsiTujuan ? "Pilih kota" : "Pilih provinsi dulu"}</option>
-                {tujuanGrouped.map((g) => {
-                  const filtered = g.kota.filter((k) => k !== origin);
-                  if (filtered.length === 0) return null;
-                  return (
-                    <optgroup key={g.label} label={g.label}>
-                      {filtered.map((k) => <option key={k} value={k}>{k}</option>)}
-                    </optgroup>
-                  );
-                })}
-              </select>
+                onChange={(v) => setDest(v)}
+                groups={tujuanGrouped}
+                exclude={origin}
+                placeholder={provinsiTujuan ? "Pilih kota" : "Pilih provinsi dulu"}
+              />
             </div>
           </div>
 
