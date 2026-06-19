@@ -382,7 +382,7 @@ router.get("/admin/bookings/:id", adminGuard(async (req: any, res: any) => {
         departure_time: schedulesTable.departure_time,
         trip_progress: schedulesTable.trip_progress,
       },
-      driver: { id: bDriver.id, nama: bDriver.nama, no_whatsapp: bDriver.no_whatsapp, foto_profil: bDriver.foto_profil },
+      driver: { id: bDriver.id, nama: bDriver.nama, no_whatsapp: bDriver.no_whatsapp, foto_profil: bDriver.foto_profil, nama_bank: bDriver.nama_bank, no_rekening: bDriver.no_rekening, nama_pemilik_rekening: bDriver.nama_pemilik_rekening },
       kendaraan: { merek: kendaraanTable.merek, model: kendaraanTable.model, plat_nomor: kendaraanTable.plat_nomor, warna: kendaraanTable.warna, foto_url: kendaraanTable.foto_url },
     })
     .from(scheduleBookingsTable)
@@ -557,12 +557,27 @@ router.delete("/admin/carter-bookings/:id", adminGuard(async (req: any, res: any
 
 // ===================== VERIFIKASI PEMBAYARAN =====================
 router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
+  const payDriver = alias(usersTable, "pay_driver");
   const schedule = await db.select({
     b: scheduleBookingsTable,
     user: { id: usersTable.id, nama: usersTable.nama },
+    schedule: {
+      id: schedulesTable.id,
+      origin_city: schedulesTable.origin_city,
+      destination_city: schedulesTable.destination_city,
+    },
+    driver: {
+      id: payDriver.id,
+      nama: payDriver.nama,
+      nama_bank: payDriver.nama_bank,
+      no_rekening: payDriver.no_rekening,
+      nama_pemilik_rekening: payDriver.nama_pemilik_rekening,
+    },
   })
     .from(scheduleBookingsTable)
     .leftJoin(usersTable, eq(scheduleBookingsTable.penumpang_id, usersTable.id))
+    .leftJoin(schedulesTable, eq(scheduleBookingsTable.schedule_id, schedulesTable.id))
+    .leftJoin(payDriver, eq(schedulesTable.driver_id, payDriver.id))
     .where(eq(scheduleBookingsTable.status, "paid"))
     .orderBy(desc(scheduleBookingsTable.created_at)).limit(100);
 
@@ -576,7 +591,13 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
     .orderBy(desc(carterBookingsTable.created_at)).limit(100);
 
   res.json({
-    schedule: schedule.map(r => ({ ...r.b, user: r.user, jenis: "reguler" })),
+    schedule: schedule.map(r => ({
+      ...r.b,
+      user: r.user,
+      schedule: r.schedule?.id ? r.schedule : null,
+      driver: r.driver?.id ? r.driver : null,
+      jenis: "reguler",
+    })),
     carter: carter.map(r => ({ ...r.b, user: r.user, jenis: "carter" })),
   });
 }));

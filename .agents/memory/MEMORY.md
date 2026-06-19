@@ -1,4 +1,5 @@
 - [Codegen vs openapi drift](codegen-openapi-drift.md) — do NOT run api-spec codegen; the stale openapi.yaml wipes schemas the server needs (restore generated files instead).
 - [Railway database connection](railway-database-connection.md) — app reads RAILWAY_DATABASE_URL (Railway public proxy) first; Replit DATABASE_URL unused. Data kept off Replit account on purpose.
 - [Drizzle push unsafe on prod](drizzle-push-unsafe-on-prod.md) — never `db run push` on Railway DB (wants to drop undeclared tables like notifications); use surgical `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` via psql.
+- [Admin transfer-to-mitra (nett 90%)](admin-transfer-to-mitra.md) — platform forwards nett 90% to mitra; show mitra bank info on payment-action surfaces; keep Carter & Reguler in parity.
 - [api-server tsc noise](api-server-typecheck-noise.md) — api-server has ~55 pre-existing tsc errors (adminGuard pattern), runs via esbuild not tsc; gate on frontend typecheck + baseline diff, not raw count.

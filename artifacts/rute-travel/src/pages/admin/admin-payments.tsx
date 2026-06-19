@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
 import AdminLayout from "./admin-layout";
-import { Loader2, CheckCircle, XCircle, Image as ImageIcon, X } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Image as ImageIcon, X, Banknote } from "lucide-react";
 
 interface PaymentItem {
   id: number; status: string; total_amount: number; created_at: string;
@@ -10,6 +10,10 @@ interface PaymentItem {
   user: { id: number; nama: string } | null;
   jenis: "reguler" | "carter";
   schedule?: { origin_city: string; destination_city: string } | null;
+  driver?: {
+    id: number; nama: string;
+    nama_bank: string | null; no_rekening: string | null; nama_pemilik_rekening: string | null;
+  } | null;
 }
 
 function ProofLightbox({ url, onClose }: { url: string; onClose: () => void }) {
@@ -110,6 +114,44 @@ export default function AdminPayments() {
                       <div className="text-xs text-muted-foreground">{b.schedule.origin_city} → {b.schedule.destination_city}</div>
                     )}
                     <div className="text-xs text-muted-foreground">{fmtRp(b.total_amount)} · {b.payment_method} · {new Date(b.created_at).toLocaleDateString("id-ID")}</div>
+
+                    {b.jenis === "reguler" && (
+                      <div className="mt-2 rounded-xl border border-border bg-[#fdf8f0] p-3 space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <Banknote className="w-3.5 h-3.5 text-[#a85e28]" />
+                          <span className="text-[10px] font-bold text-[#1a1208] uppercase tracking-wide">Info Transfer ke Mitra</span>
+                        </div>
+                        {b.driver ? (
+                          b.driver.no_rekening ? (
+                            <div className="space-y-1.5">
+                              <div className="text-xs"><span className="text-muted-foreground">Mitra: </span><span className="font-semibold text-[#1a1208]">{b.driver.nama}</span></div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <p className="text-[9px] text-muted-foreground">Bank</p>
+                                  <p className="text-xs font-bold text-[#1a1208]">{b.driver.nama_bank ?? "–"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] text-muted-foreground">No. Rekening</p>
+                                  <p className="text-xs font-bold text-[#1a1208] font-mono tracking-wide">{b.driver.no_rekening}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] text-muted-foreground">Atas Nama</p>
+                                  <p className="text-xs font-bold text-[#1a1208]">{b.driver.nama_pemilik_rekening ?? "–"}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5">
+                                <span className="text-[11px] text-amber-700 font-medium">Nominal transfer (nett 90%)</span>
+                                <span className="text-xs font-extrabold text-amber-700">{fmtRp(Math.round(b.total_amount * 0.9))}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Mitra <span className="font-semibold text-[#1a1208]">{b.driver.nama}</span> belum mengisi informasi rekening.</p>
+                          )
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Data mitra tidak tersedia.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
