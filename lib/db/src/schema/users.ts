@@ -22,6 +22,7 @@ export const usersTable = pgTable("users", {
   no_rekening: text("no_rekening"),
   nama_pemilik_rekening: text("nama_pemilik_rekening"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  last_login: timestamp("last_login", { withTimezone: true }),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, created_at: true });

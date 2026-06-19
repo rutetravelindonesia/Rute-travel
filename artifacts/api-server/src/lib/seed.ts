@@ -47,6 +47,7 @@ export async function runMigrations(): Promise<void> {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS nama_bank TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS no_rekening TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS nama_pemilik_rekening TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ`,
   ];
   for (const sql of migrations) {
     try {

@@ -106,6 +106,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     expires_at: sessionExpiresAt(),
   });
 
+  await db.update(usersTable).set({ last_login: new Date() }).where(eq(usersTable.id, user.id));
+
   req.log.info({ userId: user.id, role: user.role }, "User logged in");
   res.json({ token, user: safeUser(user) });
 });
@@ -125,6 +127,7 @@ router.post("/auth/admin-login", async (req, res): Promise<void> => {
   }
   const token = generateToken();
   await db.insert(sessionsTable).values({ user_id: user.id, token, expires_at: sessionExpiresAt() });
+  await db.update(usersTable).set({ last_login: new Date() }).where(eq(usersTable.id, user.id));
   req.log.info({ userId: user.id }, "Admin logged in");
   res.json({ token, user: safeUser(user) });
 });
@@ -220,6 +223,7 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
   await db.update(usersTable).set({ is_verified: true }).where(eq(usersTable.id, user_id));
   const token = generateToken();
   await db.insert(sessionsTable).values({ user_id: user.id, token, expires_at: sessionExpiresAt() });
+  await db.update(usersTable).set({ last_login: new Date() }).where(eq(usersTable.id, user.id));
   req.log.info({ userId: user.id }, "OTP verified, user active");
   res.json({ token, user: { ...safeUser(user), is_verified: true } });
 });

@@ -92,19 +92,24 @@ router.get("/admin/stats", adminGuard(async (req: any, res: any) => {
 // ===================== USERS =====================
 router.get("/admin/users", adminGuard(async (req: any, res: any) => {
   const { q, role } = req.query as Record<string, string>;
-  let query = db.select().from(usersTable).$dynamic();
+  let query = db
+    .select({
+      id: usersTable.id, nama: usersTable.nama, no_whatsapp: usersTable.no_whatsapp,
+      role: usersTable.role, kota: usersTable.kota, nik: usersTable.nik,
+      foto_profil: usersTable.foto_profil, foto_diri: usersTable.foto_diri,
+      is_verified: usersTable.is_verified, is_suspended: usersTable.is_suspended,
+      created_at: usersTable.created_at, last_login: usersTable.last_login,
+      provinsi: kotaListTable.provinsi,
+    })
+    .from(usersTable)
+    .leftJoin(kotaListTable, eq(usersTable.kota, kotaListTable.nama_kota))
+    .$dynamic();
   const conds: any[] = [];
   if (role) conds.push(eq(usersTable.role, role));
   if (q) conds.push(or(ilike(usersTable.nama, `%${q}%`), ilike(usersTable.no_whatsapp, `%${q}%`)));
   if (conds.length) query = query.where(and(...conds));
   const users = await query.orderBy(desc(usersTable.created_at)).limit(100);
-  res.json(users.map(u => ({
-    id: u.id, nama: u.nama, no_whatsapp: u.no_whatsapp,
-    role: u.role, kota: u.kota, nik: u.nik,
-    foto_profil: u.foto_profil, foto_diri: u.foto_diri,
-    is_verified: u.is_verified,
-    is_suspended: u.is_suspended, created_at: u.created_at,
-  })));
+  res.json(users);
 }));
 
 // ===================== PENDING MITRA =====================
