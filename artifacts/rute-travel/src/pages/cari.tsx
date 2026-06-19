@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowLeftRight, Calendar, Search } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ArrowRight, Calendar, Search } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
 import { useAuth } from "@/contexts/auth";
-import { useKota } from "@/hooks/useKota";
+import { useKota, groupKota } from "@/hooks/useKota";
+import { PROVINSI_INDONESIA } from "@/lib/provinsi";
 import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface JadwalResult {
@@ -36,11 +37,13 @@ function getQueryParams(): URLSearchParams {
 export default function Cari() {
   const [, setLocation] = useLocation();
   const { token } = useAuth();
-  const { kotaGrouped } = useKota();
+  const { kota } = useKota();
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
   const today = new Date().toISOString().split("T")[0];
   const initialParams = getQueryParams();
+  const [provinsiAsal, setProvinsiAsal] = useState("");
+  const [provinsiTujuan, setProvinsiTujuan] = useState("");
   const [origin, setOrigin] = useState(initialParams.get("from") ?? "");
   const [destination, setDestination] = useState(initialParams.get("to") ?? "");
   const [date, setDate] = useState(initialParams.get("date") ?? today);
@@ -49,6 +52,29 @@ export default function Cari() {
   const [searched, setSearched] = useState(false);
   const [driverRatings, setDriverRatings] = useState<Record<number, { avg: number; count: number }>>({});
   const [photoModal, setPhotoModal] = useState<{ url: string; name: string } | null>(null);
+
+  const asalGrouped = useMemo(
+    () => (provinsiAsal ? groupKota(kota.filter((k) => k.provinsi === provinsiAsal)) : []),
+    [kota, provinsiAsal],
+  );
+  const tujuanGrouped = useMemo(
+    () => (provinsiTujuan ? groupKota(kota.filter((k) => k.provinsi === provinsiTujuan)) : []),
+    [kota, provinsiTujuan],
+  );
+
+  // Saat masuk halaman lewat link dengan kota terpilih, turunkan provinsinya dari data kota.
+  useEffect(() => {
+    if (kota.length === 0) return;
+    if (origin && !provinsiAsal) {
+      const k = kota.find((x) => x.nama_kota === origin);
+      if (k?.provinsi) setProvinsiAsal(k.provinsi);
+    }
+    if (destination && !provinsiTujuan) {
+      const k = kota.find((x) => x.nama_kota === destination);
+      if (k?.provinsi) setProvinsiTujuan(k.provinsi);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kota]);
 
   const search = useCallback(async () => {
     if (!token) return;
@@ -64,16 +90,24 @@ export default function Cari() {
       const jArr: AnyResult[] = jRes.ok
         ? ((await jRes.json()) as JadwalResult[]).map((r) => ({ ...r, kind: "jadwal" as const }))
         : [];
-      const merged = [...jArr].sort((a, b) => {
+      let merged = [...jArr].sort((a, b) => {
         const ka = `${a.departure_date}T${a.departure_time}`;
         const kb = `${b.departure_date}T${b.departure_time}`;
         return ka.localeCompare(kb);
       });
+      if (provinsiAsal) {
+        const asalSet = new Set(kota.filter((k) => k.provinsi === provinsiAsal).map((k) => k.nama_kota));
+        merged = merged.filter((r) => asalSet.has(r.origin_city));
+      }
+      if (provinsiTujuan) {
+        const tujuanSet = new Set(kota.filter((k) => k.provinsi === provinsiTujuan).map((k) => k.nama_kota));
+        merged = merged.filter((r) => tujuanSet.has(r.destination_city));
+      }
       setResults(merged);
     } finally {
       setLoading(false);
     }
-  }, [origin, destination, date, token, apiBase]);
+  }, [origin, destination, date, token, apiBase, provinsiAsal, provinsiTujuan, kota]);
 
   useEffect(() => {
     if (!token || results.length === 0) return;
@@ -133,17 +167,50 @@ export default function Cari() {
 
       <div className="px-5 pt-4 space-y-3">
         <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <p className="text-sm font-bold text-accent flex items-center gap-1.5">
+            <span aria-hidden>📍</span> Pilih provinsi terlebih dahulu
+          </p>
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Provinsi Asal</label>
+              <select
+                data-testid="search-provinsi-asal"
+                value={provinsiAsal}
+                onChange={(e) => { setProvinsiAsal(e.target.value); setOrigin(""); }}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/40"
+              >
+                <option value="">Pilih provinsi</option>
+                {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <ArrowRight className="w-4 h-4 text-accent shrink-0 mt-7" />
+            <div className="flex-1 min-w-0">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Provinsi Tujuan</label>
+              <select
+                data-testid="search-provinsi-tujuan"
+                value={provinsiTujuan}
+                onChange={(e) => { setProvinsiTujuan(e.target.value); setDestination(""); }}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/40"
+              >
+                <option value="">Pilih provinsi</option>
+                {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
           <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Dari</label>
               <select
                 data-testid="search-origin"
                 value={origin}
+                disabled={!provinsiAsal}
                 onChange={(e) => { setOrigin(e.target.value); if (destination === e.target.value) setDestination(""); }}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="">Semua kota</option>
-                {kotaGrouped.map((g) => (
+                <option value="">{provinsiAsal ? "Semua kota" : "Pilih provinsi dulu"}</option>
+                {asalGrouped.map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.kota.map((k) => <option key={k} value={k}>{k}</option>)}
                   </optgroup>
@@ -160,11 +227,12 @@ export default function Cari() {
               <select
                 data-testid="search-destination"
                 value={destination}
+                disabled={!provinsiTujuan}
                 onChange={(e) => setDestination(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="">Semua kota</option>
-                {kotaGrouped.map((g) => {
+                <option value="">{provinsiTujuan ? "Semua kota" : "Pilih provinsi dulu"}</option>
+                {tujuanGrouped.map((g) => {
                   const filtered = g.kota.filter((k) => k !== origin);
                   if (filtered.length === 0) return null;
                   return (

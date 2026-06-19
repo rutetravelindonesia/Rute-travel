@@ -3,6 +3,7 @@ import { pgTable, serial, text, integer, timestamp, numeric } from "drizzle-orm/
 export const kotaListTable = pgTable("kota_list", {
   id: serial("id").primaryKey(),
   nama_kota: text("nama_kota").notNull().unique(),
+  provinsi: text("provinsi"),
   wilayah: text("wilayah"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -56,7 +56,7 @@ Aplikasi online untuk menghubungkan driver travel dan penumpang di Kalimantan Ti
 
 ## Gotchas
 
-- Selalu jalankan `pnpm --filter @workspace/db run push` setelah mengubah schema DB
+- ⚠️ JANGAN jalankan `pnpm --filter @workspace/db run push` (atau `push-force`) ke database Railway — schema yang di-commit tidak 100% sama dengan DB produksi, jadi `drizzle-kit push` ingin MENGHAPUS tabel yang tidak terdeklarasi (mis. `notifications` berisi data asli). Untuk perubahan schema yang sifatnya menambah, jalankan SQL langsung: `psql "$RAILWAY_DATABASE_URL" -c "ALTER TABLE <t> ADD COLUMN IF NOT EXISTS <kolom> <tipe>;"`, lalu sinkronkan file schema Drizzle, lalu restart api-server
 - ⚠️ JANGAN jalankan `pnpm --filter @workspace/api-spec run codegen` — `openapi.yaml` sudah usang (hanya health + auth), sedangkan file generated yang di-commit (`lib/api-zod/src/generated`, `lib/api-client-react/src/generated`) lebih lengkap dan dipakai server/frontend. Codegen akan menghapus schema seperti `CarterSettingsBody`/`KendaraanBody` dan merusak build. Lengkapi dulu `openapi.yaml` sebelum codegen.
 - VAPID keys sudah di-generate baru — push subscriptions lama tidak akan bekerja
 - Cloudinary untuk upload foto, Fonnte untuk OTP WhatsApp
