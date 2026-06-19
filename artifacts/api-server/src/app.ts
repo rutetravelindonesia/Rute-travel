@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
+import { pool } from "@workspace/db";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -45,6 +46,28 @@ sha256_cert_fingerprints: [
 ]
     }
   }]);
+});
+
+// Best-effort "last active" tracking: throttled (max once per 5 min/user) and
+// non-blocking so it never slows down or breaks a request. Updates last_active
+// for the authenticated user behind a valid, unexpired session token.
+app.use((req, _res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    pool
+      .query(
+        `UPDATE users SET last_active = NOW()
+         FROM sessions
+         WHERE sessions.user_id = users.id
+           AND sessions.token = $1
+           AND sessions.expires_at > NOW()
+           AND (users.last_active IS NULL OR users.last_active < NOW() - INTERVAL '5 minutes')`,
+        [token],
+      )
+      .catch((err) => logger.error({ err }, "Failed to update last_active"));
+  }
+  next();
 });
 
 app.use("/api", router);

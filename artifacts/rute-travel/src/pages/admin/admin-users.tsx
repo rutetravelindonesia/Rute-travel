@@ -8,13 +8,14 @@ interface User {
   id: number; nama: string; no_whatsapp: string; role: string;
   kota: string | null; provinsi: string | null; nik: string | null; created_at: string;
   last_login: string | null;
+  last_active: string | null;
   is_verified: boolean; is_suspended: boolean;
   foto_profil: string | null;
   foto_diri: string | null;
 }
 
-function formatLastLogin(value: string | null): string {
-  if (!value) return "Belum pernah";
+function formatWaktu(value: string | null, kosong: string): string {
+  if (!value) return kosong;
   return new Date(value).toLocaleString("id-ID", {
     day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
@@ -167,6 +168,7 @@ export default function AdminUsers() {
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Kota</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Provinsi</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs whitespace-nowrap">Terakhir Login</th>
+                    <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs whitespace-nowrap">Terakhir Aktif</th>
                     <th className="text-left px-4 py-3 font-semibold text-[#1a1208] text-xs">Daftar</th>
                     <th className="px-4 py-3"></th>
                   </tr>
@@ -204,7 +206,8 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{u.kota ?? "-"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{u.provinsi ?? "-"}</td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatLastLogin(u.last_login)}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatWaktu(u.last_login, "Belum pernah")}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatWaktu(u.last_active, "-")}</td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(u.created_at).toLocaleDateString("id-ID")}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1.5 justify-end items-center">

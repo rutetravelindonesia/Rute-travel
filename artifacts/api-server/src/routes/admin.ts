@@ -99,6 +99,7 @@ router.get("/admin/users", adminGuard(async (req: any, res: any) => {
       foto_profil: usersTable.foto_profil, foto_diri: usersTable.foto_diri,
       is_verified: usersTable.is_verified, is_suspended: usersTable.is_suspended,
       created_at: usersTable.created_at, last_login: usersTable.last_login,
+      last_active: usersTable.last_active,
       provinsi: kotaListTable.provinsi,
     })
     .from(usersTable)
