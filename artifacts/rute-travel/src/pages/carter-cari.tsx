@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Calendar, Clock, MapPin, Search, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Clock, MapPin, Search, Sparkles, Loader2 } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
 import { useAuth } from "@/contexts/auth";
-import { useKota } from "@/hooks/useKota";
+import { useKota, groupKota } from "@/hooks/useKota";
+import { PROVINSI_INDONESIA } from "@/lib/provinsi";
 import { resolvePhotoUrl } from "@/lib/photoUrl";
 
 interface CarterMitra {
@@ -48,10 +49,12 @@ export default function CarterCari() {
   const [, setLocation] = useLocation();
   const { token } = useAuth();
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
-  const { kotaGrouped } = useKota();
+  const { kota } = useKota();
 
-  const [origin, setOrigin] = useState<string>("Samarinda");
-  const [dest, setDest] = useState<string>("Balikpapan");
+  const [provinsiAsal, setProvinsiAsal] = useState<string>("");
+  const [provinsiTujuan, setProvinsiTujuan] = useState<string>("");
+  const [origin, setOrigin] = useState<string>("");
+  const [dest, setDest] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO());
   const [time, setTime] = useState<string>(nextHourHHMM());
 
@@ -64,17 +67,25 @@ export default function CarterCari() {
     if (!token) setLocation("/login");
   }, [token, setLocation]);
 
-  const tujuanList = useMemo(
-    () => kotaGrouped.flatMap((g) => g.kota).filter((k) => k !== origin),
-    [kotaGrouped, origin]
+  const asalGrouped = useMemo(
+    () => (provinsiAsal ? groupKota(kota.filter((k) => k.provinsi === provinsiAsal)) : []),
+    [kota, provinsiAsal],
+  );
+  const tujuanGrouped = useMemo(
+    () => (provinsiTujuan ? groupKota(kota.filter((k) => k.provinsi === provinsiTujuan)) : []),
+    [kota, provinsiTujuan],
   );
 
-  useEffect(() => {
-    if (dest === origin) {
-      const next = tujuanList[0];
-      if (next) setDest(next);
+  // Saat provinsi asal dipilih, provinsi tujuan otomatis ikut sama dulu —
+  // kecuali penumpang sudah memilih tujuan yang berbeda secara sengaja.
+  const handleProvinsiAsalChange = (val: string) => {
+    if (provinsiTujuan === "" || provinsiTujuan === provinsiAsal) {
+      setProvinsiTujuan(val);
+      setDest("");
     }
-  }, [origin, dest, tujuanList]);
+    setProvinsiAsal(val);
+    setOrigin("");
+  };
 
   const canSearch = !!origin && !!dest && origin !== dest && !!date && !!time && !searching;
 
@@ -132,6 +143,40 @@ export default function CarterCari() {
       </div>
 
       <div className="px-5 pt-4 space-y-4">
+        {/* Pilih provinsi */}
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <p className="text-sm font-bold text-accent flex items-center gap-1.5">
+            <span aria-hidden>📍</span> Pilih provinsi terlebih dahulu
+          </p>
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Provinsi Asal</label>
+              <select
+                data-testid="carter-provinsi-asal"
+                value={provinsiAsal}
+                onChange={(e) => handleProvinsiAsalChange(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/40"
+              >
+                <option value="">Pilih provinsi</option>
+                {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <ArrowRight className="w-4 h-4 text-accent shrink-0 mt-7" />
+            <div className="flex-1 min-w-0">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Provinsi Tujuan</label>
+              <select
+                data-testid="carter-provinsi-tujuan"
+                value={provinsiTujuan}
+                onChange={(e) => { setProvinsiTujuan(e.target.value); setDest(""); }}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/40"
+              >
+                <option value="">Pilih provinsi</option>
+                {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Form */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -141,11 +186,13 @@ export default function CarterCari() {
               </label>
               <select
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
+                disabled={!provinsiAsal}
+                onChange={(e) => { setOrigin(e.target.value); if (dest === e.target.value) setDest(""); }}
                 data-testid="select-origin"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {kotaGrouped.map((g) => (
+                <option value="">{provinsiAsal ? "Pilih kota" : "Pilih provinsi dulu"}</option>
+                {asalGrouped.map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.kota.map((k) => <option key={k} value={k}>{k}</option>)}
                   </optgroup>
@@ -158,11 +205,13 @@ export default function CarterCari() {
               </label>
               <select
                 value={dest}
+                disabled={!provinsiTujuan}
                 onChange={(e) => setDest(e.target.value)}
                 data-testid="select-dest"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {kotaGrouped.map((g) => {
+                <option value="">{provinsiTujuan ? "Pilih kota" : "Pilih provinsi dulu"}</option>
+                {tujuanGrouped.map((g) => {
                   const filtered = g.kota.filter((k) => k !== origin);
                   if (filtered.length === 0) return null;
                   return (
