@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Calendar, Clock, MapPin, Search, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowLeftRight, Calendar, Clock, Search, Sparkles, Loader2 } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { RideCard } from "@/components/ride-card";
 import { CitySelect } from "@/components/city-select";
@@ -180,11 +180,9 @@ export default function CarterCari() {
 
         {/* Form */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Dari
-              </label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Dari</label>
               <CitySelect
                 testId="select-origin"
                 value={origin}
@@ -194,10 +192,13 @@ export default function CarterCari() {
                 placeholder={provinsiAsal ? "Pilih kota" : "Pilih provinsi dulu"}
               />
             </div>
+            <div className="flex justify-center -my-1">
+              <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center">
+                <ArrowLeftRight className="w-3.5 h-3.5 text-accent" />
+              </div>
+            </div>
             <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Ke
-              </label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Ke</label>
               <CitySelect
                 testId="select-dest"
                 value={dest}
