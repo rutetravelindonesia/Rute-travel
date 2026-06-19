@@ -332,6 +332,10 @@ export default function RegisterPage() {
         setError("Password dan konfirmasi password tidak sama.");
         return;
       }
+      if (userType === "penumpang" && kotaGrouped.length > 0 && !form.kota) {
+        setError("Pilih kota domisili Anda.");
+        return;
+      }
       if (userType === "driver") {
         if (!form.foto_diri) {
           setError("Foto diri wajib diunggah.");
@@ -355,6 +359,9 @@ export default function RegisterPage() {
         plat_nomor: form.plat_nomor || undefined,
         foto_diri: form.foto_diri || undefined,
         foto_stnk: form.foto_stnk || undefined,
+      }),
+      ...(userType === "penumpang" && {
+        kota: form.kota || undefined,
       }),
     };
 
@@ -587,6 +594,30 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Kota domisili — untuk penumpang */}
+                {userType === "penumpang" && (
+                  <div>
+                    <label className="text-xs font-semibold tracking-widest text-foreground/60 uppercase mb-2 block">Kota Domisili</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <select
+                        name="kota" data-testid="select-kota-penumpang"
+                        value={form.kota} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm appearance-none"
+                      >
+                        <option value="">Pilih kota domisili</option>
+                        {kotaGrouped.map((g) => (
+                          <optgroup key={g.label} label={g.label}>
+                            {g.kota.map((k) => (
+                              <option key={k} value={k.toLowerCase()}>{k}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 {/* Foto diri — hanya untuk mitra */}
                 {userType === "driver" && (
