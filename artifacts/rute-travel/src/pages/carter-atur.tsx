@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Calendar, Clock, MapPin, Wallet, CheckCircle2, Save, Car } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, MapPin, Wallet, CheckCircle2, Save, Car, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
-import { useKota } from "@/hooks/useKota";
+import { useKota, groupKota, type KotaGrouped } from "@/hooks/useKota";
+import { CitySelect } from "@/components/city-select";
+import { PROVINSI_INDONESIA } from "@/lib/provinsi";
 
 interface Kendaraan {
   id: number;
@@ -32,8 +34,9 @@ export default function CarterAtur() {
   const [, setLocation] = useLocation();
   const { token } = useAuth();
   const { toast } = useToast();
-  const { kotaGrouped } = useKota();
+  const { kota } = useKota();
 
+  const [provinsiAsal, setProvinsiAsal] = useState<string>("");
   const [originCity, setOriginCity] = useState<string>("");
   const [is24Hours, setIs24Hours] = useState<boolean>(true);
   const [hoursStart, setHoursStart] = useState<string>("06:00");
@@ -129,6 +132,15 @@ export default function CarterAtur() {
     })();
   }, [token, apiBase]);
 
+  // Saat pengaturan lama dimuat (originCity sudah terisi), turunkan provinsinya
+  // dari data kota supaya dropdown Kota Asal tidak terkunci saat mengedit.
+  useEffect(() => {
+    if (kota.length === 0 || !originCity || provinsiAsal) return;
+    const k = kota.find((x) => x.nama_kota === originCity);
+    if (k?.provinsi) setProvinsiAsal(k.provinsi);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kota, originCity]);
+
   function toggleDate(iso: string) {
     if (bookedDates.includes(iso)) return;
     setSelectedDates((prev) => (prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso]));
@@ -151,10 +163,23 @@ export default function CarterAtur() {
     setRoutes((prev) => ({ ...prev, [city]: onlyDigits }));
   }
 
-  const tujuanList = useMemo(
-    () => kotaGrouped.flatMap((g) => g.kota).filter((k) => k !== originCity),
-    [kotaGrouped, originCity]
+  const asalGrouped = useMemo(
+    () => (provinsiAsal ? groupKota(kota.filter((k) => k.provinsi === provinsiAsal)) : []),
+    [kota, provinsiAsal],
   );
+  // Kota tujuan tidak dikunci provinsi — semua kota dikelompokkan per provinsi,
+  // tanpa kota asal dan yang sudah dipilih.
+  const tujuanGrouped = useMemo<KotaGrouped[]>(() => {
+    const byProv: Record<string, string[]> = {};
+    for (const k of kota) {
+      if (k.nama_kota === originCity || k.nama_kota in routes) continue;
+      const p = k.provinsi ?? "Lainnya";
+      (byProv[p] ??= []).push(k.nama_kota);
+    }
+    return Object.keys(byProv)
+      .sort((a, b) => a.localeCompare(b, "id"))
+      .map((p) => ({ label: p, kota: byProv[p].slice().sort((a, b) => a.localeCompare(b, "id")) }));
+  }, [kota, originCity, routes]);
 
   const isValid = useMemo(() => {
     if (kendaraanId === null) return false;
@@ -448,27 +473,41 @@ export default function CarterAtur() {
 
           <div>
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-              Kota Asal
+              Provinsi Asal
             </label>
             <select
-              value={originCity}
+              data-testid="carter-provinsi-asal"
+              value={provinsiAsal}
               onChange={(e) => {
-                setOriginCity(e.target.value);
+                setProvinsiAsal(e.target.value);
+                setOriginCity("");
+              }}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+            >
+              <option value="">Pilih provinsi</option>
+              {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+              Kota Asal
+            </label>
+            <CitySelect
+              testId="carter-kota-asal"
+              value={originCity}
+              disabled={!provinsiAsal}
+              onChange={(v) => {
+                setOriginCity(v);
                 setRoutes((prev) => {
                   const next = { ...prev };
-                  if (e.target.value in next) delete next[e.target.value];
+                  if (v in next) delete next[v];
                   return next;
                 });
               }}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none"
-            >
-              <option value="">Pilih kota asal...</option>
-              {kotaGrouped.map((g) => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.kota.map((k) => <option key={k} value={k}>{k}</option>)}
-                </optgroup>
-              ))}
-            </select>
+              groups={asalGrouped}
+              placeholder={provinsiAsal ? "Pilih kota asal..." : "Pilih provinsi dulu"}
+            />
           </div>
 
           {originCity && (
@@ -476,25 +515,29 @@ export default function CarterAtur() {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
                 Kota Tujuan (pilih satu atau lebih)
               </label>
-              <div className="flex flex-wrap gap-2">
-                {tujuanList.map((k) => {
-                  const active = k in routes;
-                  return (
+              <CitySelect
+                testId="carter-tambah-tujuan"
+                value=""
+                onChange={(v) => { if (v) toggleRoute(v); }}
+                groups={tujuanGrouped}
+                placeholder="Tambah kota tujuan..."
+              />
+              {Object.keys(routes).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  {Object.keys(routes).map((k) => (
                     <button
                       key={k}
                       onClick={() => toggleRoute(k)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                        active
-                          ? "border-accent bg-accent text-white"
-                          : "border-border bg-background text-foreground hover:border-accent/40"
-                      }`}
+                      data-testid={`carter-tujuan-chip-${k}`}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-accent bg-accent text-white inline-flex items-center gap-1"
                     >
-                      {active && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
+                      <CheckCircle2 className="w-3 h-3" />
                       {k}
+                      <X className="w-3 h-3" />
                     </button>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

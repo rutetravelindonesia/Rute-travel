@@ -3,7 +3,9 @@ import { useLocation } from "wouter";
 import { ArrowLeft, ArrowRight, ArrowLeftRight, Calendar, Clock, Users, Wallet, CheckCircle2, MapPin, Car, Plus, Trash2, Navigation } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
-import { useKota } from "@/hooks/useKota";
+import { useKota, groupKota, type KotaGrouped } from "@/hooks/useKota";
+import { CitySelect } from "@/components/city-select";
+import { PROVINSI_INDONESIA } from "@/lib/provinsi";
 
 interface Kendaraan {
   id: number;
@@ -51,8 +53,10 @@ export default function JadwalTetapBuat() {
   const [, setLocation] = useLocation();
   const { token } = useAuth();
   const { toast } = useToast();
-  const { kotaGrouped } = useKota();
+  const { kota } = useKota();
   const [step, setStep] = useState(1);
+  const [provinsiAsal, setProvinsiAsal] = useState("");
+  const [provinsiTujuan, setProvinsiTujuan] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormData>({
     origin_city: "",
@@ -110,6 +114,37 @@ export default function JadwalTetapBuat() {
   function set(field: keyof FormData, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
   }
+
+  const asalGrouped = useMemo(
+    () => (provinsiAsal ? groupKota(kota.filter((k) => k.provinsi === provinsiAsal)) : []),
+    [kota, provinsiAsal],
+  );
+  const tujuanGrouped = useMemo(
+    () => (provinsiTujuan ? groupKota(kota.filter((k) => k.provinsi === provinsiTujuan)) : []),
+    [kota, provinsiTujuan],
+  );
+  // Kota singgah tidak dikunci provinsi — daftar semua kota dikelompokkan per provinsi.
+  const allGrouped = useMemo<KotaGrouped[]>(() => {
+    const byProv: Record<string, string[]> = {};
+    for (const k of kota) {
+      const p = k.provinsi ?? "Lainnya";
+      (byProv[p] ??= []).push(k.nama_kota);
+    }
+    return Object.keys(byProv)
+      .sort((a, b) => a.localeCompare(b, "id"))
+      .map((p) => ({ label: p, kota: byProv[p].slice().sort((a, b) => a.localeCompare(b, "id")) }));
+  }, [kota]);
+
+  // Saat provinsi asal dipilih, provinsi tujuan otomatis ikut sama dulu —
+  // kecuali mitra sudah memilih tujuan yang berbeda secara sengaja.
+  const handleProvinsiAsalChange = (val: string) => {
+    if (provinsiTujuan === "" || provinsiTujuan === provinsiAsal) {
+      setProvinsiTujuan(val);
+      set("destination_city", "");
+    }
+    setProvinsiAsal(val);
+    set("origin_city", "");
+  };
 
   function canNext() {
     if (step === 1) {
@@ -313,25 +348,53 @@ export default function JadwalTetapBuat() {
                 <h2 className="text-sm font-bold text-foreground">Rute Perjalanan</h2>
               </div>
 
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
+                    Provinsi Asal
+                  </label>
+                  <select
+                    data-testid="jadwal-provinsi-asal"
+                    value={provinsiAsal}
+                    onChange={(e) => handleProvinsiAsalChange(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  >
+                    <option value="">Pilih provinsi</option>
+                    {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <ArrowRight className="w-4 h-4 text-accent shrink-0 mt-8" />
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
+                    Provinsi Tujuan
+                  </label>
+                  <select
+                    data-testid="jadwal-provinsi-tujuan"
+                    value={provinsiTujuan}
+                    onChange={(e) => { setProvinsiTujuan(e.target.value); set("destination_city", ""); }}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  >
+                    <option value="">Pilih provinsi</option>
+                    {PROVINSI_INDONESIA.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
                   Kota Asal
                 </label>
-                <select
+                <CitySelect
+                  testId="jadwal-kota-asal"
                   value={form.origin_city}
-                  onChange={(e) => {
-                    set("origin_city", e.target.value);
-                    if (form.destination_city === e.target.value) set("destination_city", "");
+                  disabled={!provinsiAsal}
+                  onChange={(v) => {
+                    set("origin_city", v);
+                    if (form.destination_city === v) set("destination_city", "");
                   }}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none"
-                >
-                  <option value="">Pilih kota asal...</option>
-                  {kotaGrouped.map((g) => (
-                    <optgroup key={g.label} label={g.label}>
-                      {g.kota.map((k) => <option key={k} value={k}>{k}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
+                  groups={asalGrouped}
+                  placeholder={provinsiAsal ? "Pilih kota asal..." : "Pilih provinsi dulu"}
+                />
               </div>
 
               <div className="flex justify-center">
@@ -344,22 +407,15 @@ export default function JadwalTetapBuat() {
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
                   Kota Tujuan
                 </label>
-                <select
+                <CitySelect
+                  testId="jadwal-kota-tujuan"
                   value={form.destination_city}
-                  onChange={(e) => set("destination_city", e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none"
-                >
-                  <option value="">Pilih kota tujuan...</option>
-                  {kotaGrouped.map((g) => {
-                    const filtered = g.kota.filter((k) => k !== form.origin_city);
-                    if (filtered.length === 0) return null;
-                    return (
-                      <optgroup key={g.label} label={g.label}>
-                        {filtered.map((k) => <option key={k} value={k}>{k}</option>)}
-                      </optgroup>
-                    );
-                  })}
-                </select>
+                  disabled={!provinsiTujuan}
+                  onChange={(v) => set("destination_city", v)}
+                  groups={tujuanGrouped}
+                  exclude={form.origin_city}
+                  placeholder={provinsiTujuan ? "Pilih kota tujuan..." : "Pilih provinsi dulu"}
+                />
               </div>
             </div>
 
@@ -547,26 +603,19 @@ export default function JadwalTetapBuat() {
                       </div>
                       <div className="flex gap-2 items-start">
                         <div className="flex-1 space-y-1.5">
-                          <select
+                          <CitySelect
+                            testId={`jadwal-singgah-${idx}`}
                             value={wp.city}
-                            onChange={(e) => {
+                            onChange={(v) => {
                               const updated = [...intermediateWaypoints];
-                              updated[idx] = { ...updated[idx], city: e.target.value };
+                              updated[idx] = { ...updated[idx], city: v };
                               setIntermediateWaypoints(updated);
                             }}
-                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-                          >
-                            <option value="">Pilih kota singgah...</option>
-                            {kotaGrouped.map((g) => {
-                              const filtered = g.kota.filter((k) => !usedCities.has(k) || k === wp.city);
-                              if (filtered.length === 0) return null;
-                              return (
-                                <optgroup key={g.label} label={g.label}>
-                                  {filtered.map((k) => <option key={k} value={k}>{k}</option>)}
-                                </optgroup>
-                              );
-                            })}
-                          </select>
+                            groups={allGrouped
+                              .map((g) => ({ label: g.label, kota: g.kota.filter((k) => !usedCities.has(k) || k === wp.city) }))
+                              .filter((g) => g.kota.length > 0)}
+                            placeholder="Pilih kota singgah..."
+                          />
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">Rp</span>
                             <input
