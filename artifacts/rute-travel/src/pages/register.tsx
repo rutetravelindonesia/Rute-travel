@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   User, Car, Phone, Lock, Eye, EyeOff, ArrowRight, ArrowLeft,
-  IdCard, MapPin, Camera, CheckCircle2, Loader2, RefreshCw,
+  IdCard, Camera, CheckCircle2, Loader2, RefreshCw,
 } from "lucide-react";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/auth";
 import { ApiError } from "@workspace/api-client-react";
 import { useKota } from "@/hooks/useKota";
+import { ProvinsiKotaPicker } from "@/components/ProvinsiKotaPicker";
 
 type UserType = "penumpang" | "driver";
 type Step = 1 | 2 | "otp" | "pending_review";
@@ -285,7 +286,7 @@ function OTPScreen({
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { setAuth, user, token } = useAuth();
-  const { kotaGrouped } = useKota();
+  const { kota: kotaRows } = useKota();
 
   useEffect(() => {
     if (token && user) {
@@ -332,7 +333,7 @@ export default function RegisterPage() {
         setError("Password dan konfirmasi password tidak sama.");
         return;
       }
-      if (userType === "penumpang" && kotaGrouped.length > 0 && !form.kota) {
+      if (userType === "penumpang" && kotaRows.length > 0 && !form.kota) {
         setError("Pilih kota domisili Anda.");
         return;
       }
@@ -595,28 +596,13 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* Kota domisili — untuk penumpang */}
+                {/* Provinsi & kota domisili — untuk penumpang */}
                 {userType === "penumpang" && (
-                  <div>
-                    <label className="text-xs font-semibold tracking-widest text-foreground/60 uppercase mb-2 block">Kota Domisili</label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <select
-                        name="kota" data-testid="select-kota-penumpang"
-                        value={form.kota} onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm appearance-none"
-                      >
-                        <option value="">Pilih kota domisili</option>
-                        {kotaGrouped.map((g) => (
-                          <optgroup key={g.label} label={g.label}>
-                            {g.kota.map((k) => (
-                              <option key={k} value={k.toLowerCase()}>{k}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                  <ProvinsiKotaPicker
+                    kota={kotaRows}
+                    value={form.kota}
+                    onChange={(v) => setForm((f) => ({ ...f, kota: v }))}
+                  />
                 )}
 
                 {/* Foto diri — hanya untuk mitra */}
@@ -649,26 +635,11 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold tracking-widest text-foreground/60 uppercase mb-2 block">Kota Domisili</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <select
-                      name="kota" data-testid="select-kota"
-                      value={form.kota} onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm appearance-none"
-                    >
-                      <option value="">Pilih kota domisili</option>
-                      {kotaGrouped.map((g) => (
-                        <optgroup key={g.label} label={g.label}>
-                          {g.kota.map((k) => (
-                            <option key={k} value={k.toLowerCase()}>{k}</option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <ProvinsiKotaPicker
+                  kota={kotaRows}
+                  value={form.kota}
+                  onChange={(v) => setForm((f) => ({ ...f, kota: v }))}
+                />
 
                 <div>
                   <label className="text-xs font-semibold tracking-widest text-foreground/60 uppercase mb-2 block">Jenis Kendaraan</label>
