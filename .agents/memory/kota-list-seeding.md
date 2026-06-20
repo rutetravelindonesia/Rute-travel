@@ -24,3 +24,19 @@ up requires migrating existing references first; do not just delete the legacy r
 **How to apply:** to refresh national data, rerun the generator (it rewrites the data
 file) and restart api-server. The picker (`ProvinsiKotaPicker`) derives provinsi list
 from this data, so coverage is automatic.
+
+## Provinsi names must match the DB exactly (no short forms)
+
+Search/create/admin pages (cari, jadwal-tetap-buat, carter-cari, carter-atur,
+admin-kota) filter cities by exact string equality `k.provinsi === selectedProvinsi`,
+sourcing the province dropdown from the HARDCODED `artifacts/rute-travel/src/lib/provinsi.ts`
+list — NOT from the kota data. So every entry there must equal a `kota_list.provinsi`
+value verbatim, or that province's city list silently comes back empty.
+
+**Why:** `idn-area-data` uses official long names. Two differ from common short forms:
+`Daerah Khusus Ibukota Jakarta` (not "DKI Jakarta") and `Daerah Istimewa Yogyakarta`
+(not "DI Yogyakarta"). Those two mismatches once made Jakarta/Yogya cities show empty.
+
+**How to apply:** keep `provinsi.ts` aligned to `SELECT DISTINCT provinsi FROM kota_list`.
+`ProvinsiKotaPicker` is immune (it derives provinces from data), but the hardcoded-list
+pages are not.
