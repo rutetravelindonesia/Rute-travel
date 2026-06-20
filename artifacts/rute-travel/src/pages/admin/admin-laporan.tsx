@@ -6,7 +6,7 @@ import { Loader2, Download } from "lucide-react";
 
 interface LaporanItem {
   id: number; total_amount: number; created_at: string; status: string; payment_method: string;
-  jenis: "reguler" | "carter";
+  jenis: "reguler" | "carter" | "rental";
   komisi_platform: number;
   nett_driver: number;
   user: { nama: string } | null;
@@ -18,15 +18,19 @@ interface Laporan {
   platform_rate: number;
   total_reguler: number;
   total_carter: number;
+  total_rental: number;
   total: number;
   komisi_platform_reguler: number;
   nett_driver_reguler: number;
   komisi_platform_carter: number;
   nett_driver_carter: number;
+  komisi_platform_rental: number;
+  nett_driver_rental: number;
   komisi_platform: number;
   nett_driver: number;
   bookings: LaporanItem[];
   carter: LaporanItem[];
+  rental: LaporanItem[];
 }
 
 export default function AdminLaporan() {
@@ -60,11 +64,11 @@ export default function AdminLaporan() {
   function exportCsv() {
     if (!laporan) return;
     const pct = Math.round((laporan.platform_rate ?? 0.1) * 100);
-    const all = [...laporan.bookings, ...laporan.carter];
+    const all = [...laporan.bookings, ...laporan.carter, ...laporan.rental];
     const header = `ID,Jenis,Nama,Rute,Total Bruto,Komisi Platform (${pct}%),Nett Driver (${100 - pct}%),Metode,Status,Tanggal`;
     const body = all.map(b => [
       b.id, b.jenis, b.user?.nama ?? "-",
-      b.jenis === "reguler" && b.schedule ? `${b.schedule.origin_city}→${b.schedule.destination_city}` : "Carter",
+      b.jenis === "reguler" && b.schedule ? `${b.schedule.origin_city}→${b.schedule.destination_city}` : b.jenis === "rental" ? "Rental" : "Carter",
       Number(b.total_amount), b.komisi_platform, b.nett_driver, b.payment_method, b.status,
       new Date(b.created_at).toLocaleDateString("id-ID"),
     ].join(",")).join("\n");
@@ -127,7 +131,7 @@ export default function AdminLaporan() {
             </div>
 
             {/* Breakdown per Jenis */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Reguler */}
               <div className="bg-white rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center gap-2">
@@ -171,6 +175,28 @@ export default function AdminLaporan() {
                   </div>
                 </div>
               </div>
+
+              {/* Rental */}
+              <div className="bg-white rounded-xl border border-border p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Rental</span>
+                  <h2 className="text-sm font-bold text-[#1a1208]">Breakdown</h2>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Bruto</span>
+                    <span className="font-semibold">{fmtRp(laporan.total_rental)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-amber-600">Komisi Platform ({pct}%)</span>
+                    <span className="font-semibold text-amber-600">{fmtRp(laporan.komisi_platform_rental)}</span>
+                  </div>
+                  <div className="border-t border-border pt-2 flex justify-between text-sm">
+                    <span className="text-emerald-600 font-semibold">Nett Driver ({100 - pct}%)</span>
+                    <span className="font-bold text-emerald-600">{fmtRp(laporan.nett_driver_rental)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Tabel Detail */}
@@ -190,18 +216,18 @@ export default function AdminLaporan() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {[...laporan.bookings, ...laporan.carter]
+                    {[...laporan.bookings, ...laporan.carter, ...laporan.rental]
                       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                       .map(b => (
                         <tr key={`${b.jenis}-${b.id}`} className="hover:bg-[#f5f0e8]/50">
                           <td className="px-4 py-3 font-medium">{b.user?.nama ?? "-"}</td>
                           <td className="px-4 py-3">
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${b.jenis === "reguler" ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"}`}>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${b.jenis === "reguler" ? "bg-blue-100 text-blue-700" : b.jenis === "rental" ? "bg-emerald-100 text-emerald-700" : "bg-violet-100 text-violet-700"}`}>
                               {b.jenis}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {b.jenis === "reguler" && b.schedule ? `${b.schedule.origin_city} → ${b.schedule.destination_city}` : "Carter"}
+                            {b.jenis === "reguler" && b.schedule ? `${b.schedule.origin_city} → ${b.schedule.destination_city}` : b.jenis === "rental" ? "Rental" : "Carter"}
                           </td>
                           <td className="px-4 py-3 font-semibold text-right">{fmtRp(Number(b.total_amount))}</td>
                           <td className="px-4 py-3 text-right text-amber-600 font-medium">{fmtRp(b.komisi_platform)}</td>

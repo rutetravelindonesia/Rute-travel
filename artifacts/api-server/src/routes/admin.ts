@@ -691,9 +691,18 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
   const rental = await db.select({
     b: rentalBookingsTable,
     user: { id: usersTable.id, nama: usersTable.nama },
+    driver: {
+      id: payDriver.id,
+      nama: payDriver.nama,
+      nama_bank: payDriver.nama_bank,
+      no_rekening: payDriver.no_rekening,
+      nama_pemilik_rekening: payDriver.nama_pemilik_rekening,
+    },
   })
     .from(rentalBookingsTable)
     .leftJoin(usersTable, eq(rentalBookingsTable.penyewa_id, usersTable.id))
+    .leftJoin(rentalKendaraanTable, eq(rentalBookingsTable.rental_id, rentalKendaraanTable.id))
+    .leftJoin(payDriver, eq(rentalKendaraanTable.driver_id, payDriver.id))
     .where(eq(rentalBookingsTable.status, "paid"))
     .orderBy(desc(rentalBookingsTable.created_at)).limit(100);
 
@@ -706,7 +715,7 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
       jenis: "reguler",
     })),
     carter: carter.map(r => ({ ...r.b, user: r.user, jenis: "carter" })),
-    rental: rental.map(r => ({ ...r.b, user: r.user, jenis: "rental" })),
+    rental: rental.map(r => ({ ...r.b, user: r.user, driver: r.driver?.id ? r.driver : null, jenis: "rental" })),
   });
 }));
 
@@ -916,6 +925,24 @@ router.get("/admin/laporan", adminGuard(async (req: any, res: any) => {
     ))
     .orderBy(desc(carterBookingsTable.created_at));
 
+  const rentalB = await db.select({
+    b: rentalBookingsTable,
+    user: { nama: usersTable.nama },
+  })
+    .from(rentalBookingsTable)
+    .leftJoin(usersTable, eq(rentalBookingsTable.penyewa_id, usersTable.id))
+    .where(and(
+      gte(rentalBookingsTable.created_at, start),
+      lte(rentalBookingsTable.created_at, end),
+      or(
+        eq(rentalBookingsTable.status, "paid"),
+        eq(rentalBookingsTable.status, "confirmed"),
+        eq(rentalBookingsTable.status, "aktif"),
+        eq(rentalBookingsTable.status, "selesai"),
+      ),
+    ))
+    .orderBy(desc(rentalBookingsTable.created_at));
+
   const platformRate = 0.10;
 
   const bookingItems = bookings.map(r => {
@@ -928,28 +955,40 @@ router.get("/admin/laporan", adminGuard(async (req: any, res: any) => {
     const komisi = Math.round(bruto * platformRate);
     return { ...r.b, user: r.user, jenis: "carter" as const, komisi_platform: komisi, nett_driver: bruto - komisi };
   });
+  const rentalItems = rentalB.map(r => {
+    const bruto = Number(r.b.total_amount);
+    const komisi = Math.round(bruto * platformRate);
+    return { ...r.b, user: r.user, jenis: "rental" as const, komisi_platform: komisi, nett_driver: bruto - komisi };
+  });
 
   const totalReguler = bookingItems.reduce((s, r) => s + Number(r.total_amount), 0);
   const totalCarter = carterItems.reduce((s, r) => s + Number(r.total_amount), 0);
+  const totalRental = rentalItems.reduce((s, r) => s + Number(r.total_amount), 0);
   const komisiReguler = bookingItems.reduce((s, r) => s + r.komisi_platform, 0);
   const komisiCarter = carterItems.reduce((s, r) => s + r.komisi_platform, 0);
+  const komisiRental = rentalItems.reduce((s, r) => s + r.komisi_platform, 0);
   const nettReguler = bookingItems.reduce((s, r) => s + r.nett_driver, 0);
   const nettCarter = carterItems.reduce((s, r) => s + r.nett_driver, 0);
+  const nettRental = rentalItems.reduce((s, r) => s + r.nett_driver, 0);
 
   res.json({
     periode: { dari: start, sampai: end },
     platform_rate: platformRate,
     total_reguler: totalReguler,
     total_carter: totalCarter,
-    total: totalReguler + totalCarter,
+    total_rental: totalRental,
+    total: totalReguler + totalCarter + totalRental,
     komisi_platform_reguler: komisiReguler,
     nett_driver_reguler: nettReguler,
     komisi_platform_carter: komisiCarter,
     nett_driver_carter: nettCarter,
-    komisi_platform: komisiReguler + komisiCarter,
-    nett_driver: nettReguler + nettCarter,
+    komisi_platform_rental: komisiRental,
+    nett_driver_rental: nettRental,
+    komisi_platform: komisiReguler + komisiCarter + komisiRental,
+    nett_driver: nettReguler + nettCarter + nettRental,
     bookings: bookingItems,
     carter: carterItems,
+    rental: rentalItems,
   });
 }));
 

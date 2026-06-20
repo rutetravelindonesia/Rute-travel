@@ -8,7 +8,7 @@ interface PaymentItem {
   id: number; status: string; total_amount: number; created_at: string;
   payment_method: string; payment_proof_url: string | null;
   user: { id: number; nama: string } | null;
-  jenis: "reguler" | "carter";
+  jenis: "reguler" | "carter" | "rental";
   schedule?: { origin_city: string; destination_city: string } | null;
   driver?: {
     id: number; nama: string;
@@ -44,9 +44,10 @@ export default function AdminPayments() {
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
   const [reguler, setReguler] = useState<PaymentItem[]>([]);
   const [carter, setCarter] = useState<PaymentItem[]>([]);
+  const [rental, setRental] = useState<PaymentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [tab, setTab] = useState<"reguler" | "carter">("reguler");
+  const [tab, setTab] = useState<"reguler" | "carter" | "rental">("reguler");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -56,6 +57,7 @@ export default function AdminPayments() {
     const d = await r.json();
     setReguler(Array.isArray(d.schedule) ? d.schedule : []);
     setCarter(Array.isArray(d.carter) ? d.carter : []);
+    setRental(Array.isArray(d.rental) ? d.rental : []);
     setLoading(false);
   }, [token, apiBase]);
 
@@ -64,19 +66,21 @@ export default function AdminPayments() {
     load();
   }, [token, user, load]);
 
-  async function action(jenis: "reguler" | "carter", id: number, act: "confirm" | "reject") {
+  async function action(jenis: "reguler" | "carter" | "rental", id: number, act: "confirm" | "reject") {
     const key = `${jenis}-${id}-${act}`;
     setBusy(key);
     const path = jenis === "reguler"
       ? `/admin/payments/booking/${id}/${act}`
-      : `/admin/payments/carter/${id}/${act}`;
+      : jenis === "carter"
+        ? `/admin/payments/carter/${id}/${act}`
+        : `/admin/payments/rental/${id}/${act}`;
     await fetch(`${apiBase}${path}`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` } });
     setBusy(null);
     await load();
   }
 
   const fmtRp = (n: number) => "Rp " + new Intl.NumberFormat("id-ID").format(n);
-  const rows = tab === "reguler" ? reguler : carter;
+  const rows = tab === "reguler" ? reguler : tab === "carter" ? carter : rental;
 
   return (
     <AdminLayout>
@@ -88,10 +92,10 @@ export default function AdminPayments() {
         <h1 className="text-2xl font-bold text-[#1a1208]">Verifikasi Pembayaran</h1>
 
         <div className="flex gap-2">
-          {(["reguler", "carter"] as const).map(t => (
+          {(["reguler", "carter", "rental"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${tab === t ? "bg-[#a85e28] text-white" : "bg-white border border-border text-muted-foreground"}`}>
-              {t === "reguler" ? `Reguler (${reguler.length})` : `Carter (${carter.length})`}
+              {t === "reguler" ? `Reguler (${reguler.length})` : t === "carter" ? `Carter (${carter.length})` : `Rental (${rental.length})`}
             </button>
           ))}
         </div>
@@ -115,7 +119,7 @@ export default function AdminPayments() {
                     )}
                     <div className="text-xs text-muted-foreground">{fmtRp(b.total_amount)} · {b.payment_method} · {new Date(b.created_at).toLocaleDateString("id-ID")}</div>
 
-                    {b.jenis === "reguler" && (
+                    {(b.jenis === "reguler" || b.jenis === "rental") && (
                       <div className="mt-2 rounded-xl border border-border bg-[#fdf8f0] p-3 space-y-2">
                         <div className="flex items-center gap-1.5">
                           <Banknote className="w-3.5 h-3.5 text-[#a85e28]" />
