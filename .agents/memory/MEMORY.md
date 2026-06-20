@@ -6,3 +6,4 @@
 - [api-server tsc noise](api-server-typecheck-noise.md) — api-server has ~55 pre-existing tsc errors (adminGuard pattern), runs via esbuild not tsc; gate on frontend typecheck + baseline diff, not raw count.
 - [users.kota casing](users-kota-casing.md) — users.kota stored lowercase, kota_list.nama_kota capitalized; joins must use lower()=lower() or provinsi/wilayah lookups silently return null.
 - [kota_list seeding](kota-list-seeding.md) — kota_list = legacy Kaltim plain names (referenced, never delete) + national 38-prov/514-kab from idn-area-data generator; coexist by prefix, creates duplicate-looking Kalimantan options.
+- [Rental booking concurrency](rental-booking-concurrency.md) — double-booking guard = offer-row FOR UPDATE lock + overlap query on active statuses INSIDE the tx; never move the check outside the lock.

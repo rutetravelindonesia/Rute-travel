@@ -42,19 +42,6 @@ interface Schedule {
   kursi_tersisa: number;
 }
 
-interface Tebengan {
-  id: number;
-  origin_city: string;
-  destination_city: string;
-  departure_date: string;
-  departure_time: string;
-  max_kursi: number;
-  price_per_seat: number;
-  status: string;
-  kursi_terisi: number;
-  kursi_tersisa: number;
-}
-
 const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
 const HARI_SHORT = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -95,7 +82,6 @@ export default function JadwalMitraPage() {
   const [, setLocation] = useLocation();
   const { token, user } = useAuth();
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
-  const [tebenganList, setTebenganList] = useState<Tebengan[]>([]);
   const [carterSettings, setCarterSettings] = useState<CarterSettings | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const today = ymd(new Date());
@@ -189,25 +175,22 @@ export default function JadwalMitraPage() {
     setError(null);
     async function load() {
       try {
-        const [schedRes, carterRes, tebenganRes] = await Promise.all([
+        const [schedRes, carterRes] = await Promise.all([
           fetch(`${apiBase}/schedules/mine`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${apiBase}/carter/settings/mine`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${apiBase}/tebengan/mine`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         if (!schedRes.ok) {
           let msg = `HTTP ${schedRes.status}`;
           try { const j = await schedRes.json(); if (j?.error) msg = j.error; } catch {}
           throw new Error(msg);
         }
-        const [schedData, carterData, tebenganData]: [Schedule[], CarterSettings | null, Tebengan[]] = await Promise.all([
+        const [schedData, carterData]: [Schedule[], CarterSettings | null] = await Promise.all([
           schedRes.json(),
           carterRes.ok ? carterRes.json() : Promise.resolve(null),
-          tebenganRes.ok ? tebenganRes.json() : Promise.resolve([]),
         ]);
         if (!cancelled) {
           setSchedules(schedData);
           setCarterSettings(carterData);
-          setTebenganList(Array.isArray(tebenganData) ? tebenganData : []);
         }
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? "Gagal memuat jadwal.");
@@ -231,15 +214,14 @@ export default function JadwalMitraPage() {
     setBatalCarterError(null);
   }, [selectedDate]);
 
-  // Highlight which dates have schedules or tebengan.
+  // Highlight which dates have schedules.
   const datesWithSchedule = useMemo(() => {
     const set = new Set<string>();
     if (schedules) for (const s of schedules) {
       if (s.trip_progress !== "selesai") set.add(s.departure_date);
     }
-    for (const t of tebenganList) if (t.status !== "batal") set.add(t.departure_date);
     return set;
-  }, [schedules, tebenganList]);
+  }, [schedules]);
 
   // Carter available dates.
   const datesWithCarter = useMemo(() => {
@@ -253,12 +235,6 @@ export default function JadwalMitraPage() {
       .filter((s) => s.departure_date === selectedDate && s.trip_progress !== "selesai")
       .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
   }, [schedules, selectedDate]);
-
-  const filteredTebengan = useMemo(() => {
-    return tebenganList
-      .filter((t) => t.departure_date === selectedDate && t.status !== "batal")
-      .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
-  }, [tebenganList, selectedDate]);
 
   return (
     <div className="min-h-screen bg-[#f0ece4] flex flex-col max-w-md mx-auto relative">
@@ -349,7 +325,7 @@ export default function JadwalMitraPage() {
           </h2>
           <span className="text-xs text-muted-foreground" data-testid="schedule-count">
             {filtered
-              ? `${filtered.length + filteredTebengan.length + (datesWithCarter.has(selectedDate) ? 1 : 0)} jadwal`
+              ? `${filtered.length + (datesWithCarter.has(selectedDate) ? 1 : 0)} jadwal`
               : "—"}
           </span>
         </div>
@@ -422,7 +398,7 @@ export default function JadwalMitraPage() {
           <div className="flex justify-center py-10">
             <div className="w-6 h-6 border-2 border-accent/40 border-t-accent rounded-full animate-spin" />
           </div>
-        ) : filtered && filtered.length === 0 && filteredTebengan.length === 0 && !datesWithCarter.has(selectedDate) ? (
+        ) : filtered && filtered.length === 0 && !datesWithCarter.has(selectedDate) ? (
           <div
             className="bg-card rounded-2xl border border-dashed border-border p-6 text-center"
             data-testid="empty-state"
@@ -570,63 +546,6 @@ export default function JadwalMitraPage() {
                       )}
                     </div>
                   )}
-                </div>
-              );
-            })}
-
-            {filteredTebengan.map((t) => {
-              const statusCls: Record<string, string> = {
-                aktif: "bg-green-100 text-green-800",
-                berangkat: "bg-blue-100 text-blue-800",
-                selesai: "bg-muted text-muted-foreground",
-              };
-              const statusLabel: Record<string, string> = {
-                aktif: "Aktif",
-                berangkat: "Berangkat",
-                selesai: "Selesai",
-              };
-              return (
-                <div
-                  key={`tebengan-${t.id}`}
-                  data-testid={`mitra-tebengan-${t.id}`}
-                  className="bg-card rounded-2xl border border-border p-4"
-                  onClick={() => setLocation(`/tebengan/${t.id}`)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="flex items-start gap-3 mb-2">
-                    <div className="bg-green-50 rounded-xl px-3 py-2 flex-shrink-0 text-center min-w-[64px]">
-                      <p className="text-[8px] font-bold tracking-wider text-green-700 uppercase leading-none mb-0.5">
-                        Perkiraan
-                      </p>
-                      <p className="text-sm font-bold text-foreground tabular-nums leading-none">
-                        ~{t.departure_time}
-                      </p>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded bg-green-100 text-green-800 uppercase">
-                          Tebengan Pulang
-                        </span>
-                        <span className={`text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded uppercase ${statusCls[t.status] ?? "bg-muted text-muted-foreground"}`}>
-                          {statusLabel[t.status] ?? t.status}
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-foreground leading-snug flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-green-700" />
-                        {t.origin_city}{" "}
-                        <span className="text-muted-foreground font-normal">→</span>{" "}
-                        {t.destination_city}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/60">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3 h-3" /> {t.kursi_terisi}/{t.max_kursi} terisi · {t.kursi_tersisa} sisa
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {formatRupiah(t.price_per_seat)}
-                    </span>
-                  </div>
                 </div>
               );
             })}

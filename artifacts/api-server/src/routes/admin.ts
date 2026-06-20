@@ -16,7 +16,8 @@ import {
   routePricesTable,
   adminLogsTable,
   chatThreadsTable,
-  tebenganPulangTable,
+  rentalBookingsTable,
+  rentalKendaraanTable,
   pushSubscriptionsTable,
 } from "@workspace/db";
 import { createNotification } from "../lib/notifications";
@@ -66,12 +67,20 @@ router.get("/admin/stats", adminGuard(async (req: any, res: any) => {
   const [totalPenumpang] = await db.select({ c: count() }).from(usersTable).where(eq(usersTable.role, "penumpang"));
   const [totalBookings] = await db.select({ c: count() }).from(scheduleBookingsTable);
   const [totalCarter] = await db.select({ c: count() }).from(carterBookingsTable);
+  const [totalRental] = await db.select({ c: count() }).from(rentalBookingsTable);
   const [bookingHariIni] = await db.select({ c: count() }).from(scheduleBookingsTable)
     .where(and(gte(scheduleBookingsTable.created_at, today), lte(scheduleBookingsTable.created_at, tomorrow)));
   const [pendapatanTotal] = await db.select({ s: sum(scheduleBookingsTable.total_amount) })
     .from(scheduleBookingsTable).where(eq(scheduleBookingsTable.status, "paid"));
   const [pendapatanCarter] = await db.select({ s: sum(carterBookingsTable.total_amount) })
     .from(carterBookingsTable).where(eq(carterBookingsTable.status, "paid"));
+  const [pendapatanRental] = await db.select({ s: sum(rentalBookingsTable.total_amount) })
+    .from(rentalBookingsTable).where(or(
+      eq(rentalBookingsTable.status, "paid"),
+      eq(rentalBookingsTable.status, "confirmed"),
+      eq(rentalBookingsTable.status, "aktif"),
+      eq(rentalBookingsTable.status, "selesai"),
+    ));
   const [tripAktif] = await db.select({ c: count() }).from(schedulesTable)
     .where(eq(schedulesTable.trip_progress, "dalam_perjalanan"));
   const [pembayaranPending] = await db.select({ c: count() }).from(scheduleBookingsTable)
@@ -81,9 +90,9 @@ router.get("/admin/stats", adminGuard(async (req: any, res: any) => {
     total_users: totalUsers.c,
     total_drivers: totalDrivers.c,
     total_penumpang: totalPenumpang.c,
-    total_bookings: Number(totalBookings.c) + Number(totalCarter.c),
+    total_bookings: Number(totalBookings.c) + Number(totalCarter.c) + Number(totalRental.c),
     booking_hari_ini: bookingHariIni.c,
-    pendapatan_total: Number(pendapatanTotal.s ?? 0) + Number(pendapatanCarter.s ?? 0),
+    pendapatan_total: Number(pendapatanTotal.s ?? 0) + Number(pendapatanCarter.s ?? 0) + Number(pendapatanRental.s ?? 0),
     trip_aktif: tripAktif.c,
     pembayaran_pending: pembayaranPending.c,
   });
@@ -561,6 +570,89 @@ router.delete("/admin/carter-bookings/:id", adminGuard(async (req: any, res: any
   res.json({ ok: true });
 }));
 
+// ===================== RENTAL BOOKINGS =====================
+router.get("/admin/rental-bookings", adminGuard(async (req: any, res: any) => {
+  const { status } = req.query as Record<string, string>;
+  let q = db.select({
+    b: rentalBookingsTable,
+    user: { id: usersTable.id, nama: usersTable.nama },
+  })
+    .from(rentalBookingsTable)
+    .leftJoin(usersTable, eq(rentalBookingsTable.penyewa_id, usersTable.id))
+    .$dynamic();
+  if (status) q = q.where(eq(rentalBookingsTable.status, status));
+  const rows = await q.orderBy(desc(rentalBookingsTable.created_at)).limit(200);
+  res.json(rows.map(r => ({ ...r.b, user: r.user })));
+}));
+
+router.get("/admin/rental-bookings/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const penyewaAlias = alias(usersTable, "rental_penyewa");
+  const driverAlias = alias(usersTable, "rental_driver");
+  const [row] = await db
+    .select({
+      b: rentalBookingsTable,
+      penyewa: { id: penyewaAlias.id, nama: penyewaAlias.nama, no_whatsapp: penyewaAlias.no_whatsapp },
+      driver: {
+        id: driverAlias.id, nama: driverAlias.nama, no_whatsapp: driverAlias.no_whatsapp,
+        nama_bank: driverAlias.nama_bank, no_rekening: driverAlias.no_rekening, nama_pemilik_rekening: driverAlias.nama_pemilik_rekening,
+      },
+      kendaraan: { merek: kendaraanTable.merek, model: kendaraanTable.model, plat_nomor: kendaraanTable.plat_nomor, warna: kendaraanTable.warna, foto_url: kendaraanTable.foto_url },
+    })
+    .from(rentalBookingsTable)
+    .leftJoin(penyewaAlias, eq(rentalBookingsTable.penyewa_id, penyewaAlias.id))
+    .leftJoin(rentalKendaraanTable, eq(rentalBookingsTable.rental_id, rentalKendaraanTable.id))
+    .leftJoin(driverAlias, eq(rentalKendaraanTable.driver_id, driverAlias.id))
+    .leftJoin(kendaraanTable, eq(kendaraanTable.id, rentalKendaraanTable.kendaraan_id))
+    .where(eq(rentalBookingsTable.id, id));
+  if (!row) { res.status(404).json({ error: "Booking rental tidak ditemukan." }); return; }
+  res.json({
+    ...row.b,
+    penyewa: row.penyewa?.id ? row.penyewa : null,
+    driver: row.driver?.id ? row.driver : null,
+    kendaraan: row.kendaraan?.plat_nomor ? row.kendaraan : null,
+  });
+}));
+
+router.patch("/admin/rental-bookings/:id/confirm", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(rentalBookingsTable).where(eq(rentalBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking rental tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat dikonfirmasi." }); return; }
+  const [b] = await db.update(rentalBookingsTable).set({ status: "confirmed", updated_at: new Date() }).where(eq(rentalBookingsTable.id, id)).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "CONFIRM_RENTAL_PAYMENT", `Rental #${id} pembayaran dikonfirmasi`);
+  if (b?.penyewa_id) {
+    createNotification(b.penyewa_id, "booking_verified", "Voucher Rental Berhasil!", "Pembayaran rental Anda telah dikonfirmasi oleh admin. Voucher Anda sudah aktif!", "rental_booking", id).catch(() => {});
+  }
+  res.json(b);
+}));
+
+router.patch("/admin/rental-bookings/:id/reject", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(rentalBookingsTable).where(eq(rentalBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking rental tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat ditolak." }); return; }
+  const [b] = await db.update(rentalBookingsTable).set({ status: "pending", payment_proof_url: null, updated_at: new Date() }).where(eq(rentalBookingsTable.id, id)).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "REJECT_RENTAL_PAYMENT", `Rental #${id} pembayaran ditolak`);
+  if (b?.penyewa_id) {
+    createNotification(b.penyewa_id, "booking_rejected", "Bukti Pembayaran Rental Ditolak", "Bukti pembayaran rental Anda tidak dapat diverifikasi. Silakan upload ulang bukti pembayaran yang valid.", "rental_booking", id).catch(() => {});
+  }
+  res.json(b);
+}));
+
+router.delete("/admin/rental-bookings/:id", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [b] = await db.select().from(rentalBookingsTable).where(eq(rentalBookingsTable.id, id));
+  if (!b) { res.status(404).json({ error: "Booking rental tidak ditemukan." }); return; }
+  await db.delete(rentalBookingsTable).where(eq(rentalBookingsTable.id, id));
+  await logAdmin(req.admin.id, req.admin.nama, "DELETE_RENTAL_BOOKING", `Booking rental #${id} dihapus permanen`);
+  res.json({ ok: true });
+}));
+
 // ===================== VERIFIKASI PEMBAYARAN =====================
 router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
   const payDriver = alias(usersTable, "pay_driver");
@@ -596,6 +688,15 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
     .where(eq(carterBookingsTable.status, "paid"))
     .orderBy(desc(carterBookingsTable.created_at)).limit(100);
 
+  const rental = await db.select({
+    b: rentalBookingsTable,
+    user: { id: usersTable.id, nama: usersTable.nama },
+  })
+    .from(rentalBookingsTable)
+    .leftJoin(usersTable, eq(rentalBookingsTable.penyewa_id, usersTable.id))
+    .where(eq(rentalBookingsTable.status, "paid"))
+    .orderBy(desc(rentalBookingsTable.created_at)).limit(100);
+
   res.json({
     schedule: schedule.map(r => ({
       ...r.b,
@@ -605,6 +706,7 @@ router.get("/admin/payments", adminGuard(async (_req: any, res: any) => {
       jenis: "reguler",
     })),
     carter: carter.map(r => ({ ...r.b, user: r.user, jenis: "carter" })),
+    rental: rental.map(r => ({ ...r.b, user: r.user, jenis: "rental" })),
   });
 }));
 
@@ -672,6 +774,48 @@ router.patch("/admin/payments/booking/:id/reject", adminGuard(async (req: any, r
       "Bukti Pembayaran Ditolak",
       "Bukti pembayaran Anda tidak dapat diverifikasi. Silakan upload ulang bukti pembayaran yang valid.",
       "schedule_booking", id,
+    ).catch(() => {});
+  }
+  res.json(b);
+}));
+
+router.patch("/admin/payments/rental/:id/confirm", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(rentalBookingsTable).where(eq(rentalBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking rental tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat dikonfirmasi." }); return; }
+  const [b] = await db.update(rentalBookingsTable)
+    .set({ status: "confirmed", updated_at: new Date() })
+    .where(eq(rentalBookingsTable.id, id)).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "CONFIRM_RENTAL_PAYMENT", `Rental #${id} pembayaran dikonfirmasi`);
+  if (b?.penyewa_id) {
+    createNotification(
+      b.penyewa_id, "booking_verified",
+      "Voucher Rental Berhasil!",
+      "Pembayaran rental Anda telah dikonfirmasi oleh admin. Voucher Anda sudah aktif!",
+      "rental_booking", id,
+    ).catch(() => {});
+  }
+  res.json(b);
+}));
+
+router.patch("/admin/payments/rental/:id/reject", adminGuard(async (req: any, res: any) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid." }); return; }
+  const [existing] = await db.select().from(rentalBookingsTable).where(eq(rentalBookingsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Booking rental tidak ditemukan." }); return; }
+  if (existing.status !== "paid") { res.status(400).json({ error: "Hanya booking dengan status 'paid' yang dapat ditolak." }); return; }
+  const [b] = await db.update(rentalBookingsTable)
+    .set({ status: "pending", payment_proof_url: null, updated_at: new Date() })
+    .where(eq(rentalBookingsTable.id, id)).returning();
+  await logAdmin(req.admin.id, req.admin.nama, "REJECT_RENTAL_PAYMENT", `Rental #${id} pembayaran ditolak`);
+  if (b?.penyewa_id) {
+    createNotification(
+      b.penyewa_id, "booking_rejected",
+      "Bukti Pembayaran Rental Ditolak",
+      "Bukti pembayaran rental Anda tidak dapat diverifikasi. Silakan upload ulang bukti pembayaran yang valid.",
+      "rental_booking", id,
     ).catch(() => {});
   }
   res.json(b);
@@ -1014,7 +1158,7 @@ router.post("/admin/reset-demo-data", adminGuard(async (_req: any, res: any) => 
   await db.delete(chatThreadsTable);          // cascades chat_messages
   await db.delete(schedulesTable);            // cascades schedule_bookings, ratings
   await db.delete(carterBookingsTable);
-  await db.delete(tebenganPulangTable);       // cascades tebengan_bookings
+  await db.delete(rentalBookingsTable);
   await db.delete(announcementsTable);
   await db.delete(adminLogsTable);
   await db.delete(sessionsTable);
@@ -1024,16 +1168,15 @@ router.post("/admin/reset-demo-data", adminGuard(async (_req: any, res: any) => 
 
 // ===================== CLEAR ORDERS & CHAT =====================
 router.post("/admin/clear-orders-chat", adminGuard(async (_req: any, res: any) => {
-  // Hapus: ratings, chat, bookings, schedules, tebengan
+  // Hapus: ratings, chat, bookings, schedules, rental
   // Pertahankan: users, kendaraan, carter_settings, sessions, kota_list, route_prices
   await db.execute(drizzleSql`DELETE FROM ratings`);
   await db.execute(drizzleSql`DELETE FROM chat_messages`);
   await db.execute(drizzleSql`DELETE FROM chat_threads`);
-  await db.execute(drizzleSql`DELETE FROM tebengan_bookings`);
+  await db.execute(drizzleSql`DELETE FROM rental_bookings`);
   await db.execute(drizzleSql`DELETE FROM carter_bookings`);
   await db.execute(drizzleSql`DELETE FROM schedule_bookings`);
   await db.execute(drizzleSql`DELETE FROM schedules`);
-  await db.execute(drizzleSql`DELETE FROM tebengan_pulang`);
   res.json({ ok: true, message: "Semua order, jadwal, dan chat berhasil dihapus." });
 }));
 

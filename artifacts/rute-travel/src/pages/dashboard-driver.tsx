@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
-  Bell, Bus, Sparkles, ArrowDownLeft, Hourglass,
+  Bell, Bus, Sparkles, Car, Hourglass,
   LayoutGrid, CalendarDays, MessageCircle, ShoppingBag, User,
   Navigation, Users, MapPin, Lock
 } from "lucide-react";
@@ -45,23 +45,6 @@ function getGreetingEmoji() {
   return "🌙";
 }
 
-interface TebenganMine {
-  id: number;
-  origin_city: string;
-  destination_city: string;
-  departure_date: string;
-  departure_time: string;
-  max_kursi: number;
-  price_per_seat: number;
-  status: string;
-  kursi_terisi: number;
-  kursi_tersisa: number;
-  pendapatan: number;
-  penumpang: { id: number; nama: string; jumlah_kursi: number }[];
-  kendaraan: { id: number; merek: string; model: string; plat_nomor: string } | null;
-  trip_kind: "tebengan";
-}
-
 interface JadwalMine {
   id: number;
   origin_city: string;
@@ -84,7 +67,7 @@ interface JadwalMine {
   trip_progress: string;
 }
 
-type AnyTrip = TebenganMine | JadwalMine;
+type AnyTrip = JadwalMine;
 
 const ATUR_JADWAL = [
   {
@@ -110,15 +93,13 @@ const ATUR_JADWAL = [
     path: "/carter/atur",
   },
   {
-    id: "tebengan",
-    icon: <ArrowDownLeft className="w-5 h-5" />,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-600",
-    label: "Tebengan Pulang",
-    desc: "Tawarkan kursi kosong saat pulang",
-    disabled: true,
-    badge: "SEGERA HADIR",
-    path: null,
+    id: "rental",
+    icon: <Car className="w-5 h-5" />,
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    label: "Rental Kendaraan",
+    desc: "Sewakan kendaraan Anda untuk disewa",
+    path: "/rental/atur",
   },
   {
     id: "tunggu-penuh",
@@ -140,12 +121,6 @@ const BOTTOM_NAV = [
   { id: "pesanan", icon: ShoppingBag, label: "Pesanan", active: false },
   { id: "akun", icon: User, label: "Akun", active: false },
 ];
-
-function statusLabel(s: string) {
-  if (s === "aktif") return { label: "Menunggu", cls: "bg-amber-50 text-amber-700" };
-  if (s === "berangkat") return { label: "Berangkat", cls: "bg-blue-50 text-blue-700" };
-  return { label: s, cls: "bg-muted text-muted-foreground" };
-}
 
 function progressLabel(p: string) {
   if (p === "belum_jemput") return { label: "Belum berangkat", cls: "bg-amber-50 text-amber-700" };
@@ -180,17 +155,8 @@ export default function DashboardDriver() {
     setTripsLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [tebRes, jdwRes] = await Promise.all([
-        fetch(`${apiBase}/tebengan/mine`, { headers }),
-        fetch(`${apiBase}/schedules/mine`, { headers }),
-      ]);
+      const jdwRes = await fetch(`${apiBase}/schedules/mine`, { headers });
 
-      const tebList: TebenganMine[] = tebRes.ok
-        ? ((await tebRes.json()) as Omit<TebenganMine, "trip_kind">[]).map((t) => ({
-            ...t,
-            trip_kind: "tebengan" as const,
-          }))
-        : [];
       const jdwListRaw: Omit<JadwalMine, "trip_kind">[] = jdwRes.ok
         ? await jdwRes.json()
         : [];
@@ -208,11 +174,7 @@ export default function DashboardDriver() {
         )
         .map((j) => ({ ...j, trip_kind: "jadwal" as const }));
 
-      const tebAktif = tebList.filter(
-        (t) => t.status === "aktif" || t.status === "berangkat",
-      );
-
-      const merged: AnyTrip[] = [...tebAktif, ...jdwList].sort((a, b) => {
+      const merged: AnyTrip[] = [...jdwList].sort((a, b) => {
         const dateCmp = a.departure_date.localeCompare(b.departure_date);
         if (dateCmp !== 0) return dateCmp;
         return a.departure_time.localeCompare(b.departure_time);
@@ -256,16 +218,6 @@ export default function DashboardDriver() {
     const res = await fetch(`${apiBase}/schedules/${id}/trip-progress`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) loadTrips();
-  }
-
-  async function setTripStatus(id: number, status: "berangkat" | "selesai") {
-    if (!token) return;
-    const res = await fetch(`${apiBase}/tebengan/${id}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status }),
     });
     if (res.ok) loadTrips();
   }
@@ -421,17 +373,12 @@ export default function DashboardDriver() {
           ) : (
             <div className="space-y-3">
               {trips.slice(0, 1).map((trip) => {
-                const isJadwal = trip.trip_kind === "jadwal";
-                const max_kursi = isJadwal ? (trip as JadwalMine).capacity ?? trip.max_kursi : trip.max_kursi;
-                const stat = isJadwal
-                  ? progressLabel((trip as JadwalMine).trip_progress)
-                  : statusLabel(trip.status);
+                const max_kursi = trip.capacity ?? trip.max_kursi;
+                const stat = progressLabel(trip.trip_progress);
                 const isPenuh = trip.kursi_terisi === max_kursi;
-                const tipeBadge = isJadwal
-                  ? { label: "Jadwal Tetap", cls: "bg-orange-100 text-orange-700" }
-                  : { label: "Tebengan Pulang", cls: "bg-green-100 text-green-700" };
-                const waktuLabel = isJadwal ? "Komitmen" : "Perkiraan";
-                const waktuPrefix = isJadwal ? "" : "~";
+                const tipeBadge = { label: "Jadwal Tetap", cls: "bg-orange-100 text-orange-700" };
+                const waktuLabel = "Komitmen";
+                const waktuPrefix = "";
                 return (
                   <div
                     key={`${trip.trip_kind}-${trip.id}`}
@@ -523,8 +470,8 @@ export default function DashboardDriver() {
                         </div>
 
                         {/* CTA button */}
-                        {isJadwal ? (() => {
-                          const j = trip as JadwalMine;
+                        {(() => {
+                          const j = trip;
                           const tp = j.trip_progress;
                           const hasPaidBookings = tp === "belum_jemput" && (j.paid_count ?? 0) > 0;
                           const hasNoPassengers = tp === "belum_jemput" && (j.kursi_terisi ?? 0) === 0;
@@ -595,43 +542,7 @@ export default function DashboardDriver() {
                               </div>
                             </div>
                           );
-                        })() : trip.status === "aktif" ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              data-testid={`btn-detail-${trip.id}`}
-                              onClick={() => setLocation(`/tebengan/${trip.id}`)}
-                              className="py-3 rounded-xl border border-border text-sm font-semibold text-foreground"
-                            >
-                              Detail
-                            </button>
-                            <button
-                              data-testid={`btn-berangkat-${trip.id}`}
-                              onClick={() => setTripStatus(trip.id, "berangkat")}
-                              className="py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
-                              style={{ backgroundColor: "hsl(var(--accent))" }}
-                            >
-                              <Navigation className="w-4 h-4" />
-                              Berangkat
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              data-testid={`btn-detail-${trip.id}`}
-                              onClick={() => setLocation(`/tebengan/${trip.id}`)}
-                              className="py-3 rounded-xl border border-border text-sm font-semibold text-foreground"
-                            >
-                              Detail
-                            </button>
-                            <button
-                              data-testid={`btn-selesai-${trip.id}`}
-                              onClick={() => setTripStatus(trip.id, "selesai")}
-                              className="py-3 rounded-xl bg-foreground text-background text-sm font-bold"
-                            >
-                              Tandai Selesai
-                            </button>
-                          </div>
-                        )}
+                        })()}
                       </div>
                     </div>
                   </div>

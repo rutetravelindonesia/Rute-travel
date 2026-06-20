@@ -139,13 +139,9 @@ function RideVariantCard({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            {isJadwal ? (
+            {isJadwal && (
               <span className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 uppercase inline-flex items-center gap-1">
                 <ShieldCheck className="w-2.5 h-2.5" /> Jadwal Tetap
-              </span>
-            ) : (
-              <span className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded bg-green-100 text-green-700 uppercase">
-                Tebengan Pulang
               </span>
             )}
             {isToday && (
@@ -158,15 +154,9 @@ function RideVariantCard({
             {originCity} → {destinationCity}
           </p>
           <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-            {isJadwal ? (
-              <span className="flex items-center gap-1" title="Jam komitmen mitra">
-                <Clock className="w-3 h-3" />{departureTime}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1" title="Perkiraan jam berangkat — fleksibel">
-                <Clock className="w-3 h-3" />~{departureTime}
-              </span>
-            )}
+            <span className="flex items-center gap-1" title="Jam komitmen mitra">
+              <Clock className="w-3 h-3" />{departureTime}
+            </span>
             <span>{shortDate(departureDate)}</span>
           </div>
           {stopovers && stopovers.length > 0 && (

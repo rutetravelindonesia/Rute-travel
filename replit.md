@@ -1,6 +1,6 @@
 # RUTE Travel App
 
-Aplikasi online untuk menghubungkan driver travel dan penumpang di Kalimantan Timur. Tersedia fitur Jadwal Tetap, Tebengan Pulang, Carter, Chat in-app, dan Panel Admin.
+Aplikasi online untuk menghubungkan driver travel dan penumpang di Kalimantan Timur. Tersedia fitur Jadwal Tetap, Rental Kendaraan, Carter, Chat in-app, dan Panel Admin.
 
 ## Run & Operate
 
@@ -37,13 +37,14 @@ Aplikasi online untuk menghubungkan driver travel dan penumpang di Kalimantan Ti
 - Bahasa Indonesia di seluruh UI
 - Tidak ada data hardcoded — semua dari API atau empty state
 - Nomor telepon tidak pernah ditampilkan di UI — komunikasi via in-app chat
-- "Jadwal Tetap" = waktu pasti (tanpa `~`), "Tebengan Pulang" = estimasi (selalu `~`)
+- "Jadwal Tetap" = waktu pasti (tanpa `~`)
+- "Rental Kendaraan" = sewa per hari; mode `lepas_kunci` (deposit) atau `dengan_sopir`; provider = mitra pakai kendaraan terdaftar
 - Bearer token disimpan di localStorage
 
 ## Product
 
-- **Penumpang:** Cari & booking jadwal tetap, tebengan pulang, carter. Bayar via transfer, upload bukti, etiket digital, live trip tracking, rating driver.
-- **Driver (Mitra):** Buat jadwal tetap, atur carter, lihat pesanan masuk, GPS sync.
+- **Penumpang:** Cari & booking jadwal tetap, rental kendaraan, carter. Bayar via transfer, upload bukti, etiket digital, live trip tracking, rating driver.
+- **Driver (Mitra):** Buat jadwal tetap, atur carter, atur rental kendaraan, lihat pesanan masuk, GPS sync.
 - **Admin:** Panel lengkap — users, jadwal, booking, pembayaran, kendaraan, laporan keuangan, kota/rute, harga, pengumuman, log aktivitas.
 
 ## User preferences
@@ -52,7 +53,7 @@ Aplikasi online untuk menghubungkan driver travel dan penumpang di Kalimantan Ti
 - Semua teks dalam Bahasa Indonesia
 - Tidak ada data mock/hardcoded — tampilkan empty state jika tidak ada data
 - Nomor HP/WhatsApp tidak ditampilkan di UI
-- "Jadwal Tetap" = waktu pasti; "Tebengan Pulang" = estimasi (selalu ~)
+- "Jadwal Tetap" = waktu pasti (Tebengan Pulang sudah dihapus, diganti Rental Kendaraan per hari)
 
 ## Gotchas
 

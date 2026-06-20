@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/schedules", label: "Jadwal", icon: CalendarDays },
   { href: "/admin/bookings", label: "Booking Reguler", icon: Ticket },
   { href: "/admin/carter", label: "Booking Carter", icon: ShoppingBag },
+  { href: "/admin/rental", label: "Booking Rental", icon: Car },
   { href: "/admin/payments", label: "Verifikasi Bayar", icon: CheckCircle },
   { href: "/admin/kendaraan", label: "Kendaraan", icon: Car },
   { href: "/admin/ratings", label: "Rating", icon: Star },

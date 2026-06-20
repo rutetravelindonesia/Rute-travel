@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  Bell, Users, Package, Bus, Sparkles, ArrowDownLeft, Hourglass,
+  Bell, Users, Package, Bus, Sparkles, Car, Hourglass,
   Search, ChevronRight, ChevronDown, Home, MessageCircle,
   ShoppingBag, User, Ticket, MapPin, Phone, Clock4, CheckCircle2, Navigation, XCircle, Loader2
 } from "lucide-react";
@@ -128,14 +128,13 @@ const LAYANAN_LIST = [
     badge: null,
   },
   {
-    id: "tebengan",
-    icon: <ArrowDownLeft className="w-5 h-5" />,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-600",
-    label: "Tebengan Pulang",
-    desc: "Ikut driver pulang kosong, harga miring",
-    disabled: true,
-    badge: "SEGERA HADIR",
+    id: "rental",
+    icon: <Car className="w-5 h-5" />,
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    label: "Rental Kendaraan",
+    desc: "Sewa mobil lepas kunci atau dengan sopir",
+    path: "/rental/cari",
   },
   {
     id: "tunggu",
@@ -646,7 +645,9 @@ export default function DashboardPenumpang() {
                   if (item.disabled) return;
                   if (item.id === "carter") {
                     setLocation("/carter/cari");
-                  } else if (item.id === "tebengan" || item.id === "jadwal") {
+                  } else if (item.id === "rental") {
+                    setLocation("/rental/cari");
+                  } else if (item.id === "jadwal") {
                     setLocation("/cari");
                   }
                 }}

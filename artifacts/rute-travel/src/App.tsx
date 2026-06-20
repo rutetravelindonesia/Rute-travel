@@ -17,9 +17,12 @@ import CarterAtur from "@/pages/carter-atur";
 import ProfilPage from "@/pages/profil";
 import ProfilKendaraan from "@/pages/profil-kendaraan";
 import ProfilKendaraanForm from "@/pages/profil-kendaraan-form";
-import TebenganBuat from "@/pages/tebengan-buat";
-import TebenganDetail from "@/pages/tebengan-detail";
-import TebenganBook from "@/pages/tebengan-book";
+import RentalAtur from "@/pages/rental-atur";
+import RentalCari from "@/pages/rental-cari";
+import RentalBook from "@/pages/rental-book";
+import RentalBayar from "@/pages/rental-bayar";
+import RentalEtiket from "@/pages/rental-etiket";
+import RentalDetailDriver from "@/pages/rental-detail-driver";
 import Cari from "@/pages/cari";
 import JadwalBook from "@/pages/jadwal-book";
 import BookingBayar from "@/pages/booking-bayar";
@@ -38,6 +41,7 @@ import AdminUsers from "@/pages/admin/admin-users";
 import AdminSchedules from "@/pages/admin/admin-schedules";
 import AdminBookings from "@/pages/admin/admin-bookings";
 import AdminCarter from "@/pages/admin/admin-carter";
+import AdminRental from "@/pages/admin/admin-rental";
 import AdminPayments from "@/pages/admin/admin-payments";
 import AdminKendaraan from "@/pages/admin/admin-kendaraan";
 import AdminRatings from "@/pages/admin/admin-ratings";
@@ -70,9 +74,12 @@ function Router() {
       <Route path="/profil/kendaraan" component={ProfilKendaraan} />
       <Route path="/profil/kendaraan/baru" component={ProfilKendaraanForm} />
       <Route path="/profil/kendaraan/:id" component={ProfilKendaraanForm} />
-      <Route path="/tebengan/buat" component={TebenganBuat} />
-      <Route path="/tebengan/:id/book" component={TebenganBook} />
-      <Route path="/tebengan/:id" component={TebenganDetail} />
+      <Route path="/rental/atur" component={RentalAtur} />
+      <Route path="/rental/cari" component={RentalCari} />
+      <Route path="/rental/:id/book" component={RentalBook} />
+      <Route path="/rental-booking/:id/bayar" component={RentalBayar} />
+      <Route path="/rental-booking/:id/etiket" component={RentalEtiket} />
+      <Route path="/rental-booking/:id/driver-detail" component={RentalDetailDriver} />
       <Route path="/cari" component={Cari} />
       <Route path="/jadwal/:id/book" component={JadwalBook} />
       <Route path="/booking/:id/bayar" component={BookingBayar} />
@@ -96,6 +103,7 @@ function Router() {
       <Route path="/admin/schedules" component={AdminSchedules} />
       <Route path="/admin/bookings" component={AdminBookings} />
       <Route path="/admin/carter" component={AdminCarter} />
+      <Route path="/admin/rental" component={AdminRental} />
       <Route path="/admin/payments" component={AdminPayments} />
       <Route path="/admin/kendaraan" component={AdminKendaraan} />
       <Route path="/admin/ratings" component={AdminRatings} />

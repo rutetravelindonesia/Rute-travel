@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth";
 
 const ACTIVE_SCHEDULE_PROGRESS = new Set(["belum_jemput", "sudah_jemput", "dalam_perjalanan"]);
-const ACTIVE_TEBENGAN_PROGRESS = new Set(["menuju_jemput", "berangkat"]);
 
 export function MitraGpsSync() {
   const { user, token } = useAuth();
@@ -20,10 +19,9 @@ export function MitraGpsSync() {
       const targets: { url: string }[] = [];
 
       try {
-        const [schedRes, carterRes, tebRes] = await Promise.all([
+        const [schedRes, carterRes] = await Promise.all([
           fetch(`${apiBase}/schedules/mine`, { headers, cache: "no-store" }),
           fetch(`${apiBase}/carter-bookings/incoming`, { headers, cache: "no-store" }),
-          fetch(`${apiBase}/tebengan/mine`, { headers, cache: "no-store" }),
         ]);
 
         if (schedRes.ok) {
@@ -40,15 +38,6 @@ export function MitraGpsSync() {
           for (const c of carters) {
             if (c.status === "aktif" && c.trip_progress !== "selesai") {
               targets.push({ url: `${apiBase}/carter-bookings/${c.id}/driver-location` });
-            }
-          }
-        }
-
-        if (tebRes.ok) {
-          const tebengans: any[] = await tebRes.json();
-          for (const t of tebengans) {
-            if (ACTIVE_TEBENGAN_PROGRESS.has(t.trip_progress) || t.status === "berangkat") {
-              targets.push({ url: `${apiBase}/tebengan/${t.id}/driver-location` });
             }
           }
         }
