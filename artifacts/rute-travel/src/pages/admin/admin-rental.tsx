@@ -31,7 +31,11 @@ interface RentalBookingDetail {
   tanggal_selesai: string;
   jam_mulai: string;
   jam_selesai: string;
+  ambil_di_kantor: boolean;
   pickup_label: string | null;
+  pickup_detail: string | null;
+  dropoff_label: string | null;
+  dropoff_detail: string | null;
   catatan: string | null;
   total_hari: number;
   harga_per_hari: number;
@@ -329,13 +333,34 @@ export default function AdminRental() {
                       <p className="text-[10px] text-muted-foreground">{detail.jam_selesai}</p>
                     </div>
                   </div>
-                  {detail.mode === "dengan_sopir" && detail.pickup_label && (
-                    <div className="flex items-start gap-2 pt-1">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Titik Jemput</p>
-                        <p className="text-xs text-[#1a1208]">{detail.pickup_label}</p>
+                  {detail.ambil_di_kantor ? (
+                    detail.pickup_label && (
+                      <div className="flex items-start gap-2 pt-1">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Ambil di Kantor</p>
+                          <p className="text-xs text-[#1a1208]">{detail.pickup_label}</p>
+                        </div>
                       </div>
-                    </div>
+                    )
+                  ) : (
+                    <>
+                      {detail.pickup_label && (
+                        <div className="flex items-start gap-2 pt-1">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">Lokasi Jemput</p>
+                            <p className="text-xs text-[#1a1208]">{detail.pickup_label}</p>
+                          </div>
+                        </div>
+                      )}
+                      {detail.dropoff_label && (
+                        <div className="flex items-start gap-2 pt-1">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">Lokasi Antar</p>
+                            <p className="text-xs text-[#1a1208]">{detail.dropoff_label}</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                   {detail.catatan && (
                     <div className="pt-1">

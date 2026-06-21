@@ -25,7 +25,11 @@ interface RentalBookingDetail {
   tanggal_selesai: string;
   jam_mulai: string;
   jam_selesai: string;
+  ambil_di_kantor: boolean;
   pickup_label: string | null;
+  pickup_detail: string | null;
+  dropoff_label: string | null;
+  dropoff_detail: string | null;
   catatan: string | null;
   total_hari: number;
   harga_per_hari: number;
@@ -283,17 +287,45 @@ export default function RentalDetailDriverPage() {
           <p className="text-[11px] text-muted-foreground">Durasi {data.total_hari} hari</p>
         </div>
 
-        {/* Titik jemput (hanya dengan_sopir) */}
-        {!isLepasKunci && data.pickup_label && (
-          <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
-            <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" /> Titik Jemput
-            </p>
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground leading-snug">{data.pickup_label}</p>
+        {/* Lokasi pengambilan & pengantaran */}
+        {data.ambil_di_kantor ? (
+          data.pickup_label && (
+            <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+              <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-2 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" /> Ambil di Kantor
+              </p>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm text-foreground leading-snug">{data.pickup_label}</p>
+                  {data.pickup_detail && <p className="text-[11px] text-muted-foreground">{data.pickup_detail}</p>}
+                </div>
+              </div>
             </div>
-          </div>
+          )
+        ) : (
+          (data.pickup_label || data.dropoff_label) && (
+            <div className="bg-card rounded-2xl p-4 border border-border shadow-sm space-y-3">
+              {data.pickup_label && (
+                <div>
+                  <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-700" /> Lokasi Jemput
+                  </p>
+                  <p className="text-sm text-foreground leading-snug">{data.pickup_label}</p>
+                  {data.pickup_detail && <p className="text-[11px] text-muted-foreground">{data.pickup_detail}</p>}
+                </div>
+              )}
+              {data.dropoff_label && (
+                <div>
+                  <p className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-amber-700" /> Lokasi Antar
+                  </p>
+                  <p className="text-sm text-foreground leading-snug">{data.dropoff_label}</p>
+                  {data.dropoff_detail && <p className="text-[11px] text-muted-foreground">{data.dropoff_detail}</p>}
+                </div>
+              )}
+            </div>
+          )
         )}
 
         {/* Catatan */}

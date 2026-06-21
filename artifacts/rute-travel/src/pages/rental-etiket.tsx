@@ -11,7 +11,11 @@ interface RentalBooking {
   tanggal_selesai: string;
   jam_mulai: string;
   jam_selesai: string;
+  ambil_di_kantor: boolean;
   pickup_label: string | null;
+  pickup_detail: string | null;
+  dropoff_label: string | null;
+  dropoff_detail: string | null;
   catatan: string | null;
   total_hari: number;
   harga_per_hari: number;
@@ -304,16 +308,46 @@ export default function RentalEtiket() {
               </div>
             </div>
 
-            {!isLepasKunci && booking.pickup_label && (
-              <div className="flex items-start gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+            {booking.ambil_di_kantor ? (
+              booking.pickup_label && (
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Ambil di Kantor</p>
+                    <p className="text-sm font-bold text-foreground">{booking.pickup_label}</p>
+                    {booking.pickup_detail && <p className="text-[11px] text-muted-foreground">{booking.pickup_detail}</p>}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Titik Jemput</p>
-                  <p className="text-sm font-bold text-foreground">{booking.pickup_label}</p>
-                </div>
-              </div>
+              )
+            ) : (
+              <>
+                {booking.pickup_label && (
+                  <div className="flex items-start gap-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Lokasi Jemput</p>
+                      <p className="text-sm font-bold text-foreground">{booking.pickup_label}</p>
+                      {booking.pickup_detail && <p className="text-[11px] text-muted-foreground">{booking.pickup_detail}</p>}
+                    </div>
+                  </div>
+                )}
+                {booking.dropoff_label && (
+                  <div className="flex items-start gap-2">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-3.5 h-3.5 text-amber-700" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Lokasi Antar</p>
+                      <p className="text-sm font-bold text-foreground">{booking.dropoff_label}</p>
+                      {booking.dropoff_detail && <p className="text-[11px] text-muted-foreground">{booking.dropoff_detail}</p>}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="border-t border-dashed border-border" />

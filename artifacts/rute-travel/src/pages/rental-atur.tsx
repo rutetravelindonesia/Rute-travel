@@ -7,6 +7,7 @@ import { useKota, groupKota } from "@/hooks/useKota";
 import { CitySelect } from "@/components/city-select";
 import { PROVINSI_INDONESIA } from "@/lib/provinsi";
 import { resolvePhotoUrl } from "@/lib/photoUrl";
+import MapPicker, { type PickedAddress } from "@/components/MapPicker";
 
 interface Kendaraan {
   id: number;
@@ -27,6 +28,10 @@ interface RentalOffer {
   harga_dengan_sopir: number | null;
   deposit: number | null;
   catatan: string | null;
+  alamat_kantor: string | null;
+  kantor_detail: string | null;
+  kantor_lat: number | null;
+  kantor_lng: number | null;
   is_active: boolean;
   kendaraan: {
     id: number;
@@ -83,6 +88,8 @@ export default function RentalAtur() {
   const [hargaSopir, setHargaSopir] = useState<string>("");
   const [deposit, setDeposit] = useState<string>("");
   const [catatan, setCatatan] = useState<string>("");
+  const [kantor, setKantor] = useState<PickedAddress | null>(null);
+  const [kantorOpen, setKantorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const [offers, setOffers] = useState<RentalOffer[]>([]);
@@ -146,6 +153,7 @@ export default function RentalAtur() {
     setHargaSopir("");
     setDeposit("");
     setCatatan("");
+    setKantor(null);
   }
 
   function startEdit(o: RentalOffer) {
@@ -159,6 +167,11 @@ export default function RentalAtur() {
     setHargaSopir(o.harga_dengan_sopir ? String(o.harga_dengan_sopir) : "");
     setDeposit(o.deposit ? String(o.deposit) : "");
     setCatatan(o.catatan ?? "");
+    setKantor(
+      o.alamat_kantor
+        ? { label: o.alamat_kantor, detail: o.kantor_detail ?? null, lat: o.kantor_lat ?? null, lng: o.kantor_lng ?? null }
+        : null,
+    );
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -186,6 +199,14 @@ export default function RentalAtur() {
         mode,
         catatan: catatan.trim() || undefined,
       };
+      if (kantor) {
+        body.alamat_kantor = kantor.label;
+        body.kantor_detail = kantor.detail || undefined;
+        body.kantor_lat = kantor.lat ?? undefined;
+        body.kantor_lng = kantor.lng ?? undefined;
+      } else {
+        body.alamat_kantor = null;
+      }
       if (offersLepas(mode)) {
         body.harga_lepas_kunci = parseInt(hargaLepas, 10);
         const dep = parseInt(deposit, 10);
@@ -469,6 +490,56 @@ export default function RentalAtur() {
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
+
+        {/* SECTION 5: Alamat Kantor / Garasi */}
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-accent" />
+            <h2 className="text-sm font-bold text-foreground">Alamat Kantor / Garasi (opsional)</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Lokasi penyewa mengambil kendaraan. Jika diisi, penyewa bisa memilih "Ambil di kantor" atau minta diantar ke lokasinya.
+          </p>
+          <button
+            type="button"
+            data-testid="open-kantor"
+            disabled={!kotaSel}
+            onClick={() => setKantorOpen(true)}
+            className="w-full text-left bg-muted/40 hover:bg-muted/60 rounded-xl p-3 flex items-center gap-3 disabled:opacity-50"
+          >
+            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              <MapPin className="w-4 h-4 text-emerald-700" />
+            </div>
+            <div className="flex-1 min-w-0">
+              {kantor ? (
+                <>
+                  <p className="text-sm font-bold text-foreground truncate" data-testid="kantor-label">{kantor.label}</p>
+                  {kantor.detail && <p className="text-[11px] text-muted-foreground truncate">{kantor.detail}</p>}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  {kotaSel ? "Belum diatur — tap untuk pilih di peta" : "Pilih kota dulu"}
+                </p>
+              )}
+            </div>
+          </button>
+          {kantor && (
+            <button type="button" onClick={() => setKantor(null)} className="text-[11px] text-red-500 font-semibold">
+              Hapus alamat kantor
+            </button>
+          )}
+        </div>
+
+        {kotaSel && (
+          <MapPicker
+            isOpen={kantorOpen}
+            city={kotaSel}
+            title={`Alamat kantor di ${kotaSel}`}
+            initialValue={kantor}
+            onCancel={() => setKantorOpen(false)}
+            onConfirm={(addr) => { setKantor(addr); setKantorOpen(false); }}
+          />
+        )}
 
         {/* TOMBOL SIMPAN */}
         <div className="pt-1 flex gap-2">

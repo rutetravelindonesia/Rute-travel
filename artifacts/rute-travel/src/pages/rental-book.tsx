@@ -19,6 +19,10 @@ interface RentalOffer {
   harga_dengan_sopir: number | null;
   deposit: number | null;
   catatan: string | null;
+  alamat_kantor: string | null;
+  kantor_detail: string | null;
+  kantor_lat: number | null;
+  kantor_lng: number | null;
   driver: { id: number; nama: string; foto_profil: string | null } | null;
   kendaraan: {
     id: number;
@@ -78,6 +82,9 @@ export default function RentalBook() {
   const [jamSelesai, setJamSelesai] = useState<string>("17:00");
   const [pickup, setPickup] = useState<PickedAddress | null>(null);
   const [pickupOpen, setPickupOpen] = useState(false);
+  const [dropoff, setDropoff] = useState<PickedAddress | null>(null);
+  const [dropoffOpen, setDropoffOpen] = useState(false);
+  const [ambilDiKantor, setAmbilDiKantor] = useState(true);
   const [catatan, setCatatan] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("transfer");
   const [submitting, setSubmitting] = useState(false);
@@ -109,6 +116,7 @@ export default function RentalBook() {
         if (!cancelled) {
           setOffer(data);
           setBookMode(offersLepas(data.mode) ? "lepas_kunci" : "dengan_sopir");
+          setAmbilDiKantor(!!data.alamat_kantor);
         }
       } catch {
         if (!cancelled) setError("Gagal memuat penawaran.");
@@ -143,20 +151,22 @@ export default function RentalBook() {
   const depositApplies = bookMode === "lepas_kunci" ? (offer?.deposit ?? 0) : 0;
   const grandTotal = subtotal + depositApplies;
 
-  const needPickup = bookMode === "dengan_sopir";
+  const hasOffice = !!offer?.alamat_kantor;
+  const needLokasi = !ambilDiKantor;
   const validationMsg = useMemo(() => {
     if (!offer) return null;
     if (totalHari <= 0) return "Tanggal selesai harus sama atau setelah tanggal mulai.";
-    if (needPickup && !pickup) return "Pilih titik jemput untuk rental dengan sopir.";
+    if (needLokasi && !pickup) return "Pilih lokasi penjemputan.";
+    if (needLokasi && !dropoff) return "Pilih lokasi pengantaran.";
     return null;
-  }, [offer, totalHari, needPickup, pickup]);
+  }, [offer, totalHari, needLokasi, pickup, dropoff]);
 
   const canSubmit =
     !!offer &&
     !isOwnOffer &&
     totalHari > 0 &&
     hargaPerHari > 0 &&
-    (!needPickup || !!pickup) &&
+    (!needLokasi || (!!pickup && !!dropoff)) &&
     !submitting;
 
   async function handleSubmit() {
@@ -171,8 +181,12 @@ export default function RentalBook() {
         jam_selesai: jamSelesai,
         catatan: catatan.trim() || undefined,
         payment_method: paymentMethod,
+        ambil_di_kantor: ambilDiKantor,
       };
-      if (needPickup && pickup) body.pickup = pickup;
+      if (needLokasi) {
+        if (pickup) body.pickup = pickup;
+        if (dropoff) body.dropoff = dropoff;
+      }
       const res = await fetch(`${apiBase}/rental/${offer.id}/book`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -408,36 +422,94 @@ export default function RentalBook() {
           </div>
         </div>
 
-        {/* Pickup (dengan sopir only) */}
-        {needPickup && (
-          <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
-            <p className="text-sm font-bold text-foreground">Titik Jemput</p>
-            <button
-              data-testid="open-pickup"
-              onClick={() => setPickupOpen(true)}
-              className="w-full text-left bg-muted/40 hover:bg-muted/60 rounded-xl p-3 flex items-center gap-3"
-            >
+        {/* Lokasi pengambilan & pengantaran (kedua mode) */}
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <p className="text-sm font-bold text-foreground">Lokasi Pengambilan & Pengantaran</p>
+
+          {hasOffice && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setAmbilDiKantor(true)}
+                data-testid="ambil-kantor"
+                className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                  ambilDiKantor ? "border-accent bg-accent text-white" : "border-border bg-background text-foreground"
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" /> Ambil di kantor
+              </button>
+              <button
+                onClick={() => setAmbilDiKantor(false)}
+                data-testid="antar-lokasi"
+                className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                  !ambilDiKantor ? "border-accent bg-accent text-white" : "border-border bg-background text-foreground"
+                }`}
+              >
+                <Car className="w-3.5 h-3.5" /> Antar ke lokasi saya
+              </button>
+            </div>
+          )}
+
+          {ambilDiKantor && hasOffice ? (
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-start gap-3">
               <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <MapPin className="w-4 h-4 text-emerald-700" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
-                  Jemput di {offer.kota}
-                </p>
-                {pickup ? (
-                  <>
-                    <p className="text-sm font-bold text-foreground truncate" data-testid="pickup-label">{pickup.label}</p>
-                    {pickup.detail && <p className="text-[11px] text-muted-foreground truncate">{pickup.detail}</p>}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Belum dipilih</p>
-                )}
-                <p className="text-[10px] text-accent mt-0.5">Tap untuk pilih di peta</p>
+                <p className="text-[10px] font-bold text-emerald-700 tracking-widest uppercase">Ambil di kantor mitra</p>
+                <p className="text-sm font-bold text-foreground" data-testid="kantor-alamat">{offer.alamat_kantor}</p>
+                {offer.kantor_detail && <p className="text-[11px] text-muted-foreground">{offer.kantor_detail}</p>}
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
-        )}
+            </div>
+          ) : (
+            <>
+              <button
+                data-testid="open-pickup"
+                onClick={() => setPickupOpen(true)}
+                className="w-full text-left bg-muted/40 hover:bg-muted/60 rounded-xl p-3 flex items-center gap-3"
+              >
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Lokasi Jemput</p>
+                  {pickup ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground truncate" data-testid="pickup-label">{pickup.label}</p>
+                      {pickup.detail && <p className="text-[11px] text-muted-foreground truncate">{pickup.detail}</p>}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Belum dipilih</p>
+                  )}
+                  <p className="text-[10px] text-accent mt-0.5">Tap untuk pilih di peta</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+
+              <button
+                data-testid="open-dropoff"
+                onClick={() => setDropoffOpen(true)}
+                className="w-full text-left bg-muted/40 hover:bg-muted/60 rounded-xl p-3 flex items-center gap-3"
+              >
+                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-4 h-4 text-amber-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Lokasi Antar</p>
+                  {dropoff ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground truncate" data-testid="dropoff-label">{dropoff.label}</p>
+                      {dropoff.detail && <p className="text-[11px] text-muted-foreground truncate">{dropoff.detail}</p>}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Belum dipilih</p>
+                  )}
+                  <p className="text-[10px] text-accent mt-0.5">Tap untuk pilih di peta</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Catatan */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-2">
@@ -538,12 +610,23 @@ export default function RentalBook() {
       <MapPicker
         isOpen={pickupOpen}
         city={offer.kota}
-        title={`Jemput di ${offer.kota}`}
+        title={`Lokasi jemput di ${offer.kota}`}
         initialValue={pickup}
         onCancel={() => setPickupOpen(false)}
         onConfirm={(addr) => {
           setPickup(addr);
           setPickupOpen(false);
+        }}
+      />
+      <MapPicker
+        isOpen={dropoffOpen}
+        city={offer.kota}
+        title={`Lokasi antar di ${offer.kota}`}
+        initialValue={dropoff}
+        onCancel={() => setDropoffOpen(false)}
+        onConfirm={(addr) => {
+          setDropoff(addr);
+          setDropoffOpen(false);
         }}
       />
       {photoModal && (

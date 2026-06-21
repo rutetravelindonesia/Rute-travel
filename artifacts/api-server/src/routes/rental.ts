@@ -47,6 +47,10 @@ const OfferBody = z.object({
   harga_dengan_sopir: z.number().int().min(0).max(100_000_000).optional().nullable(),
   deposit: z.number().int().min(0).max(100_000_000).optional().nullable(),
   catatan: z.string().max(500).optional().nullable(),
+  alamat_kantor: z.string().max(200).optional().nullable(),
+  kantor_detail: z.string().max(500).optional().nullable(),
+  kantor_lat: z.number().min(-90).max(90).optional().nullable(),
+  kantor_lng: z.number().min(-180).max(180).optional().nullable(),
 });
 
 const AddressBody = z.object({
@@ -62,7 +66,9 @@ const BookBody = z.object({
   tanggal_selesai: z.string().regex(DATE_RE),
   jam_mulai: z.string().regex(TIME_RE),
   jam_selesai: z.string().regex(TIME_RE),
+  ambil_di_kantor: z.boolean().optional(),
   pickup: AddressBody.optional().nullable(),
+  dropoff: AddressBody.optional().nullable(),
   catatan: z.string().max(500).optional().nullable(),
   payment_method: z.enum(["qris", "transfer", "ewallet"]),
 });
@@ -95,7 +101,7 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
 
   const parsed = OfferBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan } = parsed.data;
+  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
 
   const pricingErr = validateOfferPricing(mode, harga_lepas_kunci, harga_dengan_sopir);
   if (pricingErr) { res.status(400).json({ error: pricingErr }); return; }
@@ -126,6 +132,10 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
       harga_dengan_sopir: wantSopir ? harga_dengan_sopir ?? null : null,
       deposit: wantLepas ? deposit ?? 0 : 0,
       catatan: catatan ?? null,
+      alamat_kantor: alamat_kantor?.trim() || null,
+      kantor_detail: kantor_detail ?? null,
+      kantor_lat: kantor_lat ?? null,
+      kantor_lng: kantor_lng ?? null,
       is_active: true,
     })
     .returning();
@@ -145,7 +155,7 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
 
   const parsed = OfferBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan } = parsed.data;
+  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
 
   const pricingErr = validateOfferPricing(mode, harga_lepas_kunci, harga_dengan_sopir);
   if (pricingErr) { res.status(400).json({ error: pricingErr }); return; }
@@ -169,6 +179,10 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
       harga_dengan_sopir: wantSopir ? harga_dengan_sopir ?? null : null,
       deposit: wantLepas ? deposit ?? 0 : 0,
       catatan: catatan ?? null,
+      alamat_kantor: alamat_kantor?.trim() || null,
+      kantor_detail: kantor_detail ?? null,
+      kantor_lat: kantor_lat ?? null,
+      kantor_lng: kantor_lng ?? null,
       updated_at: new Date(),
     })
     .where(eq(rentalKendaraanTable.id, id));
@@ -270,6 +284,10 @@ router.get("/rental/search", async (req, res): Promise<void> => {
       harga_dengan_sopir: o.harga_dengan_sopir,
       deposit: o.deposit,
       catatan: o.catatan,
+      alamat_kantor: o.alamat_kantor,
+      kantor_detail: o.kantor_detail,
+      kantor_lat: o.kantor_lat,
+      kantor_lng: o.kantor_lng,
       driver: { id: driver.id, nama: driver.nama, foto_profil: driver.foto_profil ?? driver.foto_diri ?? null },
       kendaraan: { id: k.id, jenis: k.jenis, merek: k.merek, model: k.model, warna: k.warna, plat_nomor: k.plat_nomor, foto_url: k.foto_url, tahun: k.tahun },
     }));
@@ -301,6 +319,10 @@ router.get("/rental/:id", async (req, res): Promise<void> => {
     harga_dengan_sopir: o.harga_dengan_sopir,
     deposit: o.deposit,
     catatan: o.catatan,
+    alamat_kantor: o.alamat_kantor,
+    kantor_detail: o.kantor_detail,
+    kantor_lat: o.kantor_lat,
+    kantor_lng: o.kantor_lng,
     driver: { id: driver.id, nama: driver.nama, foto_profil: driver.foto_profil ?? driver.foto_diri ?? null },
     kendaraan: { id: k.id, jenis: k.jenis, merek: k.merek, model: k.model, warna: k.warna, plat_nomor: k.plat_nomor, foto_url: k.foto_url, tahun: k.tahun },
   });
@@ -317,7 +339,7 @@ router.post("/rental/:id/book", async (req, res): Promise<void> => {
 
   const parsed = BookBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { mode, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, pickup, catatan, payment_method } = parsed.data;
+  const { mode, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, ambil_di_kantor, pickup, dropoff, catatan, payment_method } = parsed.data;
 
   const result = await db.transaction(async (tx) => {
     const [o] = await tx.select().from(rentalKendaraanTable).where(eq(rentalKendaraanTable.id, id)).for("update");
@@ -328,8 +350,24 @@ router.post("/rental/:id/book", async (req, res): Promise<void> => {
     if (hargaPerHari == null || hargaPerHari <= 0) {
       return { error: `Mode ${mode === "lepas_kunci" ? "Lepas Kunci" : "Dengan Sopir"} tidak tersedia untuk kendaraan ini.`, status: 400 } as const;
     }
-    if (mode === "dengan_sopir" && (!pickup || !pickup.label)) {
-      return { error: "Lokasi penjemputan wajib diisi untuk rental dengan sopir.", status: 400 } as const;
+    const ambilKantor = ambil_di_kantor === true;
+    let pickupVals: { label: string | null; detail: string | null; lat: number | null; lng: number | null };
+    let dropoffVals: { label: string | null; detail: string | null; lat: number | null; lng: number | null };
+    if (ambilKantor) {
+      if (!o.alamat_kantor) {
+        return { error: "Mitra belum mengatur alamat kantor untuk pengambilan di tempat. Pilih antar ke lokasi Anda.", status: 400 } as const;
+      }
+      pickupVals = { label: o.alamat_kantor, detail: o.kantor_detail ?? null, lat: o.kantor_lat ?? null, lng: o.kantor_lng ?? null };
+      dropoffVals = { ...pickupVals };
+    } else {
+      if (!pickup || !pickup.label) {
+        return { error: "Lokasi penjemputan wajib diisi.", status: 400 } as const;
+      }
+      if (!dropoff || !dropoff.label) {
+        return { error: "Lokasi pengantaran wajib diisi.", status: 400 } as const;
+      }
+      pickupVals = { label: pickup.label, detail: pickup.detail ?? null, lat: pickup.lat ?? null, lng: pickup.lng ?? null };
+      dropoffVals = { label: dropoff.label, detail: dropoff.detail ?? null, lat: dropoff.lat ?? null, lng: dropoff.lng ?? null };
     }
 
     const totalHari = hitungHari(tanggal_mulai, tanggal_selesai);
@@ -375,10 +413,15 @@ router.post("/rental/:id/book", async (req, res): Promise<void> => {
         harga_per_hari: hargaPerHari,
         deposit,
         total_amount: totalAmount,
-        pickup_label: pickup?.label ?? null,
-        pickup_detail: pickup?.detail ?? null,
-        pickup_lat: pickup?.lat ?? null,
-        pickup_lng: pickup?.lng ?? null,
+        ambil_di_kantor: ambilKantor,
+        pickup_label: pickupVals.label,
+        pickup_detail: pickupVals.detail,
+        pickup_lat: pickupVals.lat,
+        pickup_lng: pickupVals.lng,
+        dropoff_label: dropoffVals.label,
+        dropoff_detail: dropoffVals.detail,
+        dropoff_lat: dropoffVals.lat,
+        dropoff_lng: dropoffVals.lng,
         catatan: catatan ?? null,
         payment_method,
         status: "pending",

@@ -99,6 +99,16 @@ export async function runMigrations(): Promise<void> {
     )`,
     `CREATE INDEX IF NOT EXISTS rental_bookings_penyewa_idx ON rental_bookings (penyewa_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS rental_bookings_rental_idx ON rental_bookings (rental_id)`,
+    // ===== RENTAL: alamat kantor mitra + lokasi antar penyewa =====
+    `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS alamat_kantor TEXT`,
+    `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS kantor_detail TEXT`,
+    `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS kantor_lat REAL`,
+    `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS kantor_lng REAL`,
+    `ALTER TABLE rental_bookings ADD COLUMN IF NOT EXISTS ambil_di_kantor BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE rental_bookings ADD COLUMN IF NOT EXISTS dropoff_label TEXT`,
+    `ALTER TABLE rental_bookings ADD COLUMN IF NOT EXISTS dropoff_detail TEXT`,
+    `ALTER TABLE rental_bookings ADD COLUMN IF NOT EXISTS dropoff_lat REAL`,
+    `ALTER TABLE rental_bookings ADD COLUMN IF NOT EXISTS dropoff_lng REAL`,
     // ===== HAPUS FITUR TEBENGAN PULANG (digantikan rental) =====
     `DROP TABLE IF EXISTS tebengan_bookings CASCADE`,
     `DROP TABLE IF EXISTS tebengan_waypoints CASCADE`,
