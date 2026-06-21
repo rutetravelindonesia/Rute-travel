@@ -22,6 +22,9 @@ interface RentalOffer {
   syarat: string | null;
   tersedia_mulai: string | null;
   tersedia_sampai: string | null;
+  tersedia_24jam: boolean;
+  jam_buka: string | null;
+  jam_tutup: string | null;
   alamat_kantor: string | null;
   kantor_detail: string | null;
   kantor_lat: number | null;
@@ -177,10 +180,14 @@ export default function RentalBook() {
     if (totalHari <= 0) return "Tanggal selesai harus sama atau setelah tanggal mulai.";
     if (offer.tersedia_mulai && tanggalMulai < offer.tersedia_mulai) return `Unit baru tersedia mulai ${offer.tersedia_mulai}.`;
     if (offer.tersedia_sampai && tanggalSelesai > offer.tersedia_sampai) return `Unit hanya tersedia sampai ${offer.tersedia_sampai}.`;
+    if (!offer.tersedia_24jam && offer.jam_buka && offer.jam_tutup) {
+      if (jamMulai < offer.jam_buka || jamMulai > offer.jam_tutup) return `Jam ambil harus dalam jam operasional unit (${offer.jam_buka}–${offer.jam_tutup}).`;
+      if (jamSelesai < offer.jam_buka || jamSelesai > offer.jam_tutup) return `Jam kembali harus dalam jam operasional unit (${offer.jam_buka}–${offer.jam_tutup}).`;
+    }
     if (needLokasi && !pickup) return "Pilih lokasi penjemputan.";
     if (needLokasi && !dropoff) return "Pilih lokasi pengantaran.";
     return null;
-  }, [offer, totalHari, needLokasi, pickup, dropoff, tanggalMulai, tanggalSelesai]);
+  }, [offer, totalHari, needLokasi, pickup, dropoff, tanggalMulai, tanggalSelesai, jamMulai, jamSelesai]);
 
   const canSubmit =
     !!offer &&
@@ -393,6 +400,13 @@ export default function RentalBook() {
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Jam</span>
             <span className="text-sm font-bold text-foreground" data-testid="summary-jam">{jamMulai} - {jamSelesai}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Jam operasional</span>
+            <span className="text-sm font-bold text-foreground" data-testid="summary-jam-operasional">
+              {offer && !offer.tersedia_24jam && offer.jam_buka && offer.jam_tutup ? `${offer.jam_buka} - ${offer.jam_tutup}` : "24 Jam"}
+            </span>
           </div>
 
           {offer && (offer.tersedia_mulai || offer.tersedia_sampai) && (

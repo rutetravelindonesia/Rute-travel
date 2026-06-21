@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, MapPin, Wallet, Save, Car, Power, Pencil, Trash2, Loader2, KeyRound, UserRound, FileText, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Wallet, Save, Car, Power, Pencil, Trash2, Loader2, KeyRound, UserRound, FileText, Calendar, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useKota, groupKota } from "@/hooks/useKota";
@@ -31,6 +31,9 @@ interface RentalOffer {
   syarat: string | null;
   tersedia_mulai: string | null;
   tersedia_sampai: string | null;
+  tersedia_24jam: boolean;
+  jam_buka: string | null;
+  jam_tutup: string | null;
   alamat_kantor: string | null;
   kantor_detail: string | null;
   kantor_lat: number | null;
@@ -98,6 +101,9 @@ export default function RentalAtur() {
   const [syarat, setSyarat] = useState<string>("");
   const [tersediaMulai, setTersediaMulai] = useState<string>("");
   const [tersediaSampai, setTersediaSampai] = useState<string>("");
+  const [tersedia24jam, setTersedia24jam] = useState<boolean>(true);
+  const [jamBuka, setJamBuka] = useState<string>("08:00");
+  const [jamTutup, setJamTutup] = useState<string>("17:00");
   const [kantor, setKantor] = useState<PickedAddress | null>(null);
   const [kantorOpen, setKantorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -166,6 +172,9 @@ export default function RentalAtur() {
     setSyarat("");
     setTersediaMulai("");
     setTersediaSampai("");
+    setTersedia24jam(true);
+    setJamBuka("08:00");
+    setJamTutup("17:00");
     setKantor(null);
   }
 
@@ -183,6 +192,9 @@ export default function RentalAtur() {
     setSyarat(o.syarat ?? "");
     setTersediaMulai(o.tersedia_mulai ?? "");
     setTersediaSampai(o.tersedia_sampai ?? "");
+    setTersedia24jam(o.tersedia_24jam ?? true);
+    setJamBuka(o.jam_buka ?? "08:00");
+    setJamTutup(o.jam_tutup ?? "17:00");
     setKantor(
       o.alamat_kantor
         ? { label: o.alamat_kantor, detail: o.kantor_detail ?? null, lat: o.kantor_lat ?? null, lng: o.kantor_lng ?? null }
@@ -202,8 +214,12 @@ export default function RentalAtur() {
       const v = parseInt(hargaSopir, 10);
       if (isNaN(v) || v <= 0) return false;
     }
+    if (!tersedia24jam) {
+      if (!jamBuka || !jamTutup) return false;
+      if (jamTutup <= jamBuka) return false;
+    }
     return true;
-  }, [kendaraanId, kotaSel, mode, hargaLepas, hargaSopir]);
+  }, [kendaraanId, kotaSel, mode, hargaLepas, hargaSopir, tersedia24jam, jamBuka, jamTutup]);
 
   async function handleSave() {
     if (!isValid || !token || kendaraanId === null) return;
@@ -217,6 +233,9 @@ export default function RentalAtur() {
         syarat: syarat.trim() || null,
         tersedia_mulai: tersediaMulai || null,
         tersedia_sampai: tersediaSampai || null,
+        tersedia_24jam: tersedia24jam,
+        jam_buka: tersedia24jam ? null : jamBuka,
+        jam_tutup: tersedia24jam ? null : jamTutup,
       };
       if (kantor) {
         body.alamat_kantor = kantor.label;
@@ -539,6 +558,66 @@ export default function RentalAtur() {
             >
               Kosongkan periode (unit selalu tersedia)
             </button>
+          )}
+        </div>
+
+        {/* SECTION 3c: Jam Ketersediaan */}
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-accent" />
+            <h2 className="text-sm font-bold text-foreground">Jam Ketersediaan</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Jam berapa unit ini bisa diambil dan dikembalikan? Penyewa hanya bisa memilih jam dalam rentang ini.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setTersedia24jam(true)}
+              data-testid="jam-24"
+              className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-colors ${
+                tersedia24jam ? "border-accent bg-accent text-white" : "border-border bg-background text-foreground hover:border-accent/40"
+              }`}
+            >
+              24 Jam
+            </button>
+            <button
+              type="button"
+              onClick={() => setTersedia24jam(false)}
+              data-testid="jam-tertentu"
+              className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-colors ${
+                !tersedia24jam ? "border-accent bg-accent text-white" : "border-border bg-background text-foreground hover:border-accent/40"
+              }`}
+            >
+              Jam Tertentu
+            </button>
+          </div>
+          {!tersedia24jam && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Jam buka</label>
+                <input
+                  type="time"
+                  value={jamBuka}
+                  onChange={(e) => setJamBuka(e.target.value)}
+                  data-testid="input-jam-buka"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Jam tutup</label>
+                <input
+                  type="time"
+                  value={jamTutup}
+                  onChange={(e) => setJamTutup(e.target.value)}
+                  data-testid="input-jam-tutup"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              {jamTutup <= jamBuka && (
+                <p className="col-span-2 text-[11px] text-red-500">Jam tutup harus setelah jam buka.</p>
+              )}
+            </div>
           )}
         </div>
 

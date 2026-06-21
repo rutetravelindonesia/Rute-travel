@@ -18,6 +18,9 @@ interface RentalResult {
   harga_dengan_sopir: number | null;
   deposit: number | null;
   catatan: string | null;
+  tersedia_24jam: boolean;
+  jam_buka: string | null;
+  jam_tutup: string | null;
   driver: { id: number; nama: string; foto_profil: string | null };
   kendaraan: {
     id: number;
@@ -97,6 +100,8 @@ export default function RentalCari() {
     setResults(null);
     try {
       const params = new URLSearchParams({ kota: kotaSel, tanggal_mulai: tanggalMulai, tanggal_selesai: tanggalSelesai });
+      if (jamMulai) params.set("jam_mulai", jamMulai);
+      if (jamSelesai) params.set("jam_selesai", jamSelesai);
       if (modeFilter) params.set("mode", modeFilter);
       const res = await fetch(`${apiBase}/rental/search?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -309,6 +314,10 @@ export default function RentalCari() {
                             <UserRound className="w-2.5 h-2.5" /> Dengan Sopir
                           </span>
                         )}
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 inline-flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" />
+                          {r.tersedia_24jam || !r.jam_buka || !r.jam_tutup ? "24 Jam" : `${r.jam_buka}–${r.jam_tutup}`}
+                        </span>
                       </div>
 
                       <div className="mt-2 space-y-0.5">

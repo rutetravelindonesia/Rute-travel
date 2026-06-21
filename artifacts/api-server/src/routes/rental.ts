@@ -59,6 +59,9 @@ const OfferBody = z.object({
   kantor_detail: z.string().max(500).optional().nullable(),
   kantor_lat: z.number().min(-90).max(90).optional().nullable(),
   kantor_lng: z.number().min(-180).max(180).optional().nullable(),
+  tersedia_24jam: z.boolean().optional(),
+  jam_buka: z.string().regex(TIME_RE).optional().nullable(),
+  jam_tutup: z.string().regex(TIME_RE).optional().nullable(),
 });
 
 const AddressBody = z.object({
@@ -101,6 +104,18 @@ function validateOfferPricing(
   return null;
 }
 
+// Validasi jam ketersediaan. Bila bukan 24 jam, jam buka & tutup wajib dan tutup harus setelah buka.
+function validateOfferJam(
+  is24: boolean,
+  jam_buka: string | null | undefined,
+  jam_tutup: string | null | undefined,
+): string | null {
+  if (is24) return null;
+  if (!jam_buka || !jam_tutup) return "Jam buka dan jam tutup wajib diisi jika unit tidak tersedia 24 jam.";
+  if (jam_tutup <= jam_buka) return "Jam tutup harus setelah jam buka.";
+  return null;
+}
+
 // ===== MITRA: buat penawaran rental =====
 router.post("/rental/offer", async (req, res): Promise<void> => {
   const user = await getUserFromToken(req.headers.authorization);
@@ -109,7 +124,7 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
 
   const parsed = OfferBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, syarat, tersedia_mulai, tersedia_sampai, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
+  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, syarat, tersedia_mulai, tersedia_sampai, alamat_kantor, kantor_detail, kantor_lat, kantor_lng, tersedia_24jam, jam_buka, jam_tutup } = parsed.data;
 
   const pricingErr = validateOfferPricing(mode, harga_lepas_kunci, harga_dengan_sopir);
   if (pricingErr) { res.status(400).json({ error: pricingErr }); return; }
@@ -117,6 +132,10 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
   if (tersedia_mulai && tersedia_sampai && tersedia_sampai < tersedia_mulai) {
     res.status(400).json({ error: "Tanggal 'Tersedia sampai' harus sama dengan atau setelah 'Tersedia mulai'." }); return;
   }
+
+  const is24 = tersedia_24jam !== false;
+  const jamErr = validateOfferJam(is24, jam_buka, jam_tutup);
+  if (jamErr) { res.status(400).json({ error: jamErr }); return; }
 
   const [k] = await db.select().from(kendaraanTable).where(eq(kendaraanTable.id, kendaraan_id));
   if (!k || k.driver_id !== user.id) { res.status(400).json({ error: "Kendaraan tidak valid atau bukan milik Anda." }); return; }
@@ -151,6 +170,9 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
       kantor_detail: kantor_detail ?? null,
       kantor_lat: kantor_lat ?? null,
       kantor_lng: kantor_lng ?? null,
+      tersedia_24jam: is24,
+      jam_buka: is24 ? null : jam_buka ?? null,
+      jam_tutup: is24 ? null : jam_tutup ?? null,
       is_active: true,
     })
     .returning();
@@ -170,7 +192,7 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
 
   const parsed = OfferBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, syarat, tersedia_mulai, tersedia_sampai, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
+  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, syarat, tersedia_mulai, tersedia_sampai, alamat_kantor, kantor_detail, kantor_lat, kantor_lng, tersedia_24jam, jam_buka, jam_tutup } = parsed.data;
 
   const pricingErr = validateOfferPricing(mode, harga_lepas_kunci, harga_dengan_sopir);
   if (pricingErr) { res.status(400).json({ error: pricingErr }); return; }
@@ -178,6 +200,10 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
   if (tersedia_mulai && tersedia_sampai && tersedia_sampai < tersedia_mulai) {
     res.status(400).json({ error: "Tanggal 'Tersedia sampai' harus sama dengan atau setelah 'Tersedia mulai'." }); return;
   }
+
+  const is24 = tersedia_24jam !== false;
+  const jamErr = validateOfferJam(is24, jam_buka, jam_tutup);
+  if (jamErr) { res.status(400).json({ error: jamErr }); return; }
 
   const [offer] = await db.select().from(rentalKendaraanTable).where(eq(rentalKendaraanTable.id, id));
   if (!offer || offer.driver_id !== user.id) { res.status(404).json({ error: "Penawaran tidak ditemukan." }); return; }
@@ -205,6 +231,9 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
       kantor_detail: kantor_detail ?? null,
       kantor_lat: kantor_lat ?? null,
       kantor_lng: kantor_lng ?? null,
+      tersedia_24jam: is24,
+      jam_buka: is24 ? null : jam_buka ?? null,
+      jam_tutup: is24 ? null : jam_tutup ?? null,
       updated_at: new Date(),
     })
     .where(eq(rentalKendaraanTable.id, id));
@@ -276,6 +305,8 @@ const SearchQuery = z.object({
   mode: z.enum(["lepas_kunci", "dengan_sopir"]).optional(),
   tanggal_mulai: z.string().regex(DATE_RE).optional(),
   tanggal_selesai: z.string().regex(DATE_RE).optional(),
+  jam_mulai: z.string().regex(TIME_RE).optional(),
+  jam_selesai: z.string().regex(TIME_RE).optional(),
 });
 
 router.get("/rental/search", async (req, res): Promise<void> => {
@@ -284,7 +315,7 @@ router.get("/rental/search", async (req, res): Promise<void> => {
 
   const parsed = SearchQuery.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: "Parameter pencarian tidak valid (kota wajib)." }); return; }
-  const { kota, mode, tanggal_mulai, tanggal_selesai } = parsed.data;
+  const { kota, mode, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai } = parsed.data;
   if (tanggal_mulai && tanggal_selesai && tanggal_selesai < tanggal_mulai) {
     res.status(400).json({ error: "Tanggal selesai harus sama atau setelah tanggal mulai." });
     return;
@@ -335,6 +366,14 @@ router.get("/rental/search", async (req, res): Promise<void> => {
     })
     .filter(({ o }) => !occupied.has(o.id))
     .filter(({ o }) => {
+      // Bila penyewa memilih jam ambil/kembali, sembunyikan unit yang jam operasionalnya
+      // tidak mencakup jam tersebut. Unit 24 jam selalu lolos.
+      if (o.tersedia_24jam || !o.jam_buka || !o.jam_tutup) return true;
+      if (jam_mulai && (jam_mulai < o.jam_buka || jam_mulai > o.jam_tutup)) return false;
+      if (jam_selesai && (jam_selesai < o.jam_buka || jam_selesai > o.jam_tutup)) return false;
+      return true;
+    })
+    .filter(({ o }) => {
       if (mode === "lepas_kunci") return o.harga_lepas_kunci != null;
       if (mode === "dengan_sopir") return o.harga_dengan_sopir != null;
       return o.harga_lepas_kunci != null || o.harga_dengan_sopir != null;
@@ -350,6 +389,9 @@ router.get("/rental/search", async (req, res): Promise<void> => {
       syarat: o.syarat,
       tersedia_mulai: o.tersedia_mulai,
       tersedia_sampai: o.tersedia_sampai,
+      tersedia_24jam: o.tersedia_24jam,
+      jam_buka: o.jam_buka,
+      jam_tutup: o.jam_tutup,
       alamat_kantor: o.alamat_kantor,
       kantor_detail: o.kantor_detail,
       kantor_lat: o.kantor_lat,
@@ -388,6 +430,9 @@ router.get("/rental/:id", async (req, res): Promise<void> => {
     syarat: o.syarat,
     tersedia_mulai: o.tersedia_mulai,
     tersedia_sampai: o.tersedia_sampai,
+    tersedia_24jam: o.tersedia_24jam,
+    jam_buka: o.jam_buka,
+    jam_tutup: o.jam_tutup,
     alamat_kantor: o.alamat_kantor,
     kantor_detail: o.kantor_detail,
     kantor_lat: o.kantor_lat,
@@ -444,6 +489,15 @@ router.post("/rental/:id/book", async (req, res): Promise<void> => {
     if (tanggal_selesai < tanggal_mulai) return { error: "Tanggal selesai harus setelah tanggal mulai.", status: 400 } as const;
     if (o.tersedia_mulai && tanggal_mulai < o.tersedia_mulai) return { error: `Unit baru tersedia mulai ${o.tersedia_mulai}. Pilih tanggal mulai pada atau setelah tanggal tersebut.`, status: 400 } as const;
     if (o.tersedia_sampai && tanggal_selesai > o.tersedia_sampai) return { error: `Unit hanya tersedia sampai ${o.tersedia_sampai}. Pilih tanggal selesai pada atau sebelum tanggal tersebut.`, status: 400 } as const;
+
+    if (!o.tersedia_24jam && o.jam_buka && o.jam_tutup) {
+      if (jam_mulai < o.jam_buka || jam_mulai > o.jam_tutup) {
+        return { error: `Jam ambil harus dalam jam operasional unit (${o.jam_buka}–${o.jam_tutup}).`, status: 400 } as const;
+      }
+      if (jam_selesai < o.jam_buka || jam_selesai > o.jam_tutup) {
+        return { error: `Jam kembali harus dalam jam operasional unit (${o.jam_buka}–${o.jam_tutup}).`, status: 400 } as const;
+      }
+    }
 
     const startMs = new Date(`${tanggal_mulai}T${jam_mulai}:00+08:00`).getTime();
     if (!Number.isFinite(startMs)) return { error: "Tanggal/jam mulai tidak valid.", status: 400 } as const;
