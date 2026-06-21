@@ -31,6 +31,11 @@ async function getUserFromToken(authHeader: string | undefined) {
 const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function hitungHari(mulai: string, selesai: string): number {
   const a = new Date(`${mulai}T00:00:00+08:00`).getTime();
   const b = new Date(`${selesai}T00:00:00+08:00`).getTime();
@@ -286,8 +291,10 @@ router.get("/rental/search", async (req, res): Promise<void> => {
     .innerJoin(usersTable, eq(usersTable.id, rentalKendaraanTable.driver_id))
     .where(and(eq(rentalKendaraanTable.is_active, true), eq(rentalKendaraanTable.kota, kota)));
 
+  const today = todayISO();
   const result = rows
     .filter(({ o }) => o.driver_id !== user.id)
+    .filter(({ o }) => !o.tersedia_sampai || o.tersedia_sampai >= today)
     .filter(({ o }) => {
       if (mode === "lepas_kunci") return o.harga_lepas_kunci != null;
       if (mode === "dengan_sopir") return o.harga_dengan_sopir != null;
