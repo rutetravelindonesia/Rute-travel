@@ -101,6 +101,8 @@ export async function runMigrations(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS rental_bookings_rental_idx ON rental_bookings (rental_id)`,
     // ===== RENTAL: alamat kantor mitra + lokasi antar penyewa =====
     `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS syarat TEXT`,
+    `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS tersedia_mulai TEXT`,
+    `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS tersedia_sampai TEXT`,
     `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS alamat_kantor TEXT`,
     `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS kantor_detail TEXT`,
     `ALTER TABLE rental_kendaraan ADD COLUMN IF NOT EXISTS kantor_lat REAL`,

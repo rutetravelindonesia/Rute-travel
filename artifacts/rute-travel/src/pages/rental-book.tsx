@@ -20,6 +20,8 @@ interface RentalOffer {
   deposit: number | null;
   catatan: string | null;
   syarat: string | null;
+  tersedia_mulai: string | null;
+  tersedia_sampai: string | null;
   alamat_kantor: string | null;
   kantor_detail: string | null;
   kantor_lat: number | null;
@@ -154,19 +156,27 @@ export default function RentalBook() {
 
   const hasOffice = !!offer?.alamat_kantor;
   const needLokasi = !ambilDiKantor;
+  const minTanggal = useMemo(() => {
+    const t = todayISO();
+    return offer?.tersedia_mulai && offer.tersedia_mulai > t ? offer.tersedia_mulai : t;
+  }, [offer]);
+  const maxTanggal = offer?.tersedia_sampai ?? "";
   const validationMsg = useMemo(() => {
     if (!offer) return null;
     if (totalHari <= 0) return "Tanggal selesai harus sama atau setelah tanggal mulai.";
+    if (offer.tersedia_mulai && tanggalMulai < offer.tersedia_mulai) return `Unit baru tersedia mulai ${offer.tersedia_mulai}.`;
+    if (offer.tersedia_sampai && tanggalSelesai > offer.tersedia_sampai) return `Unit hanya tersedia sampai ${offer.tersedia_sampai}.`;
     if (needLokasi && !pickup) return "Pilih lokasi penjemputan.";
     if (needLokasi && !dropoff) return "Pilih lokasi pengantaran.";
     return null;
-  }, [offer, totalHari, needLokasi, pickup, dropoff]);
+  }, [offer, totalHari, needLokasi, pickup, dropoff, tanggalMulai, tanggalSelesai]);
 
   const canSubmit =
     !!offer &&
     !isOwnOffer &&
     totalHari > 0 &&
     hargaPerHari > 0 &&
+    !validationMsg &&
     (!needLokasi || (!!pickup && !!dropoff)) &&
     !submitting;
 
@@ -372,7 +382,8 @@ export default function RentalBook() {
               <input
                 type="date"
                 value={tanggalMulai}
-                min={todayISO()}
+                min={minTanggal}
+                max={maxTanggal || undefined}
                 onChange={(e) => {
                   setTanggalMulai(e.target.value);
                   if (tanggalSelesai < e.target.value) setTanggalSelesai(e.target.value);
@@ -388,13 +399,22 @@ export default function RentalBook() {
               <input
                 type="date"
                 value={tanggalSelesai}
-                min={tanggalMulai || todayISO()}
+                min={tanggalMulai || minTanggal}
+                max={maxTanggal || undefined}
                 onChange={(e) => setTanggalSelesai(e.target.value)}
                 data-testid="input-tanggal-selesai"
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
           </div>
+          {offer && (offer.tersedia_mulai || offer.tersedia_sampai) && (
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Calendar className="w-3 h-3 shrink-0" />
+              Unit tersedia {offer.tersedia_mulai ? `mulai ${offer.tersedia_mulai}` : ""}
+              {offer.tersedia_mulai && offer.tersedia_sampai ? " " : ""}
+              {offer.tersedia_sampai ? `sampai ${offer.tersedia_sampai}` : ""}.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">

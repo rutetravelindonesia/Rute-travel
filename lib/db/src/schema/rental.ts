@@ -21,6 +21,8 @@ export const rentalKendaraanTable = pgTable("rental_kendaraan", {
   deposit: integer("deposit").notNull().default(0),
   catatan: text("catatan"),
   syarat: text("syarat"),
+  tersedia_mulai: text("tersedia_mulai"),
+  tersedia_sampai: text("tersedia_sampai"),
   alamat_kantor: text("alamat_kantor"),
   kantor_detail: text("kantor_detail"),
   kantor_lat: real("kantor_lat"),

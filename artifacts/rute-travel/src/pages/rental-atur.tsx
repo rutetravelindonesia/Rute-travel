@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, MapPin, Wallet, Save, Car, Power, Pencil, Trash2, Loader2, KeyRound, UserRound, FileText } from "lucide-react";
+import { ArrowLeft, MapPin, Wallet, Save, Car, Power, Pencil, Trash2, Loader2, KeyRound, UserRound, FileText, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useKota, groupKota } from "@/hooks/useKota";
@@ -29,6 +29,8 @@ interface RentalOffer {
   deposit: number | null;
   catatan: string | null;
   syarat: string | null;
+  tersedia_mulai: string | null;
+  tersedia_sampai: string | null;
   alamat_kantor: string | null;
   kantor_detail: string | null;
   kantor_lat: number | null;
@@ -58,6 +60,10 @@ const MODE_LABEL: Record<RentalMode, string> = {
   "dua-duanya": "Lepas Kunci & Dengan Sopir",
 };
 
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function offersLepas(mode: RentalMode) {
   return mode === "lepas_kunci" || mode === "dua-duanya";
 }
@@ -90,6 +96,8 @@ export default function RentalAtur() {
   const [deposit, setDeposit] = useState<string>("");
   const [catatan, setCatatan] = useState<string>("");
   const [syarat, setSyarat] = useState<string>("");
+  const [tersediaMulai, setTersediaMulai] = useState<string>("");
+  const [tersediaSampai, setTersediaSampai] = useState<string>("");
   const [kantor, setKantor] = useState<PickedAddress | null>(null);
   const [kantorOpen, setKantorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -156,6 +164,8 @@ export default function RentalAtur() {
     setDeposit("");
     setCatatan("");
     setSyarat("");
+    setTersediaMulai("");
+    setTersediaSampai("");
     setKantor(null);
   }
 
@@ -171,6 +181,8 @@ export default function RentalAtur() {
     setDeposit(o.deposit ? String(o.deposit) : "");
     setCatatan(o.catatan ?? "");
     setSyarat(o.syarat ?? "");
+    setTersediaMulai(o.tersedia_mulai ?? "");
+    setTersediaSampai(o.tersedia_sampai ?? "");
     setKantor(
       o.alamat_kantor
         ? { label: o.alamat_kantor, detail: o.kantor_detail ?? null, lat: o.kantor_lat ?? null, lng: o.kantor_lng ?? null }
@@ -203,6 +215,8 @@ export default function RentalAtur() {
         mode,
         catatan: catatan.trim() || undefined,
         syarat: syarat.trim() || null,
+        tersedia_mulai: tersediaMulai || null,
+        tersedia_sampai: tersediaSampai || null,
       };
       if (kantor) {
         body.alamat_kantor = kantor.label;
@@ -478,6 +492,53 @@ export default function RentalAtur() {
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">Deposit dikembalikan setelah kendaraan dikembalikan dengan baik.</p>
             </div>
+          )}
+        </div>
+
+        {/* SECTION 3b: Periode Ketersediaan */}
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-accent" />
+            <h2 className="text-sm font-bold text-foreground">Periode Ketersediaan (opsional)</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Atur kapan unit ini siap disewakan. Penyewa hanya bisa memesan dalam rentang tanggal ini. Kosongkan jika unit selalu tersedia.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Tersedia mulai</label>
+              <input
+                type="date"
+                value={tersediaMulai}
+                min={todayISO()}
+                onChange={(e) => {
+                  setTersediaMulai(e.target.value);
+                  if (tersediaSampai && tersediaSampai < e.target.value) setTersediaSampai(e.target.value);
+                }}
+                data-testid="input-tersedia-mulai"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Tersedia sampai</label>
+              <input
+                type="date"
+                value={tersediaSampai}
+                min={tersediaMulai || todayISO()}
+                onChange={(e) => setTersediaSampai(e.target.value)}
+                data-testid="input-tersedia-sampai"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+              />
+            </div>
+          </div>
+          {tersediaMulai && (
+            <button
+              type="button"
+              onClick={() => { setTersediaMulai(""); setTersediaSampai(""); }}
+              className="text-xs text-muted-foreground underline"
+            >
+              Kosongkan periode (unit selalu tersedia)
+            </button>
           )}
         </div>
 
