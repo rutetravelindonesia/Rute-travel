@@ -74,15 +74,22 @@ export default function RentalBook() {
   const { toast } = useToast();
   const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 
+  const qp = useMemo(() => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""), []);
+  const qpMulai = qp.get("mulai");
+  const qpSelesai = qp.get("selesai");
+  const qpJamMulai = qp.get("jamMulai");
+  const qpJamSelesai = qp.get("jamSelesai");
+  const qpMode = qp.get("mode");
+
   const [offer, setOffer] = useState<RentalOffer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [bookMode, setBookMode] = useState<BookMode>("lepas_kunci");
-  const [tanggalMulai, setTanggalMulai] = useState<string>(todayISO());
-  const [tanggalSelesai, setTanggalSelesai] = useState<string>(todayISO());
-  const [jamMulai, setJamMulai] = useState<string>("08:00");
-  const [jamSelesai, setJamSelesai] = useState<string>("17:00");
+  const tanggalMulai = qpMulai || todayISO();
+  const tanggalSelesai = qpSelesai || qpMulai || todayISO();
+  const jamMulai = qpJamMulai || "08:00";
+  const jamSelesai = qpJamSelesai || "17:00";
   const [pickup, setPickup] = useState<PickedAddress | null>(null);
   const [pickupOpen, setPickupOpen] = useState(false);
   const [dropoff, setDropoff] = useState<PickedAddress | null>(null);
@@ -103,6 +110,10 @@ export default function RentalBook() {
       setLoading(false);
       return;
     }
+    if (!qpMulai || !qpSelesai) {
+      setLocation("/rental/cari");
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -118,7 +129,10 @@ export default function RentalBook() {
         const data: RentalOffer = await res.json();
         if (!cancelled) {
           setOffer(data);
-          setBookMode(offersLepas(data.mode) ? "lepas_kunci" : "dengan_sopir");
+          let m: BookMode = offersLepas(data.mode) ? "lepas_kunci" : "dengan_sopir";
+          if (qpMode === "lepas_kunci" && offersLepas(data.mode)) m = "lepas_kunci";
+          else if (qpMode === "dengan_sopir" && offersSopir(data.mode)) m = "dengan_sopir";
+          setBookMode(m);
           setAmbilDiKantor(!!data.alamat_kantor);
         }
       } catch {
@@ -130,7 +144,7 @@ export default function RentalBook() {
     return () => {
       cancelled = true;
     };
-  }, [token, offerId, apiBase, setLocation]);
+  }, [token, offerId, apiBase, setLocation, qpMode, qpMulai, qpSelesai]);
 
   const isOwnOffer = offer && user && offer.driver?.id === user.id;
   const isDuaDuanya = offer?.mode === "dua-duanya";
@@ -156,11 +170,8 @@ export default function RentalBook() {
 
   const hasOffice = !!offer?.alamat_kantor;
   const needLokasi = !ambilDiKantor;
-  const minTanggal = useMemo(() => {
-    const t = todayISO();
-    return offer?.tersedia_mulai && offer.tersedia_mulai > t ? offer.tersedia_mulai : t;
-  }, [offer]);
-  const maxTanggal = offer?.tersedia_sampai ?? "";
+  const modeLocked =
+    !!offer && (offer.mode !== "dua-duanya" || qpMode === "lepas_kunci" || qpMode === "dengan_sopir");
   const validationMsg = useMemo(() => {
     if (!offer) return null;
     if (totalHari <= 0) return "Tanggal selesai harus sama atau setelah tanggal mulai.";
@@ -329,84 +340,61 @@ export default function RentalBook() {
           </div>
         )}
 
-        {/* Mode */}
+        {/* Ringkasan sewa (dipilih saat pencarian) */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
-          <p className="text-sm font-bold text-foreground">Mode Rental</p>
-          {isDuaDuanya ? (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setBookMode("lepas_kunci")}
-                data-testid="book-mode-lepas_kunci"
-                className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                  bookMode === "lepas_kunci"
-                    ? "border-accent bg-accent text-white"
-                    : "border-border bg-background text-foreground"
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5" /> Lepas Kunci
-              </button>
-              <button
-                onClick={() => setBookMode("dengan_sopir")}
-                data-testid="book-mode-dengan_sopir"
-                className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                  bookMode === "dengan_sopir"
-                    ? "border-accent bg-accent text-white"
-                    : "border-border bg-background text-foreground"
-                }`}
-              >
-                <UserRound className="w-3.5 h-3.5" /> Dengan Sopir
-              </button>
+          <p className="text-sm font-bold text-foreground">Detail Sewa</p>
+
+          {!modeLocked && isDuaDuanya ? (
+            <div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Mode Rental</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBookMode("lepas_kunci")}
+                  data-testid="book-mode-lepas_kunci"
+                  className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                    bookMode === "lepas_kunci"
+                      ? "border-accent bg-accent text-white"
+                      : "border-border bg-background text-foreground"
+                  }`}
+                >
+                  <KeyRound className="w-3.5 h-3.5" /> Lepas Kunci
+                </button>
+                <button
+                  onClick={() => setBookMode("dengan_sopir")}
+                  data-testid="book-mode-dengan_sopir"
+                  className={`py-3 px-2 rounded-xl border-2 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                    bookMode === "dengan_sopir"
+                      ? "border-accent bg-accent text-white"
+                      : "border-border bg-background text-foreground"
+                  }`}
+                >
+                  <UserRound className="w-3.5 h-3.5" /> Dengan Sopir
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="rounded-xl bg-muted/40 px-4 py-3 flex items-center gap-2">
-              {bookMode === "lepas_kunci" ? (
-                <KeyRound className="w-4 h-4 text-accent" />
-              ) : (
-                <UserRound className="w-4 h-4 text-accent" />
-              )}
-              <p className="text-sm font-bold text-foreground">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Mode</span>
+              <span className="text-sm font-bold text-foreground flex items-center gap-1.5" data-testid="summary-mode">
+                {bookMode === "lepas_kunci" ? <KeyRound className="w-3.5 h-3.5 text-accent" /> : <UserRound className="w-3.5 h-3.5 text-accent" />}
                 {bookMode === "lepas_kunci" ? "Lepas Kunci" : "Dengan Sopir"}
-              </p>
+              </span>
             </div>
           )}
-        </div>
 
-        {/* Tanggal & jam */}
-        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
-          <p className="text-sm font-bold text-foreground">Periode Sewa</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Mulai
-              </label>
-              <input
-                type="date"
-                value={tanggalMulai}
-                min={minTanggal}
-                max={maxTanggal || undefined}
-                onChange={(e) => {
-                  setTanggalMulai(e.target.value);
-                  if (tanggalSelesai < e.target.value) setTanggalSelesai(e.target.value);
-                }}
-                data-testid="input-tanggal-mulai"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Selesai
-              </label>
-              <input
-                type="date"
-                value={tanggalSelesai}
-                min={tanggalMulai || minTanggal}
-                max={maxTanggal || undefined}
-                onChange={(e) => setTanggalSelesai(e.target.value)}
-                data-testid="input-tanggal-selesai"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
-              />
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Tanggal</span>
+            <span className="text-sm font-bold text-foreground text-right" data-testid="summary-tanggal">
+              {tanggalMulai} → {tanggalSelesai}
+              {totalHari > 0 ? <span className="text-[11px] text-muted-foreground font-normal"> ({totalHari} hari)</span> : null}
+            </span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Jam</span>
+            <span className="text-sm font-bold text-foreground" data-testid="summary-jam">{jamMulai} - {jamSelesai}</span>
+          </div>
+
           {offer && (offer.tersedia_mulai || offer.tersedia_sampai) && (
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Calendar className="w-3 h-3 shrink-0" />
@@ -415,32 +403,10 @@ export default function RentalBook() {
               {offer.tersedia_sampai ? `sampai ${offer.tersedia_sampai}` : ""}.
             </p>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Jam Ambil
-              </label>
-              <input
-                type="time"
-                value={jamMulai}
-                onChange={(e) => setJamMulai(e.target.value)}
-                data-testid="input-jam-mulai"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Jam Kembali
-              </label>
-              <input
-                type="time"
-                value={jamSelesai}
-                onChange={(e) => setJamSelesai(e.target.value)}
-                data-testid="input-jam-selesai"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
-              />
-            </div>
-          </div>
+
+          <p className="text-[11px] text-muted-foreground">
+            Untuk ubah tanggal atau mode, kembali ke halaman pencarian.
+          </p>
         </div>
 
         {/* Lokasi pengambilan & pengantaran (kedua mode) */}

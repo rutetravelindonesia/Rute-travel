@@ -274,6 +274,8 @@ router.get("/rental/offer/mine", async (req, res): Promise<void> => {
 const SearchQuery = z.object({
   kota: z.string().min(2).max(100),
   mode: z.enum(["lepas_kunci", "dengan_sopir"]).optional(),
+  tanggal_mulai: z.string().regex(DATE_RE).optional(),
+  tanggal_selesai: z.string().regex(DATE_RE).optional(),
 });
 
 router.get("/rental/search", async (req, res): Promise<void> => {
@@ -282,7 +284,11 @@ router.get("/rental/search", async (req, res): Promise<void> => {
 
   const parsed = SearchQuery.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: "Parameter pencarian tidak valid (kota wajib)." }); return; }
-  const { kota, mode } = parsed.data;
+  const { kota, mode, tanggal_mulai, tanggal_selesai } = parsed.data;
+  if (tanggal_mulai && tanggal_selesai && tanggal_selesai < tanggal_mulai) {
+    res.status(400).json({ error: "Tanggal selesai harus sama atau setelah tanggal mulai." });
+    return;
+  }
 
   const rows = await db
     .select({ o: rentalKendaraanTable, k: kendaraanTable, driver: usersTable })
@@ -292,9 +298,13 @@ router.get("/rental/search", async (req, res): Promise<void> => {
     .where(and(eq(rentalKendaraanTable.is_active, true), eq(rentalKendaraanTable.kota, kota)));
 
   const today = todayISO();
+  const reqMulai = tanggal_mulai ?? null;
+  const reqSelesai = tanggal_selesai ?? null;
+  const useRange = !!(reqMulai && reqSelesai);
 
-  // Sembunyikan unit yang sedang/masih disewa (booking belum selesai) dari penyewa lain.
-  // Tiap offer = satu kendaraan, jadi mitra dengan kendaraan lain / kendaraan baru tetap tampil.
+  // Sembunyikan unit yang sedang/masih disewa dari penyewa lain. Bila penyewa memilih
+  // rentang tanggal, sembunyikan unit yang booking-nya bertabrakan dengan rentang itu;
+  // bila tidak, pakai patokan "hari ini". Tiap offer = satu kendaraan.
   const occupied = new Set<number>();
   const offerIds = rows.map(({ o }) => o.id);
   if (offerIds.length > 0) {
@@ -305,8 +315,8 @@ router.get("/rental/search", async (req, res): Promise<void> => {
         and(
           inArray(rentalBookingsTable.rental_id, offerIds),
           inArray(rentalBookingsTable.status, ["paid", "confirmed", "aktif", "dalam_perjalanan", "pending_verification"]),
-          lte(rentalBookingsTable.tanggal_mulai, today),
-          gte(rentalBookingsTable.tanggal_selesai, today),
+          lte(rentalBookingsTable.tanggal_mulai, useRange ? reqSelesai! : today),
+          gte(rentalBookingsTable.tanggal_selesai, useRange ? reqMulai! : today),
         ),
       );
     for (const b of busy) occupied.add(b.rental_id);
@@ -314,7 +324,15 @@ router.get("/rental/search", async (req, res): Promise<void> => {
 
   const result = rows
     .filter(({ o }) => o.driver_id !== user.id)
-    .filter(({ o }) => !o.tersedia_sampai || o.tersedia_sampai >= today)
+    .filter(({ o }) => {
+      if (useRange) {
+        // Hanya tampilkan unit yang jendela ketersediaannya mencakup rentang tanggal yang diminta.
+        if (o.tersedia_mulai && reqMulai! < o.tersedia_mulai) return false;
+        if (o.tersedia_sampai && reqSelesai! > o.tersedia_sampai) return false;
+        return true;
+      }
+      return !o.tersedia_sampai || o.tersedia_sampai >= today;
+    })
     .filter(({ o }) => !occupied.has(o.id))
     .filter(({ o }) => {
       if (mode === "lepas_kunci") return o.harga_lepas_kunci != null;

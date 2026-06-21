@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Search, Car, Loader2, KeyRound, UserRound, MapPin, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, Car, Loader2, KeyRound, UserRound, MapPin, ChevronRight, Calendar, Clock } from "lucide-react";
 import { PhotoLightbox } from "@/components/photo-lightbox";
 import { CitySelect } from "@/components/city-select";
 import { useAuth } from "@/contexts/auth";
@@ -41,6 +41,11 @@ function fmtRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
 
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function offersLepas(mode: RentalMode) {
   return mode === "lepas_kunci" || mode === "dua-duanya";
 }
@@ -57,6 +62,10 @@ export default function RentalCari() {
   const [provinsi, setProvinsi] = useState<string>("");
   const [kotaSel, setKotaSel] = useState<string>("");
   const [modeFilter, setModeFilter] = useState<"" | "lepas_kunci" | "dengan_sopir">("");
+  const [tanggalMulai, setTanggalMulai] = useState<string>(todayISO());
+  const [tanggalSelesai, setTanggalSelesai] = useState<string>(todayISO());
+  const [jamMulai, setJamMulai] = useState<string>("08:00");
+  const [jamSelesai, setJamSelesai] = useState<string>("17:00");
 
   const [results, setResults] = useState<RentalResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -72,7 +81,14 @@ export default function RentalCari() {
     [kota, provinsi],
   );
 
-  const canSearch = !!kotaSel && !searching;
+  const canSearch =
+    !!kotaSel && !!tanggalMulai && !!tanggalSelesai && tanggalSelesai >= tanggalMulai && !searching;
+
+  function goBook(id: number) {
+    const q = new URLSearchParams({ mulai: tanggalMulai, selesai: tanggalSelesai, jamMulai, jamSelesai });
+    if (modeFilter) q.set("mode", modeFilter);
+    setLocation(`/rental/${id}/book?${q.toString()}`);
+  }
 
   async function handleSearch() {
     if (!canSearch || !token) return;
@@ -80,7 +96,7 @@ export default function RentalCari() {
     setSearchError(null);
     setResults(null);
     try {
-      const params = new URLSearchParams({ kota: kotaSel });
+      const params = new URLSearchParams({ kota: kotaSel, tanggal_mulai: tanggalMulai, tanggal_selesai: tanggalSelesai });
       if (modeFilter) params.set("mode", modeFilter);
       const res = await fetch(`${apiBase}/rental/search?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -168,6 +184,56 @@ export default function RentalCari() {
             </div>
           </div>
 
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Periode Sewa</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1"><Calendar className="w-3 h-3" /> Mulai</span>
+                <input
+                  type="date"
+                  value={tanggalMulai}
+                  min={todayISO()}
+                  onChange={(e) => { setTanggalMulai(e.target.value); if (tanggalSelesai < e.target.value) setTanggalSelesai(e.target.value); }}
+                  data-testid="search-tanggal-mulai"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1"><Calendar className="w-3 h-3" /> Selesai</span>
+                <input
+                  type="date"
+                  value={tanggalSelesai}
+                  min={tanggalMulai || todayISO()}
+                  onChange={(e) => setTanggalSelesai(e.target.value)}
+                  data-testid="search-tanggal-selesai"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1"><Clock className="w-3 h-3" /> Jam Ambil</span>
+                <input
+                  type="time"
+                  value={jamMulai}
+                  onChange={(e) => setJamMulai(e.target.value)}
+                  data-testid="search-jam-mulai"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1"><Clock className="w-3 h-3" /> Jam Kembali</span>
+                <input
+                  type="time"
+                  value={jamSelesai}
+                  onChange={(e) => setJamSelesai(e.target.value)}
+                  data-testid="search-jam-selesai"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={handleSearch}
             disabled={!canSearch}
@@ -202,8 +268,8 @@ export default function RentalCari() {
                     role="button"
                     tabIndex={0}
                     data-testid={`rental-offer-${r.id}`}
-                    onClick={() => setLocation(`/rental/${r.id}/book`)}
-                    onKeyDown={(e) => e.key === "Enter" && setLocation(`/rental/${r.id}/book`)}
+                    onClick={() => goBook(r.id)}
+                    onKeyDown={(e) => e.key === "Enter" && goBook(r.id)}
                     className="w-full text-left bg-card rounded-2xl border border-border overflow-hidden hover:border-accent/60 transition-colors cursor-pointer"
                   >
                     <div className="w-full h-36 bg-muted overflow-hidden flex items-center justify-center">
