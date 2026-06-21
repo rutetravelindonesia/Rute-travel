@@ -292,9 +292,30 @@ router.get("/rental/search", async (req, res): Promise<void> => {
     .where(and(eq(rentalKendaraanTable.is_active, true), eq(rentalKendaraanTable.kota, kota)));
 
   const today = todayISO();
+
+  // Sembunyikan unit yang sedang/masih disewa (booking belum selesai) dari penyewa lain.
+  // Tiap offer = satu kendaraan, jadi mitra dengan kendaraan lain / kendaraan baru tetap tampil.
+  const occupied = new Set<number>();
+  const offerIds = rows.map(({ o }) => o.id);
+  if (offerIds.length > 0) {
+    const busy = await db
+      .select({ rental_id: rentalBookingsTable.rental_id })
+      .from(rentalBookingsTable)
+      .where(
+        and(
+          inArray(rentalBookingsTable.rental_id, offerIds),
+          inArray(rentalBookingsTable.status, ["paid", "confirmed", "aktif", "dalam_perjalanan", "pending_verification"]),
+          lte(rentalBookingsTable.tanggal_mulai, today),
+          gte(rentalBookingsTable.tanggal_selesai, today),
+        ),
+      );
+    for (const b of busy) occupied.add(b.rental_id);
+  }
+
   const result = rows
     .filter(({ o }) => o.driver_id !== user.id)
     .filter(({ o }) => !o.tersedia_sampai || o.tersedia_sampai >= today)
+    .filter(({ o }) => !occupied.has(o.id))
     .filter(({ o }) => {
       if (mode === "lepas_kunci") return o.harga_lepas_kunci != null;
       if (mode === "dengan_sopir") return o.harga_dengan_sopir != null;
