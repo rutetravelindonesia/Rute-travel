@@ -28,6 +28,7 @@ interface RentalOffer {
   harga_dengan_sopir: number | null;
   deposit: number | null;
   catatan: string | null;
+  syarat: string | null;
   alamat_kantor: string | null;
   kantor_detail: string | null;
   kantor_lat: number | null;
@@ -88,6 +89,7 @@ export default function RentalAtur() {
   const [hargaSopir, setHargaSopir] = useState<string>("");
   const [deposit, setDeposit] = useState<string>("");
   const [catatan, setCatatan] = useState<string>("");
+  const [syarat, setSyarat] = useState<string>("");
   const [kantor, setKantor] = useState<PickedAddress | null>(null);
   const [kantorOpen, setKantorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -153,6 +155,7 @@ export default function RentalAtur() {
     setHargaSopir("");
     setDeposit("");
     setCatatan("");
+    setSyarat("");
     setKantor(null);
   }
 
@@ -167,6 +170,7 @@ export default function RentalAtur() {
     setHargaSopir(o.harga_dengan_sopir ? String(o.harga_dengan_sopir) : "");
     setDeposit(o.deposit ? String(o.deposit) : "");
     setCatatan(o.catatan ?? "");
+    setSyarat(o.syarat ?? "");
     setKantor(
       o.alamat_kantor
         ? { label: o.alamat_kantor, detail: o.kantor_detail ?? null, lat: o.kantor_lat ?? null, lng: o.kantor_lng ?? null }
@@ -198,6 +202,7 @@ export default function RentalAtur() {
         kota: kotaSel,
         mode,
         catatan: catatan.trim() || undefined,
+        syarat: syarat.trim() || null,
       };
       if (kantor) {
         body.alamat_kantor = kantor.label;
@@ -486,7 +491,25 @@ export default function RentalAtur() {
             value={catatan}
             onChange={(e) => setCatatan(e.target.value)}
             rows={3}
-            placeholder="Syarat & ketentuan, area antar, dll."
+            placeholder="Catatan singkat untuk penyewa, area antar, dll."
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
+          />
+        </div>
+
+        {/* SECTION 4b: Syarat Rental */}
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-accent" />
+            <h2 className="text-sm font-bold text-foreground">Syarat Rental (opsional)</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Ketentuan sewa yang akan dilihat penyewa, mis. KTP/SIM wajib, deposit, batas wilayah, jam pengembalian, dll.
+          </p>
+          <textarea
+            value={syarat}
+            onChange={(e) => setSyarat(e.target.value)}
+            rows={5}
+            placeholder={"Contoh:\n- Wajib menyerahkan fotokopi KTP & SIM A\n- Deposit dikembalikan setelah kendaraan dicek\n- Bahan bakar diisi penyewa\n- Pengembalian maksimal jam 12.00"}
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>

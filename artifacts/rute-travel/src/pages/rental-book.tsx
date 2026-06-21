@@ -19,6 +19,7 @@ interface RentalOffer {
   harga_dengan_sopir: number | null;
   deposit: number | null;
   catatan: string | null;
+  syarat: string | null;
   alamat_kantor: string | null;
   kantor_detail: string | null;
   kantor_lat: number | null;
@@ -510,6 +511,18 @@ export default function RentalBook() {
             </>
           )}
         </div>
+
+        {/* Syarat Rental dari mitra */}
+        {offer.syarat && (
+          <div className="bg-card rounded-2xl border border-border p-4 space-y-2">
+            <p className="text-sm font-bold text-foreground flex items-center gap-2">
+              <FileText className="w-4 h-4 text-accent" /> Syarat Rental
+            </p>
+            <p className="text-xs text-foreground whitespace-pre-line leading-relaxed" data-testid="offer-syarat">
+              {offer.syarat}
+            </p>
+          </div>
+        )}
 
         {/* Catatan */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-2">

@@ -47,6 +47,7 @@ const OfferBody = z.object({
   harga_dengan_sopir: z.number().int().min(0).max(100_000_000).optional().nullable(),
   deposit: z.number().int().min(0).max(100_000_000).optional().nullable(),
   catatan: z.string().max(500).optional().nullable(),
+  syarat: z.string().max(2000).optional().nullable(),
   alamat_kantor: z.string().max(200).optional().nullable(),
   kantor_detail: z.string().max(500).optional().nullable(),
   kantor_lat: z.number().min(-90).max(90).optional().nullable(),
@@ -101,7 +102,7 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
 
   const parsed = OfferBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
+  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, syarat, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
 
   const pricingErr = validateOfferPricing(mode, harga_lepas_kunci, harga_dengan_sopir);
   if (pricingErr) { res.status(400).json({ error: pricingErr }); return; }
@@ -132,6 +133,7 @@ router.post("/rental/offer", async (req, res): Promise<void> => {
       harga_dengan_sopir: wantSopir ? harga_dengan_sopir ?? null : null,
       deposit: wantLepas ? deposit ?? 0 : 0,
       catatan: catatan ?? null,
+      syarat: syarat?.trim() || null,
       alamat_kantor: alamat_kantor?.trim() || null,
       kantor_detail: kantor_detail ?? null,
       kantor_lat: kantor_lat ?? null,
@@ -155,7 +157,7 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
 
   const parsed = OfferBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
+  const { kendaraan_id, kota, mode, harga_lepas_kunci, harga_dengan_sopir, deposit, catatan, syarat, alamat_kantor, kantor_detail, kantor_lat, kantor_lng } = parsed.data;
 
   const pricingErr = validateOfferPricing(mode, harga_lepas_kunci, harga_dengan_sopir);
   if (pricingErr) { res.status(400).json({ error: pricingErr }); return; }
@@ -179,6 +181,7 @@ router.put("/rental/offer/:id", async (req, res): Promise<void> => {
       harga_dengan_sopir: wantSopir ? harga_dengan_sopir ?? null : null,
       deposit: wantLepas ? deposit ?? 0 : 0,
       catatan: catatan ?? null,
+      syarat: syarat?.trim() || null,
       alamat_kantor: alamat_kantor?.trim() || null,
       kantor_detail: kantor_detail ?? null,
       kantor_lat: kantor_lat ?? null,
@@ -284,6 +287,7 @@ router.get("/rental/search", async (req, res): Promise<void> => {
       harga_dengan_sopir: o.harga_dengan_sopir,
       deposit: o.deposit,
       catatan: o.catatan,
+      syarat: o.syarat,
       alamat_kantor: o.alamat_kantor,
       kantor_detail: o.kantor_detail,
       kantor_lat: o.kantor_lat,
@@ -319,6 +323,7 @@ router.get("/rental/:id", async (req, res): Promise<void> => {
     harga_dengan_sopir: o.harga_dengan_sopir,
     deposit: o.deposit,
     catatan: o.catatan,
+    syarat: o.syarat,
     alamat_kantor: o.alamat_kantor,
     kantor_detail: o.kantor_detail,
     kantor_lat: o.kantor_lat,
