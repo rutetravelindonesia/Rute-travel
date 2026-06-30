@@ -189,8 +189,16 @@ router.patch("/admin/users/:id", adminGuard(async (req: any, res: any) => {
   const updates: Record<string, any> = {};
   if (role) updates.role = role;
   if (nama) updates.nama = nama;
-  if (kota !== undefined) updates.kota = kota;
+  if (kota !== undefined) updates.kota = kota ? kota.trim().toLowerCase() : null;
   if (!Object.keys(updates).length) { res.status(400).json({ error: "Tidak ada perubahan." }); return; }
+  const [current] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!current) { res.status(404).json({ error: "User tidak ditemukan." }); return; }
+  const effectiveRole = updates.role ?? current.role;
+  const effectiveKota = updates.kota !== undefined ? updates.kota : current.kota;
+  if (effectiveRole === "driver" && (!effectiveKota || !effectiveKota.trim())) {
+    res.status(400).json({ error: "Mitra wajib mengisi provinsi dan kota domisili." });
+    return;
+  }
   const [u] = await db.update(usersTable).set(updates).where(eq(usersTable.id, id)).returning();
   await logAdmin(req.admin.id, req.admin.nama, "UPDATE_USER", `User #${id} diupdate: ${JSON.stringify(updates)}`);
   res.json(u);

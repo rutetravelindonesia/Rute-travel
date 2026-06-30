@@ -151,9 +151,15 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
   const isPenumpang = role === "penumpang";
   const isDriver = role === "driver";
+
+  if (isDriver && (!kota || !kota.trim())) {
+    res.status(400).json({ error: "Mitra wajib mengisi provinsi dan kota domisili." });
+    return;
+  }
+
+  const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
   const [user] = await db.insert(usersTable).values({
     nama,

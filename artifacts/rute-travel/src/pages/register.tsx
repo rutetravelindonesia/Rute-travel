@@ -347,6 +347,11 @@ export default function RegisterPage() {
       }
     }
 
+    if (userType === "driver" && !form.kota) {
+      setError("Pilih provinsi dan kota domisili Anda.");
+      return;
+    }
+
     const payload = {
       nama: form.name,
       no_whatsapp: form.phone,

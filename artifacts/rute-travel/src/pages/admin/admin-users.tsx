@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth";
+import { useKota } from "@/hooks/useKota";
+import { ProvinsiKotaPicker } from "@/components/ProvinsiKotaPicker";
 import AdminLayout from "./admin-layout";
 import { Loader2, Search, Pencil, Trash2, X, Check, ShieldOff, ShieldCheck, ZoomIn } from "lucide-react";
 
@@ -61,9 +63,11 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const { kota: kotaRows } = useKota();
   const [editing, setEditing] = useState<User | null>(null);
   const [editNama, setEditNama] = useState("");
   const [editRole, setEditRole] = useState("");
+  const [editKota, setEditKota] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; nama: string } | null>(null);
@@ -87,11 +91,12 @@ export default function AdminUsers() {
 
   async function handleEdit() {
     if (!editing || !token) return;
+    if (editRole === "driver" && !editKota) { setError("Mitra wajib punya provinsi & kota."); return; }
     setBusy(editing.id); setError(null);
     const r = await fetch(`${apiBase}/admin/users/${editing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ nama: editNama, role: editRole }),
+      body: JSON.stringify({ nama: editNama, role: editRole, kota: editKota || null }),
     });
     const d = await r.json();
     if (!r.ok) { setError(d.error ?? "Gagal."); setBusy(null); return; }
@@ -215,7 +220,7 @@ export default function AdminUsers() {
                             <Loader2 className="w-4 h-4 animate-spin text-[#a85e28]" />
                           ) : (
                             <>
-                              <button onClick={() => { setEditing(u); setEditNama(u.nama); setEditRole(u.role); setError(null); }}
+                              <button onClick={() => { setEditing(u); setEditNama(u.nama); setEditRole(u.role); setEditKota(u.kota ?? ""); setError(null); }}
                                 title="Edit" className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-600">
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
@@ -288,6 +293,7 @@ export default function AdminUsers() {
                 <option value="admin">Admin</option>
               </select>
             </div>
+            <ProvinsiKotaPicker kota={kotaRows} value={editKota} onChange={setEditKota} />
             <div className="flex gap-2">
               <button onClick={() => setEditing(null)} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-semibold">Batal</button>
               <button onClick={handleEdit} disabled={busy === editing.id}
