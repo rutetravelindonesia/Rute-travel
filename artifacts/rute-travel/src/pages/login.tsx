@@ -46,11 +46,18 @@ export default function LoginPage() {
           }
         },
         onError: (err) => {
-          if (err instanceof ApiError && err.data && typeof err.data === "object" && "error" in err.data) {
-            setError(String((err.data as { error: string }).error));
-          } else {
-            setError("Terjadi kesalahan. Coba lagi.");
+          if (err instanceof ApiError && err.data && typeof err.data === "object") {
+            const d = err.data as { error?: string; needs_otp?: boolean; user_id?: number };
+            if (d.needs_otp && d.user_id) {
+              setLocation(`/daftar?verify=${d.user_id}&wa=${encodeURIComponent(phone)}`);
+              return;
+            }
+            if (d.error) {
+              setError(String(d.error));
+              return;
+            }
           }
+          setError("Terjadi kesalahan. Coba lagi.");
         },
       }
     );

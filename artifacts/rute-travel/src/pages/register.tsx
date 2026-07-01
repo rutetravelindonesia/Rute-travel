@@ -318,6 +318,17 @@ export default function RegisterPage() {
 
   const [otpData, setOtpData] = useState<{ userId: number; noWa: string } | null>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verify = params.get("verify");
+    const wa = params.get("wa");
+    if (verify && wa && !Number.isNaN(Number(verify))) {
+      setUserType("penumpang");
+      setOtpData({ userId: Number(verify), noWa: wa });
+      setStep("otp");
+    }
+  }, []);
+
   const registerMutation = useRegister();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
