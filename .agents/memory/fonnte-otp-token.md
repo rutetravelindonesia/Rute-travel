@@ -36,6 +36,13 @@ Play Store app hits **railway.app** and uses **Railway's own env vars**. To fix 
 real users you MUST update FONNTE_TOKEN in the **Railway dashboard → Variables** and let
 Railway redeploy. The same applies to any secret the app reads in production.
 
+**Changing a Railway Variable does NOT reliably restart the already-running process** —
+the old value stays loaded until you explicitly **Restart/Redeploy** the service. Symptom
+seen: token updated in Railway + code deployed, yet OTP still failed, because the live
+process kept the old (invalid) token. To confirm token vs process: `curl` Fonnte `/send`
+directly with the known-good token — if it returns `status:true` and the target actually
+receives the WhatsApp, the token is fine and the fix is a Railway service restart, not code.
+
 # Recovering stuck unverified penumpang (do NOT re-register)
 
 Users with `is_verified=false` who never got a code must NOT re-register (their WA
