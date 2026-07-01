@@ -1,9 +1,4 @@
-function normalizePhone(phone: string): string {
-  let p = phone.replace(/\D/g, "");
-  if (p.startsWith("0")) p = "62" + p.slice(1);
-  if (!p.startsWith("62")) p = "62" + p;
-  return p;
-}
+import { normalizePhone } from "./phone";
 
 export async function sendWhatsAppOTP(phone: string, code: string): Promise<void> {
   const token = process.env.FONNTE_TOKEN;

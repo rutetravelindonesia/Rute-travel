@@ -6,6 +6,7 @@
 - [api-server tsc noise](api-server-typecheck-noise.md) — api-server has ~55 pre-existing tsc errors (adminGuard pattern), runs via esbuild not tsc; gate on frontend typecheck + baseline diff, not raw count.
 - [users.kota casing](users-kota-casing.md) — users.kota stored lowercase, kota_list.nama_kota capitalized; joins must use lower()=lower() or provinsi/wilayah lookups silently return null.
 - [kota_list seeding](kota-list-seeding.md) — kota_list = legacy Kaltim plain names (referenced, never delete) + national 38-prov/514-kab from idn-area-data generator; coexist by prefix, creates duplicate-looking Kalimantan options.
+- [Phone normalization](phone-normalization.md) — users.no_whatsapp is canonical "62…"; every match/write must call normalizePhone or login silently breaks; don't restart local before prod deploy (shared Railway DB).
 - [Fonnte OTP token](fonnte-otp-token.md) — "no OTP" = invalid FONNTE_TOKEN; validate via /send (NOT /device); Replit secret ≠ Railway prod (must update Railway too); bash env frozen, restart workflow to apply.
 - [Rental jam ketersediaan invariant](rental-jam-ketersediaan.md) — units carry 24jam vs jam_buka/jam_tutup; search filter, booking tx, and book-page validationMsg must use identical jam-window logic or penyewa hits dead-end 400.
 - [Rental booking flow](rental-booking-flow.md) — mode + periode chosen at SEARCH, carried via query string; booking page stays read-only; search filters by date-range availability/overlap.

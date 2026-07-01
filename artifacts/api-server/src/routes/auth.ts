@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { db, pool, usersTable, sessionsTable } from "@workspace/db";
 import { LoginBody, RegisterBody } from "@workspace/api-zod";
 import { sendWhatsAppOTP } from "../lib/fonnte";
+import { normalizePhone } from "../lib/phone";
 
 const router: IRouter = Router();
 
@@ -65,7 +66,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const { no_whatsapp, password, role } = parsed.data;
+  const { no_whatsapp: no_whatsapp_raw, password, role } = parsed.data;
+  const no_whatsapp = normalizePhone(no_whatsapp_raw);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.no_whatsapp, no_whatsapp));
 
   if (!user) {
@@ -117,7 +119,7 @@ router.post("/auth/admin-login", async (req, res): Promise<void> => {
   if (!no_whatsapp || !password) {
     res.status(400).json({ error: "no_whatsapp dan password wajib diisi." }); return;
   }
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.no_whatsapp, no_whatsapp));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.no_whatsapp, normalizePhone(no_whatsapp)));
   if (!user || user.role !== "admin") {
     res.status(401).json({ error: "Akun admin tidak ditemukan." }); return;
   }
@@ -140,10 +142,12 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const {
-    nama, no_whatsapp, password, role,
+    nama, no_whatsapp: no_whatsapp_raw, password, role,
     nik, kota, jenis_kendaraan, model_kendaraan, plat_nomor,
     foto_diri, foto_stnk,
   } = parsed.data;
+
+  const no_whatsapp = normalizePhone(no_whatsapp_raw);
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.no_whatsapp, no_whatsapp));
   if (existing) {

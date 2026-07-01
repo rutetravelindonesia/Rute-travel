@@ -10,6 +10,7 @@ import {
   scheduleBookingsTable,
   ratingsTable,
 } from "@workspace/db";
+import { normalizePhone } from "../lib/phone";
 function isValidFotoUrl(s: string): boolean {
   if (!s) return true;
   return s.startsWith("https://res.cloudinary.com/") || s.startsWith("/objects/uploads/");
@@ -80,7 +81,8 @@ router.patch("/users/me", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Data tidak valid." });
     return;
   }
-  const { nama, no_whatsapp } = parsed.data;
+  const { nama, no_whatsapp: no_whatsapp_raw } = parsed.data;
+  const no_whatsapp = normalizePhone(no_whatsapp_raw);
   if (no_whatsapp !== user.no_whatsapp) {
     const [existing] = await db
       .select({ id: usersTable.id })

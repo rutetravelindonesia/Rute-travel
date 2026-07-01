@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, pool, usersTable } from "@workspace/db";
 import { logger } from "./logger";
 import { KOTA_INDONESIA } from "./kota-indonesia";
+import { normalizePhone } from "./phone";
 
 const SALT_ROUNDS = 10;
 
@@ -119,6 +120,16 @@ export async function runMigrations(): Promise<void> {
     `DROP TABLE IF EXISTS tebengan_bookings CASCADE`,
     `DROP TABLE IF EXISTS tebengan_waypoints CASCADE`,
     `DROP TABLE IF EXISTS tebengan_pulang CASCADE`,
+    // Normalize existing phone numbers to canonical "62..." form (one-time, idempotent).
+    // Skips rows already normalized. Digits-only, 0-prefix -> 62, otherwise ensure 62 prefix.
+    `UPDATE users SET no_whatsapp = CASE
+       WHEN regexp_replace(no_whatsapp, '\\D', '', 'g') LIKE '0%'
+         THEN '62' || substring(regexp_replace(no_whatsapp, '\\D', '', 'g') from 2)
+       WHEN regexp_replace(no_whatsapp, '\\D', '', 'g') LIKE '62%'
+         THEN regexp_replace(no_whatsapp, '\\D', '', 'g')
+       ELSE '62' || regexp_replace(no_whatsapp, '\\D', '', 'g')
+     END
+     WHERE no_whatsapp !~ '^62[0-9]+$'`,
   ];
   for (const sql of migrations) {
     try {
@@ -168,10 +179,11 @@ export async function seedKota(): Promise<void> {
 
 export async function seedAdmin(): Promise<void> {
   try {
+    const adminPhone = normalizePhone(ADMIN_PHONE);
     const [existing] = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where(eq(usersTable.no_whatsapp, ADMIN_PHONE));
+      .where(eq(usersTable.no_whatsapp, adminPhone));
 
     if (existing) {
       logger.info("Admin account already exists — skipping seed.");
@@ -181,7 +193,7 @@ export async function seedAdmin(): Promise<void> {
     const password_hash = await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS);
     await db.insert(usersTable).values({
       nama: ADMIN_NAME,
-      no_whatsapp: ADMIN_PHONE,
+      no_whatsapp: adminPhone,
       password_hash,
       role: "admin",
     });
